@@ -1,7 +1,7 @@
 # Define the Business Blueprint schema and lifecycle
 
 Type: grilling  
-Status: open  
+Status: claimed
 Blocked by: 01, 05
 
 ## Question
