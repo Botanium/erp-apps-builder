@@ -86,5 +86,41 @@ Applicable. This defines required semantic coverage only; it does not define
 exact schema fields, select Capabilities, or decide which unresolved facts
 block Draft Blueprint generation.
 
+#### Sensitive Data Class model
+
+Every data category named in an Intent Brief must carry exactly one Sensitive
+Data Class, independent of its Intent State, together with an owner-reviewable
+rationale and attributable source:
+
+- **Public:** explicitly approved for public disclosure.
+- **Internal:** non-public, low-harm operational data containing no
+  Confidential or Restricted content.
+- **Confidential:** personal, commercial, employee, customer, or detailed
+  financial data whose disclosure could cause material harm.
+- **Restricted:** secrets, authentication material, full payment or bank
+  credentials, government identifiers or passports, medical or clinical data,
+  biometrics, or data whose declared legal or owner constraint forbids external
+  processing.
+
+Mixed data inherits the most restrictive applicable class. An Unknown,
+Ambiguous, or Conflicting classification is handled as Restricted until
+resolved, and AI may never downgrade a class.
+
+Public data may be eligible for external AI. Internal data requires a declared
+provider policy, data minimization, and explicit owner approval. Confidential
+data additionally requires supported jurisdiction and handling rules plus
+redaction or minimization. Restricted data must never be sent to an external AI
+provider in v1.
+
+The Owner Interview captures sensitive-data categories and constraints, not
+live credentials, payment-card numbers, identity-document contents, or medical
+records. An unsupported safety profile stops Draft Blueprint generation with a
+clear explanation.
+
+A Sensitive Data Class is a governed exposure boundary, not a Role permission,
+field-visibility rule, legal conclusion, or proof of compliance. Avoid using
+privacy level, permission, secrecy flag, compliance status, or sensitivity
+score as synonyms.
+
 This ticket remains claimed until the remaining Owner Interview contract
 decisions are resolved.

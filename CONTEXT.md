@@ -16,6 +16,10 @@ _Avoid_: Requirements document, prompt, transcript, app specification, Business 
 A classification attached to each material statement in an Intent Brief that preserves whether and how its meaning is established without granting execution authority.
 _Avoid_: Confidence score, AI certainty, completion status, validation result
 
+**Sensitive Data Class**:
+An owner-reviewed classification attached to every data category named in an Intent Brief that records the most restrictive permitted exposure boundary for its contents.
+_Avoid_: Privacy level, permission, secrecy flag, compliance status, sensitivity score
+
 **Business Blueprint**:
 A versioned, owner-reviewable description of one business's capabilities, roles, workflows, records, evidence rules, and experience.
 _Avoid_: App spec, generated app, customer fork
