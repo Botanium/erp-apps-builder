@@ -246,5 +246,61 @@ permission to provision. This contract does not yet decide lifecycle
 transitions, approval eligibility, compatibility verdicts, concurrency,
 supersession, or reset.
 
+#### Blueprint Lifecycle State contract
+
+Use five externally recorded Blueprint Lifecycle States. The state belongs to
+an attributable lifecycle record bound to the exact Blueprint Reference and
+Blueprint Content Identity; it is not stored inside or allowed to mutate the
+immutable Blueprint Version.
+
+1. **Draft:** the initial state of every newly created Blueprint Version. It is
+   owner-reviewable but has no authority to provision or update a Sandbox
+   Experience.
+2. **Approved:** the exact Draft Blueprint has received an explicit Blueprint
+   Approval and is the lineage's current approved target. Approval authorizes
+   eligibility for governed provisioning; it does not mean validation,
+   compatibility, provisioning, or application succeeded.
+3. **Rejected:** the owner explicitly declined the exact Draft Blueprint. It
+   has no execution authority and is terminal.
+4. **Superseded:** a previously Approved Blueprint ceased to be the lineage's
+   current approved target because a later Version became Approved. Its
+   historical Blueprint Approval remains attributable, but it is no longer the
+   default authority for new provisioning and is terminal.
+5. **Withdrawn:** the owner explicitly ended the current authorization of an
+   Approved Blueprint without approving a replacement. Historical approval and
+   withdrawal remain attributable, the Version has no further execution
+   authority, and the state is terminal.
+
+Allowed transitions are:
+
+- creation -> Draft;
+- Draft -> Approved through one explicit Blueprint Approval that binds the
+  exact Blueprint Reference and Content Identity;
+- Draft -> Rejected through one explicit owner rejection;
+- Approved -> Superseded atomically when a later Draft becomes the lineage's
+  current Approved Blueprint; and
+- Approved -> Withdrawn through an explicit owner withdrawal.
+
+No other in-place transitions are allowed. Rejected, Superseded, and Withdrawn
+Versions cannot return to Draft or Approved. Editing, repairing, retrying,
+reverting, or adopting content from any Version always creates a new Draft with
+a new Blueprint Reference, even when its Content Identity matches historical
+content. The source Version and lifecycle state do not change.
+
+Interview completion, preview viewing, option selection, validation success or
+failure, equal Content Identity, Semantic Diff review, compatibility checks,
+provisioning attempts, applied runtime state, and reset do not by themselves
+change Blueprint Lifecycle State. Each allowed transition must preserve the
+responsible source, effective time, recorded time, exact prior and resulting
+state, reason when supplied, and the governing owner decision.
+
+At most one Version in a Blueprint lineage may be Approved as the current
+approved target at a time. A Sandbox Experience may temporarily remain applied
+from a Superseded Version until a newer Approved Version is successfully
+applied; applied state is separate from lifecycle state. This contract defines
+lifecycle states and transitions only; approval eligibility, concurrency
+handling, compatibility verdicts, provisioning, rollback, and reset remain
+later decisions.
+
 This ticket remains claimed until the remaining Business Blueprint schema and
 lifecycle decisions are resolved.

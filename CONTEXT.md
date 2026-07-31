@@ -52,6 +52,10 @@ _Avoid_: Version number, label, timestamp, latest Blueprint, content hash, appro
 A deterministic cryptographic digest of a Blueprint Version's canonical owner-reviewed Governed Configuration and Intent Traceability under its governing Configuration Schema, used to establish content equality without replacing its Blueprint Reference or granting approval.
 _Avoid_: Version Identity, file checksum, approval token, digital signature, Semantic Diff, deployment fingerprint
 
+**Blueprint Lifecycle State**:
+The externally recorded review-and-authorization status of one immutable Blueprint Version—Draft, Approved, Rejected, Superseded, or Withdrawn—without describing validation, provisioning, deployment, or runtime state.
+_Avoid_: Blueprint content, interview stage, validation result, compatibility verdict, deployment status, applied Version, runtime state
+
 **Draft Blueprint**:
 A Business Blueprint version that remains under owner review and is not authorized to provision or update a Sandbox Experience.
 _Avoid_: Proposed app, saved interview, pending system
