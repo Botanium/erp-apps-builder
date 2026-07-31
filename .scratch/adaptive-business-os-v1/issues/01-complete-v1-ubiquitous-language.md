@@ -91,7 +91,16 @@ Order, or Stock Movement.
 
 _Avoid_: Sale, cart, invoice, Kitchen Ticket, Purchase Order
 
+### Payment
+
+A tenant-scoped Record of a governed transfer of monetary value between
+parties, preserving its amount, currency, direction, method, effective time,
+and any allocation to an obligation. It is not a payment promise or intent,
+invoice, receipt artifact, cash-drawer action, or Ledger Entry.
+
+_Avoid_: Receipt, transaction, payment intent, cash entry, Ledger Entry
+
 ## Current term
 
-**Payment** — awaiting Botan's answer to the next one-question-at-a-time
+**Ledger Entry** — awaiting Botan's answer to the next one-question-at-a-time
 domain-modeling decision.
