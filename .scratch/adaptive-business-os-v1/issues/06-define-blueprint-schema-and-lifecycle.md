@@ -38,5 +38,41 @@ Blueprint's proposed Governed Configuration at one point in its lineage,
 independently validatable without replaying earlier versions. It is not a
 patch, mutable draft file, current runtime state, deployment, or approval.
 
+#### Business Blueprint authority-boundary contract
+
+A Blueprint Version is authoritative only for the Tenant's proposed Governed
+Configuration and the traceability needed to review that proposal.
+
+It must contain:
+
+1. An immutable envelope identifying its Blueprint lineage, Version, Tenant,
+   parent Version when present, governing Configuration Schema version, source
+   Intent Brief version or versions, and creation provenance. The identifier
+   format remains a later decision.
+2. The complete desired Governed Configuration expressed only through declared
+   Configuration Schemas, including supported selections and settings for
+   business scope, Locations, Capabilities, Records, Workflows, Roles, Evidence
+   rules, business-policy profiles, interfaces, reports, dashboards,
+   localization, data handling, and integrations.
+3. Source traceability from each material proposal to the relevant Intent Brief
+   statements, Acceptance Conditions, Assumptions, constraints, exclusions,
+   and Unsupported intent. It carries Evidence requirements and references,
+   not runtime Evidence instances.
+
+The Blueprint Version must not contain Blueprint Approval or approval Evidence;
+semantic diffs, previews, diagnostics, or validation reports; compiled
+artifacts such as an Effective Blueprint, Capability Manifest, or Execution
+Graph; migration, rollback, provisioning, or deployment state; runtime Records,
+Business Events, Stock Movements, Ledger Entries, balances, or participant
+assignments; credentials, secrets, arbitrary code, operational traces, or test
+results. Those are separate artifacts or runtime state and must reference the
+exact Blueprint Version when related.
+
+The Blueprint declares desired configuration; the Business Kernel validates,
+compiles, authorizes, applies, and observes it. Keeping later outcomes outside
+means approval or execution never mutates the content that was reviewed. This
+decision establishes the authority boundary only; the exact top-level schema
+sections and field shapes remain the next question.
+
 This ticket remains claimed until the remaining Business Blueprint schema and
 lifecycle decisions are resolved.

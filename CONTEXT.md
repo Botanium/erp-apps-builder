@@ -33,8 +33,8 @@ An unresolved condition in an Intent Brief that prevents safe, meaningful Draft 
 _Avoid_: Validation warning, approval denial, missing field, deployment blocker, unsupported preference
 
 **Business Blueprint**:
-A versioned, owner-reviewable description of one business's capabilities, roles, workflows, records, evidence rules, and experience.
-_Avoid_: App spec, generated app, customer fork
+A versioned, owner-reviewable declaration of one Tenant's proposed Governed Configuration for Capabilities, Records, Workflows, Roles, Evidence rules, and experience, together with its intent traceability. It is not approval truth, compiled output, runtime business state, credentials, or deployment state.
+_Avoid_: App specification, generated app, customer fork, live Tenant twin, deployment package, approval record
 
 **Blueprint Version**:
 An immutable, self-contained snapshot of a Business Blueprint's proposed Governed Configuration at one point in its lineage, independently validatable without replaying earlier versions.
