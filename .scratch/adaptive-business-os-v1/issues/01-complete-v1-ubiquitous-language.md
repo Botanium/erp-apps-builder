@@ -24,7 +24,16 @@ neither tenant-specific code nor an entire vertical application.
 
 _Avoid_: Module, feature, app, plugin, tenant code
 
+### Record
+
+A durable, tenant-scoped business object recognized by an enabled Capability
+and governed through a defined lifecycle. It may appear through many
+interfaces, but it is not a form, screen, report row, transient agent message,
+or derived view.
+
+_Avoid_: Document, row, form, screen, saved data
+
 ## Current term
 
-**Record** — awaiting Botan's answer to the next one-question-at-a-time
+**Workflow** — awaiting Botan's answer to the next one-question-at-a-time
 domain-modeling decision.
