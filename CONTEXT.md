@@ -9,7 +9,7 @@ A guided business-discovery conversation whose owner-accepted answers become inp
 _Avoid_: Prompt, requirements chat, app request
 
 **Intent Brief**:
-A versioned, owner-reviewable Record of the business intent captured by an Owner Interview, preserving accepted facts, unresolved questions, assumptions, constraints, sensitive-data classifications, and acceptance conditions together with their sources. It is input to Draft Blueprint generation but is neither a Business Blueprint, owner approval, executable configuration, nor authority for any Business Kernel action.
+A versioned, owner-reviewable Record of the business intent captured by an Owner Interview, preserving accepted facts, unresolved questions, constraints, sensitive-data classifications, and acceptance conditions together with their sources. It is input to Draft Blueprint generation but is neither a Business Blueprint, owner approval, executable configuration, nor authority for any Business Kernel action.
 _Avoid_: Requirements document, prompt, transcript, app specification, Business Blueprint
 
 **Intent State**:

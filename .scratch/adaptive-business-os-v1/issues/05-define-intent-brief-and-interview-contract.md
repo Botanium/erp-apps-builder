@@ -18,10 +18,10 @@ it may produce a Draft Blueprint?
 
 An Intent Brief is a versioned, owner-reviewable Record of the business intent
 captured by an Owner Interview, preserving accepted facts, unresolved
-questions, assumptions, constraints, sensitive-data classifications, and
-acceptance conditions together with their sources. It is input to Draft
-Blueprint generation but is neither a Business Blueprint, owner approval,
-executable configuration, nor authority for any Business Kernel action.
+questions, constraints, sensitive-data classifications, and acceptance
+conditions together with their sources. It is input to Draft Blueprint
+generation but is neither a Business Blueprint, owner approval, executable
+configuration, nor authority for any Business Kernel action.
 
 Avoid using Requirements document, prompt, transcript, app specification, or
 Business Blueprint as synonyms.
@@ -36,8 +36,6 @@ and an attributable source:
 - **Unknown:** the answer has not been provided or established.
 - **Ambiguous:** the source admits more than one plausible meaning.
 - **Conflicting:** attributable sources assert incompatible meanings.
-- **Assumed:** a provisional value is stated with its rationale and impact but
-  is not owner-confirmed.
 - **Not Applicable:** the owner explicitly accepts that the question does not
   apply.
 - **Unsupported:** the requested intent lies outside a declared schema,
@@ -121,6 +119,18 @@ A Sensitive Data Class is a governed exposure boundary, not a Role permission,
 field-visibility rule, legal conclusion, or proof of compliance. Avoid using
 privacy level, permission, secrecy flag, compliance status, or sensitivity
 score as synonyms.
+
+#### Assumption contract — forbid all assumptions alternative
+
+An Intent Brief may not contain Assumptions. Any material statement that is not
+Confirmed or Not Applicable must remain unresolved, and Draft Blueprint
+generation waits for explicit owner resolution.
+
+To keep this alternative internally coherent, this branch removes assumptions
+from the Intent Brief definition and removes Assumed from the Intent State
+model. It knowingly diverges from the intent-to-blueprint research
+recommendation and from `PLATFORM-BLUEPRINT.md`; those sources would require
+owner-approved reconciliation before this alternative could become canonical.
 
 This ticket remains claimed until the remaining Owner Interview contract
 decisions are resolved.
