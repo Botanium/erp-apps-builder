@@ -429,5 +429,69 @@ owner rejection, or authority to discard work. This contract decides concurrent
 Draft and stale-approval handling only; compatibility verdict categories,
 provisioning, rollback, and reset remain later decisions.
 
+#### Blueprint Compatibility Verdict contract
+
+Use a closed, fail-closed, target-specific Compatibility Verdict model. A
+verdict is a derived, externally recorded review artifact; it is not Blueprint
+content, a Blueprint Lifecycle State, Blueprint Approval, provisioning
+authority, or runtime state.
+
+Every verdict must bind the exact Blueprint Reference and Content Identity being
+evaluated; the exact Tenant and target Sandbox Experience; its exact Applied
+Blueprint Reference and Content Identity or explicit absence; the relevant
+observed runtime-state facts; and the exact Business Kernel, Configuration
+Schema, Capability, adapter, validator-policy, and comparison-mapping versions
+used.
+
+Exactly one of six verdicts applies to each target:
+
+1. **Initial Provision Compatible:** the target has no Applied Blueprint or
+   retained runtime business state, and the candidate can be provisioned from
+   the declared clean boundary.
+2. **In-Place Compatible:** declared compatibility rules prove that the target
+   can adopt the candidate without reset, migration, destructive rewrite,
+   reinterpretation of existing business truth, or invalidation of retained
+   Records or Evidence.
+3. **Reset Required:** the candidate is valid for a clean target, but existing
+   Sandbox state cannot safely be retained; the supported path is a full
+   sandbox-only reset followed by reprovisioning. The verdict does not authorize
+   or claim that reset.
+4. **Migration Required:** retaining the target state would require a data,
+   schema, or configuration transformation, backfill, or reinterpretation.
+   Migration is unsupported in v1; this verdict is neither a migration plan nor
+   permission to perform one.
+5. **Incompatible:** declared Business Kernel, Configuration Schema, Capability,
+   safety, or target constraints prove that the candidate cannot be supported
+   even from the permitted clean boundary.
+6. **Indeterminate:** a required input, compatibility rule, comparison mapping,
+   or runtime-state fact is missing, stale, unresolved, or non-comparable. It
+   fails closed and may never be guessed into a more permissive verdict.
+
+Every material path must have a path-level result and stable explanation. The
+target verdict is the least permissive required result: Incompatible takes
+precedence, then Indeterminate, Migration Required, Reset Required, and In-Place
+Compatible; Initial Provision Compatible applies only to a declared clean
+target. More restrictive path diagnostics remain visible even when another
+category determines the target verdict.
+
+Initial Provision Compatible and In-Place Compatible may satisfy the
+compatibility prerequisite for Blueprint Approval Eligibility. Reset Required
+may also do so only when clean reprovisioning is supported and the review bundle
+exposes the complete reset scope, affected fictitious data, and separate reset
+authorization boundary. Migration Required, Incompatible, and Indeterminate
+block Blueprint Approval Eligibility in v1.
+
+Each retail or cafe Sandbox target receives its own verdict; an aggregate label
+may summarize but may never hide a target-specific result. Any change to a bound
+input makes the verdict stale and requires recomputation. Equal Blueprint
+Content Identity, a prior verdict, owner preference, or successful validation
+cannot transfer compatibility to another Blueprint Reference or target
+baseline.
+
+This contract decides compatibility inputs, categories, aggregation, and their
+v1 eligibility consequences only. It does not decide provisioning steps,
+migration design, rollback behavior, reset authorization, or applied-state
+transitions.
+
 This ticket remains claimed until the remaining Business Blueprint schema and
 lifecycle decisions are resolved.
