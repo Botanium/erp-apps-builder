@@ -53,5 +53,38 @@ Intent Brief that preserves whether and how its meaning is established without
 granting execution authority. Avoid using confidence score, AI certainty,
 completion status, or validation result as synonyms.
 
+#### Required fact coverage
+
+Before a Draft Blueprint may be produced, an Intent Brief must contain material
+statements, each carrying an Intent State and attributable source, that cover
+all eight fact families:
+
+1. **Purpose and scope:** the owner's goal, whether this is a new system or
+   replacement, target business kinds, desired outcomes, and explicit
+   exclusions.
+2. **Safety and jurisdiction:** operating countries, data-location, retention,
+   and legal constraints; data types present; and external-AI restrictions.
+3. **Business shape:** goods or services offered, Locations, operating hours,
+   languages, currencies, units, taxes, and current tools or data sources.
+4. **Customer and fulfillment journey:** channels, request or ordering path,
+   sale, Payment, collection or fulfillment, required lifecycle states, and
+   exception paths.
+5. **Supply, stock, and capacity:** suppliers, purchasing, receiving, inventory
+   or ingredients, service or time capacity, normalized units, and costing
+   needs.
+6. **People and governance:** participants, candidate Roles, responsibilities,
+   governed actions, approvals, separation-of-duty needs, and Evidence duties.
+7. **Money and accounting:** cash, bank, credit, deposits and refunds,
+   accounting depth, fiscal and tax constraints, starting balances, and export
+   needs.
+8. **Experience and integrations:** device and offline needs, role-specific
+   interfaces, reports and dashboards, language or branding needs, and
+   external systems.
+
+Every family must be represented, but a family may be explicitly Not
+Applicable. This defines required semantic coverage only; it does not define
+exact schema fields, select Capabilities, or decide which unresolved facts
+block Draft Blueprint generation.
+
 This ticket remains claimed until the remaining Owner Interview contract
 decisions are resolved.
