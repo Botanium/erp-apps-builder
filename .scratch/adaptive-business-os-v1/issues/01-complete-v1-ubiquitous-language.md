@@ -53,7 +53,17 @@ implementation.
 
 _Avoid_: User, account, job title, permission set, profile
 
+### Evidence
+
+A durable, attributable fact or artifact that supports a governed claim,
+decision, action, or Workflow transition, with its origin and time preserved.
+It may consist of or reference Records, observations, tests, or explicit
+reviewer decisions, but it is not an AI assertion, operational trace, UI
+notification, or report by itself.
+
+_Avoid_: Proof, log, attachment, note, AI output
+
 ## Current term
 
-**Evidence** — awaiting Botan's answer to the next one-question-at-a-time
+**Tenant** — awaiting Botan's answer to the next one-question-at-a-time
 domain-modeling decision.

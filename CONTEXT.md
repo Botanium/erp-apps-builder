@@ -44,6 +44,10 @@ _Avoid_: Process, flow, automation, checklist, agent plan
 A named, Blueprint-defined bundle of business responsibilities, permitted governed actions, and scope, assignable to one or more business participants. It may shape interfaces, Evidence duties, and Workflow participation, but it is not a person, login account, job title, permission flag, or authorization implementation.
 _Avoid_: User, account, job title, permission set, profile
 
+**Evidence**:
+A durable, attributable fact or artifact that supports a governed claim, decision, action, or Workflow transition, with its origin and time preserved. It may consist of or reference Records, observations, tests, or explicit reviewer decisions, but it is not an AI assertion, operational trace, UI notification, or report by itself.
+_Avoid_: Proof, log, attachment, note, AI output
+
 **Governed Configuration**:
 AI-proposed Business Blueprint content constrained by Configuration Schemas and validated for execution by the Business Kernel.
 _Avoid_: Generated code, prompt logic, tenant fork
