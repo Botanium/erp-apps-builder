@@ -64,6 +64,10 @@ _Avoid_: Sale, cart, invoice, Kitchen Ticket, Purchase Order
 A tenant-scoped Record of a governed transfer of monetary value between parties, preserving its amount, currency, direction, method, effective time, and any allocation to an obligation. It is not a payment promise or intent, invoice, receipt artifact, cash-drawer action, or Ledger Entry.
 _Avoid_: Receipt, transaction, payment intent, cash entry, Ledger Entry
 
+**Ledger Entry**:
+A tenant-scoped, immutable accounting Record that assigns one debit or credit amount in one currency to one ledger account as part of a balanced posting linked to a Business Event. It is not a Payment, invoice line, account balance, journal transaction, cash movement, or editable bookkeeping row.
+_Avoid_: Journal, transaction, posting, line item, balance
+
 **Governed Configuration**:
 AI-proposed Business Blueprint content constrained by Configuration Schemas and validated for execution by the Business Kernel.
 _Avoid_: Generated code, prompt logic, tenant fork

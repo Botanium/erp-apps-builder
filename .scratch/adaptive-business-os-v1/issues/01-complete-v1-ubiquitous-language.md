@@ -100,7 +100,16 @@ invoice, receipt artifact, cash-drawer action, or Ledger Entry.
 
 _Avoid_: Receipt, transaction, payment intent, cash entry, Ledger Entry
 
+### Ledger Entry
+
+A tenant-scoped, immutable accounting Record that assigns one debit or credit
+amount in one currency to one ledger account as part of a balanced posting
+linked to a Business Event. It is not a Payment, invoice line, account balance,
+journal transaction, cash movement, or editable bookkeeping row.
+
+_Avoid_: Journal, transaction, posting, line item, balance
+
 ## Current term
 
-**Ledger Entry** — awaiting Botan's answer to the next one-question-at-a-time
+**Stock Movement** — awaiting Botan's answer to the next one-question-at-a-time
 domain-modeling decision.
