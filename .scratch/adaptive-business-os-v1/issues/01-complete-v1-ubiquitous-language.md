@@ -1,7 +1,7 @@
 # Complete the v1 ubiquitous language
 
 Type: grilling  
-Status: claimed  
+Status: resolved
 Blocked by: None
 
 ## Question
@@ -13,7 +13,7 @@ Payment, Ledger Entry, Stock Movement, and Business Event, extending
 
 ## Answer
 
-This ticket remains claimed while its terms are resolved one at a time.
+This ticket is resolved. Its terms were accepted one at a time.
 
 ### Capability
 
@@ -120,7 +120,18 @@ balance, freehand stock edit, Order line, or Ledger Entry.
 
 _Avoid_: Stock balance, adjustment, transfer, inventory row, Ledger Entry
 
-## Current term
+### Business Event
 
-**Business Event** — awaiting Botan's answer to the final one-question-at-a-time
-domain-modeling decision.
+An immutable, tenant-scoped fact recognized by the Business Kernel that a
+governed business occurrence happened, preserving its effective time, recorded
+time, responsible source, and causation. It is the causal source to which any
+resulting Record transitions, Stock Movements, and balanced Ledger Entries
+link, but it is not a command, request, UI action, agent trace, log message, or
+any of those resulting effects.
+
+_Avoid_: Event log, command, action, webhook, trace
+
+## Resolution
+
+Resolved after Botan accepted all twelve terms one at a time. The canonical
+definitions are recorded in `CONTEXT.md`.

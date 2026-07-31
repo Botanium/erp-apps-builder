@@ -72,6 +72,10 @@ _Avoid_: Journal, transaction, posting, line item, balance
 A tenant-scoped, immutable inventory Record that transfers a positive quantity of one item or ingredient, in one normalized unit, from a source to a destination at an effective time and links the transfer to its causing Business Event. A source or destination may be a Tenant Location or an explicit supplier, customer, consumption, or adjustment boundary; it is not an on-hand balance, freehand stock edit, Order line, or Ledger Entry.
 _Avoid_: Stock balance, adjustment, transfer, inventory row, Ledger Entry
 
+**Business Event**:
+An immutable, tenant-scoped fact recognized by the Business Kernel that a governed business occurrence happened, preserving its effective time, recorded time, responsible source, and causation. It is the causal source to which any resulting Record transitions, Stock Movements, and balanced Ledger Entries link, but it is not a command, request, UI action, agent trace, log message, or any of those resulting effects.
+_Avoid_: Event log, command, action, webhook, trace
+
 **Governed Configuration**:
 AI-proposed Business Blueprint content constrained by Configuration Schemas and validated for execution by the Business Kernel.
 _Avoid_: Generated code, prompt logic, tenant fork

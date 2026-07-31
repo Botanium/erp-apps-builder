@@ -41,6 +41,7 @@ fictitious data, and reset cleanly.
 
 ## Decisions so far
 
+- [Complete the v1 ubiquitous language](issues/01-complete-v1-ubiquitous-language.md): establish distinct canonical boundaries for Capability, Record, Workflow, Role, Evidence, Tenant, Location, Order, Payment, Ledger Entry, Stock Movement, and Business Event; only Business Kernel-recognized occurrences are business truth, while commands, UI actions, and agent traces are not, and immutable Stock Movements and Ledger Entries link to causal Business Events.
 - [Research intent-to-blueprint patterns](issues/02-research-intent-to-blueprint-patterns.md): translate conversation into a typed Intent Brief, independently validate and normalize it, preview the immutable Draft Blueprint without side effects, and bind approval to its exact identity; model output is never authority.
 - [Research agent control and durable workflow patterns](issues/03-research-agent-control-and-durable-workflows.md): separate agent proposal control, resumable orchestration, and idempotent Business Kernel commands; runtime traces and histories are operational evidence, not business audit truth.
 - [Research ledger and inventory invariants](issues/04-research-ledger-inventory-invariants.md): require balanced atomic postings, immutable linked corrections, idempotent stock and ledger effects, independently recomputable reconciliation, and whole-sandbox reset; ticket 09 still owns the v1 policy choices.
