@@ -81,7 +81,17 @@ Tenant, a department, a storage bin, or a device.
 
 _Avoid_: Branch, site, outlet, warehouse, address
 
+### Order
+
+A tenant-scoped Record of an accepted customer request for specified goods or
+services, quantities, prices, and allowed choices, governed from acceptance
+through fulfillment or cancellation. It establishes commercial and fulfillment
+intent but is not a cart, quote, invoice, Payment, Kitchen Ticket, Purchase
+Order, or Stock Movement.
+
+_Avoid_: Sale, cart, invoice, Kitchen Ticket, Purchase Order
+
 ## Current term
 
-**Order** — awaiting Botan's answer to the next one-question-at-a-time
+**Payment** — awaiting Botan's answer to the next one-question-at-a-time
 domain-modeling decision.

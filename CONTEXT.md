@@ -56,6 +56,10 @@ _Avoid_: Customer, account, organization, workspace, database
 A named operational boundary within a Tenant to which business activity, Roles, Records, stock, cash, or service may be scoped. It may represent a shop, cafe, warehouse, or other operating point, but it is not merely an address, a Tenant, a department, a storage bin, or a device.
 _Avoid_: Branch, site, outlet, warehouse, address
 
+**Order**:
+A tenant-scoped Record of an accepted customer request for specified goods or services, quantities, prices, and allowed choices, governed from acceptance through fulfillment or cancellation. It establishes commercial and fulfillment intent but is not a cart, quote, invoice, Payment, Kitchen Ticket, Purchase Order, or Stock Movement.
+_Avoid_: Sale, cart, invoice, Kitchen Ticket, Purchase Order
+
 **Governed Configuration**:
 AI-proposed Business Blueprint content constrained by Configuration Schemas and validated for execution by the Business Kernel.
 _Avoid_: Generated code, prompt logic, tenant fork
