@@ -48,6 +48,10 @@ _Avoid_: Header, metadata blob, approval record, audit log, deployment manifest
 An exact, immutable reference to one Blueprint Version composed of its Tenant Identity, Blueprint Identity, and Version Identity; a Version Number may aid display but is not sufficient authority.
 _Avoid_: Version number, label, timestamp, latest Blueprint, content hash, approval token
 
+**Blueprint Content Identity**:
+A deterministic cryptographic digest of a Blueprint Version's canonical owner-reviewed Governed Configuration and Intent Traceability under its governing Configuration Schema, used to establish content equality without replacing its Blueprint Reference or granting approval.
+_Avoid_: Version Identity, file checksum, approval token, digital signature, Semantic Diff, deployment fingerprint
+
 **Draft Blueprint**:
 A Business Blueprint version that remains under owner review and is not authorized to provision or update a Sandbox Experience.
 _Avoid_: Proposed app, saved interview, pending system

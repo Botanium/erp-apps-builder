@@ -179,5 +179,72 @@ its content identity; this contract defines identity construction only, not
 canonical serialization, content digest, semantic comparison, lifecycle
 transitions, compatibility, or reset.
 
+#### Blueprint content-identity and semantic-comparison contract
+
+Use a schema-aware canonical-content pipeline for every Blueprint Version.
+
+Canonical Blueprint Content consists of Tenant Identity, Blueprint Identity,
+governing Configuration Schema identity and version, source Intent Brief
+version references, and the complete Business Scope through Intent
+Traceability sections. It excludes Version Identity, Version Number, Parent
+Version Reference, creation time, creator or source, and the Content Identity
+field itself because those identify or describe the Version occurrence rather
+than its reviewed semantic content.
+
+Before Content Identity is calculated, the Business Kernel must:
+
+1. Validate the complete closed schema, supported versions, uniqueness, and
+   every cross-reference; invalid content has no Content Identity eligible for
+   review or approval.
+2. Require every material default or inferred value to be explicit in the
+   Blueprint. Canonicalization may not add owner intent, repair meaning, apply
+   a new business default, or remove Unsupported content.
+3. Normalize values only according to the governing Configuration Schema:
+   Unicode text to one declared normalization form; integers and fixed-precision
+   decimals to one exact representation; dates, times, currencies, and units
+   to their declared normalized forms; and object keys to deterministic order.
+4. Reject duplicate keys, non-finite numbers, ambiguous dates or times,
+   undeclared precision, comments, unknown properties, and unresolved
+   references.
+5. Sort collections by stable identity only when the schema declares them
+   unordered. When order affects the configured experience or behavior, the
+   order must be represented by an explicit schema field and is included in
+   canonical content. Labels, descriptions, and localized copy never identify
+   domain objects, but they remain owner-reviewed Blueprint content, so
+   changing them changes Content Identity.
+6. Serialize the result as deterministic UTF-8 canonical JSON with no
+   insignificant whitespace or transport-specific formatting.
+
+Blueprint Content Identity is recorded as `sha256:<lowercase hexadecimal
+digest>` over that canonical JSON. Its algorithm name is part of the value. The
+digest must be independently recomputable; any mismatch invalidates the
+artifact. A future digest algorithm requires a new named scheme and may not
+silently reinterpret an existing value.
+
+Equal Content Identities mean equal canonical Blueprint content only within the
+named Tenant, Blueprint lineage, and Configuration Schema interpretation. They
+do not mean equal Version Identity, shared provenance, approval, compatibility,
+deployment, or runtime state. Creating a new Version always creates a new
+Blueprint Reference even when its Content Identity matches an earlier Version.
+Blueprint Approval binds both the exact Blueprint Reference and its Content
+Identity and never transfers by digest equality.
+
+A Semantic Diff is a separate, derived review artifact produced by comparing
+two validated canonical content trees by stable identity and schema path, not
+raw text, labels, or array position. It must group changes by the eleven
+Blueprint sections; distinguish added, removed, changed, and explicitly
+reordered configuration; show old and new owner-reviewable values; preserve
+affected Intent Traceability, Acceptance Conditions, Assumptions, constraints,
+and Unsupported items; and flag unresolved or non-comparable paths without
+inventing an impact. Serialization-only differences produce no Semantic Diff.
+
+If Configuration Schema versions differ, the Semantic Diff must show that
+change first and use only a declared comparison mapping. Without one, affected
+paths are marked non-comparable rather than guessed. An empty Semantic Diff or
+equal Content Identity is review information only, not Blueprint Approval or
+permission to provision. This contract does not yet decide lifecycle
+transitions, approval eligibility, compatibility verdicts, concurrency,
+supersession, or reset.
+
 This ticket remains claimed until the remaining Business Blueprint schema and
 lifecycle decisions are resolved.
