@@ -155,5 +155,37 @@ preserves its rationale, affected scope, impact if wrong, and resolution
 condition. It is not a default, inference, recommendation, placeholder, or
 Confirmed fact.
 
+#### Acceptance Condition contract
+
+Every Acceptance Condition in an Intent Brief must carry an Intent State and
+attributable source and preserve:
+
+1. The owner-valued business outcome and why it matters.
+2. Its scope across relevant Roles, Locations, Records, and Workflows.
+3. The starting context, governed business action, and observable result in
+   plain business language.
+4. A clear pass condition plus any explicit failure condition or exclusion.
+5. The Evidence required and the owner or responsible reviewer who judges it.
+6. Its criticality as Required or Desired.
+7. Any Assumptions, constraints, or Sensitive Data Classes on which it depends.
+
+The interview may help phrase or decompose an Acceptance Condition, but it may
+not invent numeric thresholds, transfer an Assumption into a requirement, or
+mark the condition satisfied. A Draft Blueprint must trace its proposals back
+to the Acceptance Conditions they address and must expose conditions it cannot
+satisfy or cannot yet evaluate.
+
+An Acceptance Condition guides owner review; it is not Blueprint Approval, an
+implementation test, a feature checklist, a KPI, or Evidence that the outcome
+has passed. The later Reference Vertical Slice acceptance contract owns
+executable scenarios, fixtures, invariant checks, reset proof, and final
+acceptance evidence.
+
+An Acceptance Condition is an owner-defined, source-attributed, observable
+criterion in an Intent Brief stating which business outcome a proposed Business
+Blueprint must make demonstrable and what Evidence would satisfy it. Avoid
+using Blueprint Approval, test case, feature checklist, KPI, or proof of
+completion as synonyms.
+
 This ticket remains claimed until the remaining Owner Interview contract
 decisions are resolved.

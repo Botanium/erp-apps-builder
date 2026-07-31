@@ -24,6 +24,10 @@ _Avoid_: Privacy level, permission, secrecy flag, compliance status, sensitivity
 An explicitly marked, source-attributed provisional proposition in an Intent Brief used to continue owner review while intent remains unconfirmed, preserving its rationale, affected scope, impact if wrong, and resolution condition.
 _Avoid_: Default, inference, recommendation, placeholder, Confirmed fact
 
+**Acceptance Condition**:
+An owner-defined, source-attributed, observable criterion in an Intent Brief stating which business outcome a proposed Business Blueprint must make demonstrable and what Evidence would satisfy it.
+_Avoid_: Blueprint Approval, test case, feature checklist, KPI, proof of completion
+
 **Business Blueprint**:
 A versioned, owner-reviewable description of one business's capabilities, roles, workflows, records, evidence rules, and experience.
 _Avoid_: App spec, generated app, customer fork
