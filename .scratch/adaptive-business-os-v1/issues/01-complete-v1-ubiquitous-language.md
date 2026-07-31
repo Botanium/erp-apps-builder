@@ -13,9 +13,18 @@ Payment, Ledger Entry, Stock Movement, and Business Event, extending
 
 ## Answer
 
-_Not resolved._
+This ticket remains claimed while its terms are resolved one at a time.
+
+### Capability
+
+A reusable, versioned business ability provided by the Business Kernel and
+selected and configured by a Business Blueprint. It may shape records,
+workflows, roles, interfaces, reports, and governed business actions, but it is
+neither tenant-specific code nor an entire vertical application.
+
+_Avoid_: Module, feature, app, plugin, tenant code
 
 ## Current term
 
-**Capability** — awaiting Botan's answer to the first one-question-at-a-time
+**Record** — awaiting Botan's answer to the next one-question-at-a-time
 domain-modeling decision.

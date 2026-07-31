@@ -28,6 +28,10 @@ _Avoid_: Interview completion, preview viewing, option selection
 The governed business capabilities shared by every supported Business Blueprint rather than rebuilt for each business.
 _Avoid_: Shared kernel, ERP core, base app
 
+**Capability**:
+A reusable, versioned business ability provided by the Business Kernel and selected and configured by a Business Blueprint. It may shape records, workflows, roles, interfaces, reports, and governed business actions, but it is neither tenant-specific code nor an entire vertical application.
+_Avoid_: Module, feature, app, plugin, tenant code
+
 **Governed Configuration**:
 AI-proposed Business Blueprint content constrained by Configuration Schemas and validated for execution by the Business Kernel.
 _Avoid_: Generated code, prompt logic, tenant fork
