@@ -33,7 +33,17 @@ or derived view.
 
 _Avoid_: Document, row, form, screen, saved data
 
+### Workflow
+
+A versioned business progression selected or configured by a Business
+Blueprint, declaring how one or more Records may move through defined states
+and which governed business actions may occur at each transition. The Business
+Kernel enforces it; it is not a screen sequence, checklist, automation script,
+agent plan, or arbitrary executable process.
+
+_Avoid_: Process, flow, automation, checklist, agent plan
+
 ## Current term
 
-**Workflow** — awaiting Botan's answer to the next one-question-at-a-time
+**Role** — awaiting Botan's answer to the next one-question-at-a-time
 domain-modeling decision.
