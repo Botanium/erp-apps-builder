@@ -1,7 +1,7 @@
 # Complete the v1 ubiquitous language
 
 Type: grilling  
-Status: open  
+Status: claimed  
 Blocked by: None
 
 ## Question
@@ -14,3 +14,8 @@ Payment, Ledger Entry, Stock Movement, and Business Event, extending
 ## Answer
 
 _Not resolved._
+
+## Current term
+
+**Capability** — awaiting Botan's answer to the first one-question-at-a-time
+domain-modeling decision.

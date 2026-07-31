@@ -36,12 +36,14 @@ fictitious data, and reset cleanly.
   authorization enforcement, ledger posting, stock arithmetic, approval truth,
   migrations, and deployment truth.
 - Research tickets run on isolated throwaway `research/<name>` branches from
-  the owner-authorized local planning baseline. Research results remain
-  unmerged until their evidence and ticket resolution are reviewed.
+  the owner-authorized local planning baseline. Their results enter `master`
+  only after evidence review and ticket resolution.
 
 ## Decisions so far
 
-_None yet. Gate 1 fixed the Destination and scope before map creation._
+- [Research intent-to-blueprint patterns](issues/02-research-intent-to-blueprint-patterns.md): translate conversation into a typed Intent Brief, independently validate and normalize it, preview the immutable Draft Blueprint without side effects, and bind approval to its exact identity; model output is never authority.
+- [Research agent control and durable workflow patterns](issues/03-research-agent-control-and-durable-workflows.md): separate agent proposal control, resumable orchestration, and idempotent Business Kernel commands; runtime traces and histories are operational evidence, not business audit truth.
+- [Research ledger and inventory invariants](issues/04-research-ledger-inventory-invariants.md): require balanced atomic postings, immutable linked corrections, idempotent stock and ledger effects, independently recomputable reconciliation, and whole-sandbox reset; ticket 09 still owns the v1 policy choices.
 
 ## Not yet specified
 

@@ -1,7 +1,7 @@
 # Research intent-to-blueprint patterns
 
 Type: research  
-Status: claimed
+Status: resolved
 Blocked by: None
 
 ## Question
@@ -25,3 +25,14 @@ provider-limited structured output, independent canonical validation,
 schema-driven UI and workflow metadata, side-effect-free preview, immutable
 version approval, and the failure modes that must constrain the v1 contract.
 The evidence is ready for owner review; no stack or final contract is selected.
+
+## Review
+
+Resolved on 2026-07-31 after checking the central claims against the owning
+primary sources. Official TypeChat, OpenAI, JSON Schema, JSON Forms, AWS, and
+Kubernetes material supports the note's separation of conversational response
+models, canonical validation, bounded presentation/workflow metadata,
+side-effect-free preview, and immutable version identity. Product-specific
+constraints are labeled as v1 implications rather than vendor claims. Final
+schema, interview, kernel, and stack decisions remain in their downstream
+Wayfinder tickets.

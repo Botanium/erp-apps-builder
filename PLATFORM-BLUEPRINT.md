@@ -807,11 +807,10 @@ Targets should be baselined during Phase 0, then tracked:
 
 ## Immediate next decision
 
-Gate 1 is closed and the canonical local Wayfinder map now exposes the initial
-decision frontier. Botan authorized a local planning baseline and isolated
-throwaway branches for the three unblocked research tickets. Work the frontier
-one claimed decision ticket at a time; review research evidence before merging
-or resolving a ticket.
+The canonical local Wayfinder map owns the current decision frontier. The first
+three research notes were reviewed and integrated as evidence without selecting
+a stack or authorizing implementation. Work the frontier one claimed decision
+ticket at a time and keep full resolutions in their child tickets.
 
 No implementation, deployment, customer data import, or production change
 should begin until the decision map produces an owner-approved specification
