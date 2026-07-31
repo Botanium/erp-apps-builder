@@ -40,6 +40,10 @@ _Avoid_: App specification, generated app, customer fork, live Tenant twin, depl
 An immutable, self-contained snapshot of a Business Blueprint's proposed Governed Configuration at one point in its lineage, independently validatable without replaying earlier versions.
 _Avoid_: Patch, revision file, mutable draft, current runtime state, deployment, approval
 
+**Blueprint Envelope**:
+The immutable metadata section of a Blueprint Version that identifies its Blueprint lineage, exact Version, Tenant, governing Configuration Schema, source Intent Brief versions, optional parent Version, and creation provenance without carrying approval or runtime state.
+_Avoid_: Header, metadata blob, approval record, audit log, deployment manifest
+
 **Draft Blueprint**:
 A Business Blueprint version that remains under owner review and is not authorized to provision or update a Sandbox Experience.
 _Avoid_: Proposed app, saved interview, pending system
