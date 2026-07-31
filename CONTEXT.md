@@ -68,6 +68,10 @@ _Avoid_: Receipt, transaction, payment intent, cash entry, Ledger Entry
 A tenant-scoped, immutable accounting Record that assigns one debit or credit amount in one currency to one ledger account as part of a balanced posting linked to a Business Event. It is not a Payment, invoice line, account balance, journal transaction, cash movement, or editable bookkeeping row.
 _Avoid_: Journal, transaction, posting, line item, balance
 
+**Stock Movement**:
+A tenant-scoped, immutable inventory Record that transfers a positive quantity of one item or ingredient, in one normalized unit, from a source to a destination at an effective time and links the transfer to its causing Business Event. A source or destination may be a Tenant Location or an explicit supplier, customer, consumption, or adjustment boundary; it is not an on-hand balance, freehand stock edit, Order line, or Ledger Entry.
+_Avoid_: Stock balance, adjustment, transfer, inventory row, Ledger Entry
+
 **Governed Configuration**:
 AI-proposed Business Blueprint content constrained by Configuration Schemas and validated for execution by the Business Kernel.
 _Avoid_: Generated code, prompt logic, tenant fork
