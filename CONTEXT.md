@@ -52,6 +52,10 @@ _Avoid_: Proof, log, attachment, note, AI output
 The top-level governed ownership and isolation boundary for one operating business, within which its Business Blueprint versions, Records, Roles, Workflows, Evidence, and Locations belong. It is not a customer account, legal entity, Location, database, deployment, or vertical application.
 _Avoid_: Customer, account, organization, workspace, database
 
+**Location**:
+A named operational boundary within a Tenant to which business activity, Roles, Records, stock, cash, or service may be scoped. It may represent a shop, cafe, warehouse, or other operating point, but it is not merely an address, a Tenant, a department, a storage bin, or a device.
+_Avoid_: Branch, site, outlet, warehouse, address
+
 **Governed Configuration**:
 AI-proposed Business Blueprint content constrained by Configuration Schemas and validated for execution by the Business Kernel.
 _Avoid_: Generated code, prompt logic, tenant fork

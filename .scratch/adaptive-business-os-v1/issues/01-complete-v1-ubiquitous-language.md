@@ -72,7 +72,16 @@ entity, Location, database, deployment, or vertical application.
 
 _Avoid_: Customer, account, organization, workspace, database
 
+### Location
+
+A named operational boundary within a Tenant to which business activity,
+Roles, Records, stock, cash, or service may be scoped. It may represent a shop,
+cafe, warehouse, or other operating point, but it is not merely an address, a
+Tenant, a department, a storage bin, or a device.
+
+_Avoid_: Branch, site, outlet, warehouse, address
+
 ## Current term
 
-**Location** — awaiting Botan's answer to the next one-question-at-a-time
+**Order** — awaiting Botan's answer to the next one-question-at-a-time
 domain-modeling decision.
