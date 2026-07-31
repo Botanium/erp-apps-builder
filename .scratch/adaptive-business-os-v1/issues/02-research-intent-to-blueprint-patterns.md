@@ -1,7 +1,7 @@
 # Research intent-to-blueprint patterns
 
 Type: research  
-Status: open  
+Status: claimed
 Blocked by: None
 
 ## Question
@@ -18,4 +18,10 @@ code, or first-party APIs.
 
 ## Answer
 
-_Not resolved._
+Evidence is captured in
+[Intent-to-Blueprint patterns](../research/02-intent-to-blueprint-patterns.md).
+It documents primary-source patterns for typed intent translation, strict but
+provider-limited structured output, independent canonical validation,
+schema-driven UI and workflow metadata, side-effect-free preview, immutable
+version approval, and the failure modes that must constrain the v1 contract.
+The evidence is ready for owner review; no stack or final contract is selected.
