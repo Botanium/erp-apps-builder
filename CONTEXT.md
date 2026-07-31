@@ -36,6 +36,10 @@ _Avoid_: Validation warning, approval denial, missing field, deployment blocker,
 A versioned, owner-reviewable description of one business's capabilities, roles, workflows, records, evidence rules, and experience.
 _Avoid_: App spec, generated app, customer fork
 
+**Blueprint Version**:
+An immutable, self-contained snapshot of a Business Blueprint's proposed Governed Configuration at one point in its lineage, independently validatable without replaying earlier versions.
+_Avoid_: Patch, revision file, mutable draft, current runtime state, deployment, approval
+
 **Draft Blueprint**:
 A Business Blueprint version that remains under owner review and is not authorized to provision or update a Sandbox Experience.
 _Avoid_: Proposed app, saved interview, pending system
