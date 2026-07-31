@@ -63,7 +63,16 @@ notification, or report by itself.
 
 _Avoid_: Proof, log, attachment, note, AI output
 
+### Tenant
+
+The top-level governed ownership and isolation boundary for one operating
+business, within which its Business Blueprint versions, Records, Roles,
+Workflows, Evidence, and Locations belong. It is not a customer account, legal
+entity, Location, database, deployment, or vertical application.
+
+_Avoid_: Customer, account, organization, workspace, database
+
 ## Current term
 
-**Tenant** — awaiting Botan's answer to the next one-question-at-a-time
+**Location** — awaiting Botan's answer to the next one-question-at-a-time
 domain-modeling decision.
