@@ -28,6 +28,10 @@ _Avoid_: Default, inference, recommendation, placeholder, Confirmed fact
 An owner-defined, source-attributed, observable criterion in an Intent Brief stating which business outcome a proposed Business Blueprint must make demonstrable and what Evidence would satisfy it.
 _Avoid_: Blueprint Approval, test case, feature checklist, KPI, proof of completion
 
+**Draft Blocker**:
+An unresolved condition in an Intent Brief that prevents safe, meaningful Draft Blueprint generation because proceeding would require missing traceability, unsupported safety handling, or invented governed truth.
+_Avoid_: Validation warning, approval denial, missing field, deployment blocker, unsupported preference
+
 **Business Blueprint**:
 A versioned, owner-reviewable description of one business's capabilities, roles, workflows, records, evidence rules, and experience.
 _Avoid_: App spec, generated app, customer fork

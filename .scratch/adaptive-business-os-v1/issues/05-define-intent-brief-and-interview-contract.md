@@ -1,7 +1,7 @@
 # Define the Intent Brief and Owner Interview contract
 
 Type: grilling  
-Status: claimed
+Status: resolved
 Blocked by: 01, 02
 
 ## Question
@@ -45,8 +45,8 @@ and an attributable source:
 
 Draft Blueprint generation may preserve unresolved states visibly, but it may
 never treat them as Confirmed, invent missing facts, or silently coerce
-unsupported intent. Which unresolved facts block Draft Blueprint generation
-remains a later decision.
+unsupported intent. The Draft Blocker policy below determines which unresolved
+facts prevent Draft Blueprint generation.
 
 An Intent State is a classification attached to each material statement in an
 Intent Brief that preserves whether and how its meaning is established without
@@ -83,8 +83,8 @@ all eight fact families:
 
 Every family must be represented, but a family may be explicitly Not
 Applicable. This defines required semantic coverage only; it does not define
-exact schema fields, select Capabilities, or decide which unresolved facts
-block Draft Blueprint generation.
+exact schema fields or select Capabilities. The Draft Blocker policy below
+determines which unresolved facts prevent Draft Blueprint generation.
 
 #### Sensitive Data Class model
 
@@ -146,8 +146,9 @@ Approval, authorize destructive migration, or authorize production deployment.
 A platform default used in place of unknown owner intent must be recorded as an
 Assumption; a fixed Business Kernel invariant is not an Assumption. Only
 explicit owner confirmation may change an Assumption to Confirmed. Rejection or
-revision remains attributable. Which Assumptions block Draft Blueprint
-generation or later Blueprint Approval remains a separate decision.
+revision remains attributable. The Draft Blocker policy below determines which
+Assumptions prevent Draft Blueprint generation; later Blueprint Approval
+remains a separate decision.
 
 An Assumption is an explicitly marked, source-attributed provisional
 proposition used to continue owner review while intent remains unconfirmed; it
@@ -187,5 +188,46 @@ Blueprint must make demonstrable and what Evidence would satisfy it. Avoid
 using Blueprint Approval, test case, feature checklist, KPI, or proof of
 completion as synonyms.
 
-This ticket remains claimed until the remaining Owner Interview contract
-decisions are resolved.
+#### Draft Blocker policy
+
+A Draft Blueprint may be generated only when the Intent Brief is structurally
+valid, traceable, and safe enough to propose Governed Configuration without
+inventing governed truth.
+
+A Draft Blocker exists when:
+
+1. Any required fact family is absent (an explicitly accepted Not Applicable
+   family is represented), a material statement lacks exactly one Intent State
+   or attributable source, or a named data category lacks its Sensitive Data
+   Class, rationale, or source.
+2. There is no Confirmed owner purpose and no Confirmed Required Acceptance
+   Condition to anchor a meaningful proposal.
+3. The Tenant ownership or isolation boundary, or the intended business scope,
+   is unresolved in a way that prevents safe scoping.
+4. Safety, jurisdiction, data handling, or external-AI eligibility is
+   unresolved, conflicting, or unsupported such that supported handling cannot
+   be established. An unsupported safety profile always blocks.
+5. Addressing a Required Acceptance Condition would require inventing governed
+   truth, including authorization enforcement, ledger posting, stock
+   arithmetic, Blueprint Approval, destructive migration, or production
+   deployment.
+6. The affected scope cannot be safely excluded or deferred, or represented as
+   clearly provisional alternatives, without making the overall Draft
+   misleading or meaningless.
+
+Unknown, Ambiguous, Conflicting, Assumed, or Unsupported intent that does not
+meet those blocker tests may remain visible in the Draft as open questions,
+provisional alternatives, exclusions, or unsupported conditions. It must
+retain its Intent State and source, appear in preview and semantic diff, and
+never be treated as Confirmed or execution authority.
+
+When blocked, the Owner Interview still produces or updates the versioned
+Intent Brief and gives a specific blocker explanation, but produces no Draft
+Blueprint. This policy governs Draft generation only; it does not establish
+Blueprint Approval or provisioning authority.
+
+A Draft Blocker is an unresolved condition in an Intent Brief that prevents
+safe, meaningful Draft Blueprint generation because proceeding would require
+missing traceability, unsupported safety handling, or invented governed truth.
+Avoid using validation warning, approval denial, missing field, deployment
+blocker, or unsupported preference as synonyms.
