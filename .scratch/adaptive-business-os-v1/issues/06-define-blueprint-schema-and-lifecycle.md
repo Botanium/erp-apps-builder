@@ -141,5 +141,43 @@ boundary and minimum semantic content; identifier construction, canonical
 serialization, content identity, semantic-diff rules, lifecycle transitions,
 compatibility, and reset remain later decisions.
 
+#### Blueprint identity contract
+
+Use a layered, opaque identity model:
+
+1. Tenant Identity names the ownership and isolation boundary and is always
+   part of Blueprint resolution.
+2. Blueprint Identity is a stable, opaque identity assigned once to a Blueprint
+   lineage within one Tenant. It is never derived from a business name,
+   vertical, label, or current configuration and is never reused.
+3. Version Identity is a new globally unique, opaque identity assigned once
+   whenever an immutable Blueprint Version is created. It never changes or
+   transfers, even when another Version has identical content.
+4. Version Number is a monotonically increasing positive integer allocated
+   within the Blueprint lineage for owner-facing sequence and sorting. It is
+   never reused; gaps are allowed; it does not identify ancestry, lifecycle
+   state, approval, or content equality.
+5. Parent Version Reference is absent for the first Version and otherwise names
+   the exact Version from which the new Draft was derived. Multiple-child or
+   concurrency policy remains a lifecycle decision.
+
+A Blueprint Reference must contain Tenant Identity, Blueprint Identity, and
+Version Identity. Human interfaces may additionally display the Version
+Number, but a number, label, timestamp, latest/current selector, lifecycle
+state, or future content digest is never sufficient to name an exact Version.
+
+Creation time, creator or source, Configuration Schema version, and source
+Intent Brief references remain immutable provenance in the Blueprint Envelope
+but are not identity. Creating a new Version always allocates a new Version
+Identity and Version Number, including an edit that restores byte-for-byte or
+semantically identical prior content. Content identity and semantic equality
+remain a separate decision and may not transfer Blueprint Approval between
+Version identities.
+
+Blueprint Approval must ultimately bind to one exact Blueprint Reference and
+its content identity; this contract defines identity construction only, not
+canonical serialization, content digest, semantic comparison, lifecycle
+transitions, compatibility, or reset.
+
 This ticket remains claimed until the remaining Business Blueprint schema and
 lifecycle decisions are resolved.

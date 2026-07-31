@@ -44,6 +44,10 @@ _Avoid_: Patch, revision file, mutable draft, current runtime state, deployment,
 The immutable metadata section of a Blueprint Version that identifies its Blueprint lineage, exact Version, Tenant, governing Configuration Schema, source Intent Brief versions, optional parent Version, and creation provenance without carrying approval or runtime state.
 _Avoid_: Header, metadata blob, approval record, audit log, deployment manifest
 
+**Blueprint Reference**:
+An exact, immutable reference to one Blueprint Version composed of its Tenant Identity, Blueprint Identity, and Version Identity; a Version Number may aid display but is not sufficient authority.
+_Avoid_: Version number, label, timestamp, latest Blueprint, content hash, approval token
+
 **Draft Blueprint**:
 A Business Blueprint version that remains under owner review and is not authorized to provision or update a Sandbox Experience.
 _Avoid_: Proposed app, saved interview, pending system
