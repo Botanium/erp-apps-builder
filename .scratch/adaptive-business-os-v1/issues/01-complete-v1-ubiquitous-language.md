@@ -43,7 +43,17 @@ agent plan, or arbitrary executable process.
 
 _Avoid_: Process, flow, automation, checklist, agent plan
 
+### Role
+
+A named, Blueprint-defined bundle of business responsibilities, permitted
+governed actions, and scope, assignable to one or more business participants.
+It may shape interfaces, Evidence duties, and Workflow participation, but it is
+not a person, login account, job title, permission flag, or authorization
+implementation.
+
+_Avoid_: User, account, job title, permission set, profile
+
 ## Current term
 
-**Role** — awaiting Botan's answer to the next one-question-at-a-time
+**Evidence** — awaiting Botan's answer to the next one-question-at-a-time
 domain-modeling decision.
