@@ -20,6 +20,10 @@ _Avoid_: Confidence score, AI certainty, completion status, validation result
 An owner-reviewed classification attached to every data category named in an Intent Brief that records the most restrictive permitted exposure boundary for its contents.
 _Avoid_: Privacy level, permission, secrecy flag, compliance status, sensitivity score
 
+**Assumption**:
+An explicitly marked, source-attributed provisional proposition in an Intent Brief used to continue owner review while intent remains unconfirmed, preserving its rationale, affected scope, impact if wrong, and resolution condition.
+_Avoid_: Default, inference, recommendation, placeholder, Confirmed fact
+
 **Business Blueprint**:
 A versioned, owner-reviewable description of one business's capabilities, roles, workflows, records, evidence rules, and experience.
 _Avoid_: App spec, generated app, customer fork

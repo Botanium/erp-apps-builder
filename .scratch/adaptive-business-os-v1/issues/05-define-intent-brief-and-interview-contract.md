@@ -122,5 +122,38 @@ field-visibility rule, legal conclusion, or proof of compliance. Avoid using
 privacy level, permission, secrecy flag, compliance status, or sensitivity
 score as synonyms.
 
+#### Assumption contract
+
+Every Assumption in an Intent Brief must carry the Assumed Intent State and
+preserve:
+
+1. The exact provisional proposition or value.
+2. Its proposer, attributable source, and recorded time.
+3. Why the Assumption is needed to continue review.
+4. The fact families and Draft Blueprint proposals it may affect.
+5. The consequence and risk if it is false.
+6. The condition, expected Evidence, and responsible reviewer needed to resolve
+   it.
+7. A review trigger or expiry when the Assumption is time-sensitive.
+
+An Assumption may shape only visibly provisional alternatives within Governed
+Configuration. It and every derived proposal must appear in preview and the
+semantic diff. It may never be silently converted to Confirmed or used to
+establish safety or jurisdiction, downgrade a Sensitive Data Class, grant
+authorization, determine ledger posting or stock arithmetic, assert Blueprint
+Approval, authorize destructive migration, or authorize production deployment.
+
+A platform default used in place of unknown owner intent must be recorded as an
+Assumption; a fixed Business Kernel invariant is not an Assumption. Only
+explicit owner confirmation may change an Assumption to Confirmed. Rejection or
+revision remains attributable. Which Assumptions block Draft Blueprint
+generation or later Blueprint Approval remains a separate decision.
+
+An Assumption is an explicitly marked, source-attributed provisional
+proposition used to continue owner review while intent remains unconfirmed; it
+preserves its rationale, affected scope, impact if wrong, and resolution
+condition. It is not a default, inference, recommendation, placeholder, or
+Confirmed fact.
+
 This ticket remains claimed until the remaining Owner Interview contract
 decisions are resolved.
