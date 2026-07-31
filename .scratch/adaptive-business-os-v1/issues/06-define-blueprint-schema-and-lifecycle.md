@@ -302,5 +302,81 @@ lifecycle states and transitions only; approval eligibility, concurrency
 handling, compatibility verdicts, provisioning, rollback, and reset remain
 later decisions.
 
+#### Blueprint Approval Eligibility contract
+
+Use a fail-closed Blueprint Approval Eligibility gate. Eligibility is a
+deterministic, current verdict over one exact Draft Blueprint and its review
+material; it enables the owner to perform Blueprint Approval but is neither
+approval nor provisioning authority.
+
+A Draft Blueprint is Approval Eligible only when all of the following are true:
+
+1. **Identity and state:** the exact Blueprint Reference exists in Draft state;
+   its Blueprint Content Identity is independently recomputed and matches; and
+   its Tenant, Blueprint lineage, Version, parent reference, Configuration
+   Schema, Capability versions, and source Intent Brief references are immutable
+   and resolvable.
+2. **Deterministic validity:** canonical schema, uniqueness, cross-reference,
+   Capability-support, Workflow, Role, Evidence-rule, Policy Profile,
+   experience-reference, data-handling, and Business Kernel policy validation
+   complete with no blocking diagnostic. Unknown fields, unsupported versions,
+   digest mismatches, unresolved references, and non-comparable required paths
+   block eligibility.
+3. **No invented execution truth:** every material value that governs active
+   configuration is traced to Confirmed owner intent or a fixed Business Kernel
+   invariant. Unknown, Ambiguous, Conflicting, Assumed, or Unsupported intent
+   may remain only as visible deferred alternatives, exclusions, or unsupported
+   requests that cannot affect the configuration eligible for execution.
+4. **Assumptions:** no Assumption may determine an enabled Capability, governed
+   action, Role authority, Workflow transition, Evidence duty, Sensitive Data
+   Class, external-AI exposure, ledger or stock behavior, migration, or any
+   proposal needed by a Required Acceptance Condition. Resolving an Assumption
+   requires an attributable Intent Brief update and a new Draft Blueprint;
+   Blueprint Approval never confirms it implicitly.
+5. **Acceptance coverage:** every Required Acceptance Condition is traced to
+   supported Governed Configuration and a declared future Evidence path and is
+   neither unsatisfied by design nor marked cannot evaluate. A Desired
+   Acceptance Condition may be deferred or excluded only when that disposition
+   is explicit, source-attributed, and visible to the owner. Eligibility does
+   not claim that any condition has passed; executable acceptance remains owned
+   by the Reference Vertical Slice contract.
+6. **Safety and exposure:** every named data category has a supported Sensitive
+   Data Class and handling path; jurisdiction and retention constraints are
+   supported; Restricted data has no external-AI path; and no unresolved safety
+   profile remains. Owner preference cannot override a declared safety or
+   Business Kernel boundary.
+7. **Current review bundle:** the owner can review the normalized Blueprint, its
+   exact Blueprint Reference and Content Identity, Semantic Diff from the
+   declared baseline, affected Capabilities, Locations, Records, Workflows,
+   Roles, Evidence duties, Policy Profiles, interfaces, reports, dashboards,
+   integrations, Acceptance Condition coverage, Assumptions, exclusions,
+   Unsupported items, validation diagnostics, data-exposure summary, and any
+   required compatibility verdict. Every item must reference the same unchanged
+   Draft.
+8. **Review freshness:** no Blueprint content, governing schema, selected
+   Capability version, comparison mapping, validator policy, declared baseline,
+   or required compatibility input has changed since the review bundle was
+   produced. A material change invalidates eligibility and requires a new or
+   recomputed Draft review; it never inherits prior approval.
+9. **Explicit owner action:** the approval control must unambiguously say that
+   it approves this exact Blueprint Reference and Content Identity. Interview
+   completion, preview viewing, option selection, acknowledgement of a warning,
+   equal Content Identity, or prior approval of another Version cannot satisfy
+   this condition.
+
+At the approval transition, the Business Kernel must atomically recheck
+eligibility and record the owner's attributable decision, effective and
+recorded time, exact Blueprint Reference, Content Identity, review-bundle
+identity, and any explicitly acknowledged non-blocking advisories or Desired
+exclusions. A failed or stale recheck leaves the Version in Draft and returns
+stable blocker explanations.
+
+Static validation and preview are required for eligibility, but successful
+provisioning, runtime scenarios, or Reference Vertical Slice acceptance are not
+prerequisites because they occur only after approval authorizes Sandbox
+provisioning. This contract defines approval eligibility only; concurrency
+policy, compatibility verdict categories, provisioning, rollback, and reset
+remain later decisions.
+
 This ticket remains claimed until the remaining Business Blueprint schema and
 lifecycle decisions are resolved.

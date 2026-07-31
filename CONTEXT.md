@@ -56,6 +56,10 @@ _Avoid_: Version Identity, file checksum, approval token, digital signature, Sem
 The externally recorded review-and-authorization status of one immutable Blueprint Version—Draft, Approved, Rejected, Superseded, or Withdrawn—without describing validation, provisioning, deployment, or runtime state.
 _Avoid_: Blueprint content, interview stage, validation result, compatibility verdict, deployment status, applied Version, runtime state
 
+**Blueprint Approval Eligibility**:
+A fail-closed, independently recomputable verdict that one exact Draft Blueprint and its current review material meet every prerequisite for an explicit owner Blueprint Approval; it is not approval or provisioning authority.
+_Avoid_: Approved, validation passed, review completed, owner viewed, ready to deploy, provisioning authorized
+
 **Draft Blueprint**:
 A Business Blueprint version that remains under owner review and is not authorized to provision or update a Sandbox Experience.
 _Avoid_: Proposed app, saved interview, pending system
