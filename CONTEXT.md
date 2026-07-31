@@ -8,6 +8,10 @@ The domain language for describing how owner intent becomes a governed, reviewab
 A guided business-discovery conversation whose owner-accepted answers become inputs to a proposed Business Blueprint.
 _Avoid_: Prompt, requirements chat, app request
 
+**Intent Brief**:
+A versioned, owner-reviewable Record of the business intent captured by an Owner Interview, preserving accepted facts, unresolved questions, assumptions, constraints, sensitive-data classifications, and acceptance conditions together with their sources. It is input to Draft Blueprint generation but is neither a Business Blueprint, owner approval, executable configuration, nor authority for any Business Kernel action.
+_Avoid_: Requirements document, prompt, transcript, app specification, Business Blueprint
+
 **Business Blueprint**:
 A versioned, owner-reviewable description of one business's capabilities, roles, workflows, records, evidence rules, and experience.
 _Avoid_: App spec, generated app, customer fork
