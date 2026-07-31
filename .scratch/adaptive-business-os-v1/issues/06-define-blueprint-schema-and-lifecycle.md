@@ -378,5 +378,56 @@ provisioning. This contract defines approval eligibility only; concurrency
 policy, compatibility verdict categories, provisioning, rollback, and reset
 remain later decisions.
 
+#### Blueprint concurrency contract
+
+Use optimistic, lineage-scoped concurrency with explicit approval baselines and
+fail-closed conflicts.
+
+1. Multiple Draft Blueprint Versions may coexist and may share one Parent
+   Version Reference. Each remains immutable and independently identified;
+   creating or editing one never overwrites, renumbers, deletes, or silently
+   merges another.
+2. Every Draft review bundle must record an Approval Baseline: the exact current
+   Approved Blueprint Reference and Blueprint Content Identity observed when
+   the bundle was produced, or explicit absence when the lineage has no current
+   Approved Version. The Approval Baseline is external review metadata, not
+   Blueprint content, a Parent Version Reference, or a Blueprint Lifecycle
+   State.
+3. Creating edited content must name the exact source Blueprint Reference and
+   Content Identity that was read and must produce a new Draft. A source
+   mismatch rejects the request as stale; it never mutates an existing Version
+   or guesses which source was intended.
+4. Blueprint Approval must atomically recheck Approval Eligibility and compare
+   the review bundle's Approval Baseline with the lineage's actual current
+   Approved Blueprint Reference and Content Identity. It also verifies the
+   unchanged Draft Reference and Content Identity. If any comparison fails, no
+   lifecycle or current-approved reference changes.
+5. A baseline mismatch makes the review bundle stale, not the Draft Rejected,
+   Superseded, Withdrawn, or invalid. The Draft remains in Draft state and
+   retains its content and provenance.
+6. The system must offer a refreshed schema-aware review against the now-current
+   Approved Version, using the common Parent Version when available to
+   distinguish parallel additions, removals, changes, explicit reordering, and
+   conflicts. Without a declared comparison mapping, affected paths are
+   non-comparable and block eligibility rather than being guessed.
+7. Neither AI nor an automatic rule may merge or resolve governed or
+   traceability meaning. Combining or changing content requires attributable
+   owner decisions and a new Draft. If the owner elects to keep the unchanged
+   candidate after reviewing every difference against the current Approved
+   Version, a newly produced review bundle may establish a new Approval Baseline
+   without changing the immutable Draft.
+8. Version Numbers are allocated atomically, gaps are allowed, and numeric order
+   establishes neither ancestry nor precedence. Parent Version References
+   establish ancestry; the externally recorded current Approved Blueprint
+   Reference establishes the current approval target.
+9. Equal Content Identity may reveal identical canonical content, but it does
+   not resolve a race, transfer Blueprint Approval, or replace one Blueprint
+   Reference with another.
+
+A concurrency conflict is owner-reviewable information, not a lifecycle state,
+owner rejection, or authority to discard work. This contract decides concurrent
+Draft and stale-approval handling only; compatibility verdict categories,
+provisioning, rollback, and reset remain later decisions.
+
 This ticket remains claimed until the remaining Business Blueprint schema and
 lifecycle decisions are resolved.

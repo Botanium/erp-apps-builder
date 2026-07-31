@@ -60,6 +60,10 @@ _Avoid_: Blueprint content, interview stage, validation result, compatibility ve
 A fail-closed, independently recomputable verdict that one exact Draft Blueprint and its current review material meet every prerequisite for an explicit owner Blueprint Approval; it is not approval or provisioning authority.
 _Avoid_: Approved, validation passed, review completed, owner viewed, ready to deploy, provisioning authorized
 
+**Approval Baseline**:
+The exact current Approved Blueprint Reference and Blueprint Content Identity, or explicit absence, captured by a Draft review bundle and atomically compared at Blueprint Approval to detect a concurrent lineage change.
+_Avoid_: Parent Version, applied Version, latest Blueprint, lifecycle state, approval
+
 **Draft Blueprint**:
 A Business Blueprint version that remains under owner review and is not authorized to provision or update a Sandbox Experience.
 _Avoid_: Proposed app, saved interview, pending system
