@@ -1,7 +1,7 @@
 # Research agent control and durable workflow patterns
 
 Type: research  
-Status: open  
+Status: claimed
 Blocked by: None
 
 ## Question
@@ -17,4 +17,13 @@ code, or first-party APIs.
 
 ## Answer
 
-_Not resolved._
+[Research note: Agent control and durable workflow patterns](../research/03-agent-control-and-durable-workflows.md)
+
+Primary-source evidence supports a layered control contract rather than one
+runtime owning the full system: agent-native interruptions govern proposals;
+checkpoint or event-history orchestration provides pause/resume, bounded
+retries, and recovery; and idempotent Business Kernel commands remain the only
+authority for version-specific Blueprint Approval and business side effects.
+Runtime traces and histories are operational evidence, not the canonical
+domain audit record. Final stack selection remains deferred to the architecture
+ticket.
