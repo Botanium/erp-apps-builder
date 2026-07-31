@@ -122,5 +122,17 @@ field-visibility rule, legal conclusion, or proof of compliance. Avoid using
 privacy level, permission, secrecy flag, compliance status, or sensitivity
 score as synonyms.
 
+#### Assumption contract — free-form notes alternative
+
+Each Assumption must be recorded as a source-attributed note with the Assumed
+Intent State, its rationale, impact if wrong, and a resolution condition.
+Assumptions must remain visible in Draft Blueprint review and may not establish
+governed execution truth.
+
+This branch explores a deliberately lighter Assumption contract. It preserves
+the existing Assumed Intent State and Intent Brief definition, but does not
+require the structured affected-scope, Evidence, reviewer, or expiry fields in
+the governed-contract alternative.
+
 This ticket remains claimed until the remaining Owner Interview contract
 decisions are resolved.
