@@ -164,6 +164,22 @@ _Avoid_: Blueprint Approval, owner intent, operator edit, model response, Kernel
 A typed, attributable, idempotent request submitted to the Business Kernel to attempt one declared governed action. It is not approval, a tool call, a UI action, or the Business Event and governed effects that may result.
 _Avoid_: Business Event, tool call, UI action, prompt, approval
 
+**Kernel Command Identity**:
+A globally unique, opaque identity assigned once to one Kernel Command and used as its idempotency identity; it is never reused or transferred.
+_Avoid_: Tool-call identity, Kernel Command Content Identity, Business Event identity, retry identity, approval token
+
+**Kernel Command Content Identity**:
+A deterministic identity derived from one Kernel Command's canonical authority-relevant content, used to prove that repeated submission has not changed its meaning or bound inputs.
+_Avoid_: Kernel Command Identity, file checksum, approval token, digital signature, Kernel Command Result
+
+**Kernel Command Result**:
+An immutable Business Kernel record that binds one exact Kernel Command Identity and Content Identity to an Accepted or Rejected disposition, diagnostics, invariant results, and any resulting authoritative references.
+_Avoid_: Tool output, HTTP response, Business Event, approval, retry result
+
+**Idempotency Conflict**:
+A fail-closed mismatch in which a known Kernel Command Identity is presented with content, baseline, Human Gate Decision, Tenant, version, or scope different from its recorded binding.
+_Avoid_: Duplicate delivery, retry, stale baseline, concurrency conflict, Kernel Command rejection
+
 **Kernel Foundation**:
 The always-active, non-selectable part of the Business Kernel that preserves governance and execution invariants for every Tenant and cannot be disabled, replaced, or weakened by a Business Blueprint.
 _Avoid_: Core Capability, hidden Capability, base module, system feature, tenant default

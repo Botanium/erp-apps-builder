@@ -213,3 +213,83 @@ This contract fixes only Human Gate types, envelope, explicit-action,
 freshness, and authority. The Kernel Command idempotency and retry contract,
 budget policy, failure and correction rules, and observation contract remain
 later decisions in this ticket.
+
+#### Kernel Command envelope, idempotency, and retry contract
+
+Use one immutable, typed Kernel Command with one stable idempotency identity and
+one durable Kernel Command Result. Every retry submits the exact same command;
+the Business Kernel is the sole processor and returns the previously recorded
+result instead of repeating governed effects.
+
+1. Every Kernel Command must carry a globally unique opaque Kernel Command
+   Identity assigned once and never reused or transferred. That identity is its
+   idempotency identity. The command also carries a deterministic Kernel Command
+   Content Identity over its canonical authority-relevant content so changed
+   inputs cannot hide behind the same identity.
+2. The closed command envelope must contain the Kernel Command Identity and
+   Content Identity; exact Tenant and Location scope when applicable; declared
+   governed-action identity and exact version; target Record, Workflow,
+   Blueprint, Sandbox Experience, or other declared subject identities; exact
+   expected prior state, Version, Content Identity, or explicit absence required
+   by that action; complete schema-constrained typed input; attributable
+   responsible source; command creation time and requested effective time; exact
+   Business Kernel and Capability Version Set; required Role, Evidence, policy,
+   and separation-of-duty references; Human Gate Identity and Human Gate
+   Decision when submission was gated; Orchestration Run and Agent Run
+   correlation identities; causation and predecessor references; and freshness
+   or expiry boundary when declared.
+3. The Business Kernel must validate the command under a closed schema and
+   canonicalize it deterministically before processing. Unknown fields,
+   unresolved references, arbitrary code, prompts, formulas, credentials,
+   secrets, stale baselines, invalid authorization, missing Evidence,
+   unsupported versions, or Content Identity mismatch fail closed.
+   Canonicalization never repairs, defaults, or reinterprets command meaning.
+4. Processing is atomic. For a previously unseen Kernel Command Identity, the
+   Business Kernel binds that identity to the exact Content Identity, rechecks
+   Tenant isolation, governed-action support, authorization, Human Gate
+   freshness when required, expected baseline, Workflow guards, Evidence
+   duties, policies, and invariants, then records exactly one immutable Kernel
+   Command Result. An Accepted result commits the action's declared
+   authoritative record and effects atomically. A Rejected result commits no
+   governed effect and carries stable safe diagnostics.
+5. Repeating a known Kernel Command Identity with the identical Content Identity
+   and bound inputs returns the exact recorded Kernel Command Result and creates
+   no new Blueprint Approval, Business Event, Record or Workflow transition,
+   Evidence duty, Stock Movement, Ledger Entry, Payment, provisioning action,
+   Applied Blueprint, or Sandbox Reset effect. Reusing the identity with any
+   changed content, baseline, Human Gate Decision, Tenant, version, or scope is
+   an idempotency conflict that fails closed and changes nothing.
+6. Every Kernel Command Result binds the exact Kernel Command Identity and
+   Content Identity; Accepted or Rejected disposition; Business Kernel and
+   validator Version Set; responsible Kernel source; effective and recorded
+   times; stable diagnostics; resulting authoritative record, Business Event,
+   or attempt references when any; invariant results; and the command's
+   causation and correlation identities. Duplicate delivery is not a new result
+   or a successful new action.
+7. The Orchestration Run may retry only when delivery or result retrieval failed
+   transiently and the outcome is unknown to the caller. It must first query the
+   durable result by Kernel Command Identity, then resend only the exact
+   unchanged command with the same identity, subject to its bounded retry budget
+   and backoff. Timeout, process crash, replay, or lost response never permits a
+   new identity for the same attempted action.
+8. A recorded Rejected result, stale baseline, invalid schema, authorization
+   failure, Human Gate decline or expiry, safety violation, unsupported action,
+   missing Evidence, policy failure, or invariant violation is not retryable.
+   Correction requires a new attributable proposal and, where applicable, a new
+   Human Gate and a new Kernel Command Identity. A new identity may not be used
+   merely to bypass a prior rejection.
+9. Authorize Submission permits only the first or repeated submission of the
+   exact bound command. It does not force acceptance, waive Kernel checks,
+   authorize changed content, or transfer to another command. Agent output,
+   orchestration replay, retry policy, operator editing, equal content, or a
+   prior Kernel Command Result grants no authority to construct or approve a
+   different command.
+10. Kernel Command acceptance proves only that the declared Kernel action
+    committed and records its exact result. It does not by itself complete the
+    Orchestration Run, satisfy owner acceptance, prove a business scenario,
+    authorize another action, or establish production readiness.
+
+This contract fixes only the Kernel Command envelope, Content Identity, Result,
+idempotency, and retry classification. The exact run-budget policy, failure and
+correction rules, and observation contract remain later decisions in this
+ticket.
