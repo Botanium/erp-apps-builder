@@ -124,6 +124,10 @@ _Avoid_: Workflow, business transaction, audit log, deployment
 An immutable, versioned set of monotonic resource ceilings and attributable usage bound to one Orchestration Run, constraining how much orchestration work may occur without granting authority to perform it.
 _Avoid_: Spending approval, token counter, rate limit, retry policy, execution authority
 
+**Balanced Local Slice Profile**:
+A closed v1 Run Budget profile for each new local Reference Vertical Slice Orchestration Run, fixing sandbox-proof resource ceilings while excluding production, customer, research, and arbitrary-development use.
+_Avoid_: Production budget, global quota, pricing plan, service tier, execution authority
+
 **Orchestration Run Identity**:
 A globally unique, opaque identity assigned once to one Orchestration Run and retained unchanged across pause and resume; it is never reused or transferred.
 _Avoid_: Agent Run Identity, session ID, thread ID, objective label, correlation identity

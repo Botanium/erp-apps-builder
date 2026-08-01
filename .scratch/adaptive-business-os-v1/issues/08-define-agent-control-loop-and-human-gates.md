@@ -353,3 +353,39 @@ quantities remain a later decision.
 This contract fixes only the Run Budget dimensions, accounting, amendment, and
 exhaustion behavior. The exact v1 default quantities, failure and correction
 rules, and observation contract remain later decisions in this ticket.
+
+#### Balanced Local Slice default-quantity contract
+
+Use one closed Balanced Local Slice Profile for every new local Reference
+Vertical Slice Orchestration Run. It is a sandbox proof default, not a
+production, customer, research, or arbitrary-development budget.
+
+The exact cumulative hard ceilings are:
+
+1. Agent Run attempts: 128.
+2. Input tokens: 300,000.
+3. Output tokens: 60,000.
+4. Model or provider requests: 24.
+5. Tool and Task Result attempts: 96.
+6. Transient retries: 8 across the run, with at most 2 retries for any one
+   operation.
+7. Kernel Command delivery submissions: 48 across the run, with at most 3
+   deliveries for one exact Kernel Command Identity—the initial delivery plus
+   at most 2 unchanged retries.
+8. Active execution time: 60 minutes.
+9. Total elapsed lifetime: 7 consecutive days from run creation; Waiting pauses
+   only active execution time.
+10. Monetary spend: USD 5.00 only when an authoritative per-run measurement is
+    independently available. Otherwise this dimension is explicitly Not
+    Applicable, never zero, omitted, inferred, or unlimited.
+
+Every attempt or retry also consumes every other applicable dimension, so the
+first ceiling reached controls. Counts begin at zero, reserve before work, and
+enter Waiting with Budget Exhausted before an action would exceed a ceiling. A
+Budget Gate may authorize an exact bounded amendment under the accepted Run
+Budget contract, but no profile value grants authority.
+
+This contract fixes only the exact v1 default quantities for a local Reference
+Vertical Slice Orchestration Run. It does not set production budgets, per-phase
+reservations, provider selection, pricing assumptions, failure and correction
+rules, or the observation contract.
