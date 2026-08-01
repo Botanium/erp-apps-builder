@@ -96,6 +96,10 @@ _Avoid_: Interview completion, preview viewing, option selection
 A versioned, deterministic platform authority that validates, compiles, authorizes, and executes supported business behavior for every Tenant while enforcing isolation, Record and Workflow integrity, Evidence duties, accounting, stock, approval, provisioning, and reset truth. It is configured by an Approved Blueprint but never replaced or extended by tenant-specific runtime code.
 _Avoid_: ERP core, shared library, generated backend, tenant runtime, plugin host, AI agent
 
+**Kernel Foundation**:
+The always-active, non-selectable part of the Business Kernel that preserves governance and execution invariants for every Tenant and cannot be disabled, replaced, or weakened by a Business Blueprint.
+_Avoid_: Core Capability, hidden Capability, base module, system feature, tenant default
+
 **Capability**:
 A reusable, versioned business ability provided by the Business Kernel and selected and configured by a Business Blueprint. It may shape records, workflows, roles, interfaces, reports, and governed business actions, but it is neither tenant-specific code nor an entire vertical application.
 _Avoid_: Module, feature, app, plugin, tenant code
