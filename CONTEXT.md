@@ -128,6 +128,18 @@ _Avoid_: Spending approval, token counter, rate limit, retry policy, execution a
 A closed v1 Run Budget profile for each new local Reference Vertical Slice Orchestration Run, fixing sandbox-proof resource ceilings while excluding production, customer, research, and arbitrary-development use.
 _Avoid_: Production budget, global quota, pricing plan, service tier, execution authority
 
+**Failure Record**:
+An immutable operational record that one orchestration control step could not complete or safely advance, preserving its exact Failure Class, subject, disposition, effect status, and attributable context without becoming governed truth.
+_Avoid_: Error message, Orchestration Run State, Kernel Command Result, Business Event, Evidence
+
+**Failure Class**:
+The closed, deterministic classification attached to one Failure Record—Transient Control Failure, Correctable Proposal Failure, Control Baseline Conflict, Budget Exhaustion, Kernel Command Rejection, Indeterminate Control Failure, or Non-Recoverable Orchestration Failure—that constrains its permitted disposition.
+_Avoid_: Error code, severity, Orchestration Run State, Wait Reason, model diagnosis
+
+**Correction**:
+A forward-only, attributable response to a Failure Record that creates a new non-authoritative subject or separately authorized compensating Kernel Command while preserving every prior attempt and governed fact.
+_Avoid_: Retry, repair in place, rollback, mutation, erasure
+
 **Orchestration Run Identity**:
 A globally unique, opaque identity assigned once to one Orchestration Run and retained unchanged across pause and resume; it is never reused or transferred.
 _Avoid_: Agent Run Identity, session ID, thread ID, objective label, correlation identity

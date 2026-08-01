@@ -389,3 +389,81 @@ This contract fixes only the exact v1 default quantities for a local Reference
 Vertical Slice Orchestration Run. It does not set production budgets, per-phase
 reservations, provider selection, pricing assumptions, failure and correction
 rules, or the observation contract.
+
+#### Failure-classification and correction contract
+
+Use one immutable Failure Record for every orchestration control step that
+cannot complete or safely advance. Each record carries exactly one closed
+Failure Class and one declared disposition. Failure classification is
+operational control truth; it is not an Orchestration Run State, Human Gate
+decision, Kernel Command Result, Business Event, Evidence, or governed business
+truth.
+
+1. Every Failure Record must bind a globally unique identity; exact
+   Orchestration Run and Agent Run when present; Control Phase; subject, input,
+   Task Result, Human Gate, or Kernel Command references; stable failure code
+   and class; responsible source; effective and recorded times; bound version
+   set; whether any external or governed effect is known, absent, or unresolved;
+   safe diagnostics; consumed budget; retryability; and the only permitted next
+   disposition. It must redact secrets and unnecessary Confidential or
+   Restricted data.
+2. Use exactly seven v1 Failure Classes: Transient Control Failure, Correctable
+   Proposal Failure, Control Baseline Conflict, Budget Exhaustion, Kernel
+   Command Rejection, Indeterminate Control Failure, and Non-Recoverable
+   Orchestration Failure. Classification is deterministic under one exact
+   failure-policy version; an unknown or contradictory classification becomes
+   Indeterminate rather than being guessed.
+3. A Transient Control Failure is a temporary transport, provider, tool, or
+   result-retrieval failure where the attempted input is unchanged and
+   repetition is declared replay-safe or idempotent. The run enters Waiting
+   with Retry Backoff, queries any durable result first, and may retry only the
+   exact same operation and identity within its retry and Run Budget limits.
+   Changed input is Correction, not retry.
+4. A Correctable Proposal Failure is a deterministic validation or review
+   failure in non-authoritative input, a proposal, or a Task Result. The run
+   enters or remains Active in Correcting and produces a new immutable Agent Run
+   and subject linked to the failure. It never edits the failed artifact. A
+   changed gated subject requires a new Human Gate. At most two autonomous
+   correction attempts may address the same stable failure-code, subject, and
+   baseline tuple; a third recurrence enters Waiting with Human Gate at a
+   Recovery Gate.
+5. A Control Baseline Conflict means a required artifact, expected Kernel
+   baseline, bound version, Human Gate subject, Run Budget state, or policy
+   input is stale, changed, missing, or incompatible. The run enters Waiting
+   with Resume Blocker. It may continue only through an explicit Recovery Gate
+   choice followed by safe-resume checks; it is never retried or silently
+   rebased.
+6. Budget Exhaustion follows the accepted Run Budget contract: the run enters
+   Waiting with Budget Exhausted, performs only the permitted safe actions, and
+   requires a valid Budget Gate or Recovery Gate plus safe-resume checks. It is
+   not a terminal failure.
+7. A Kernel Command Rejection is the durable Rejected Kernel Command Result. It
+   is never retryable and cannot be bypassed with a fresh identity. When a
+   declared correction path exists, Correction creates a new attributable
+   proposal and, when required, a new Human Gate and new Kernel Command
+   Identity. The rejection itself changes no governed state.
+8. An Indeterminate Control Failure means the system cannot establish a
+   complete, consistent, deterministic classification or effect status. The run
+   enters Waiting with Resume Blocker, preserves the uncertainty, and requires
+   a Recovery Gate; it may not retry, correct, complete, or fail permissively
+   while the classification remains indeterminate.
+9. A Non-Recoverable Orchestration Failure exists only when declared policy
+   proves that safe continuation is impossible, such as irreconcilably
+   corrupted durable control history, an isolation breach, non-deterministic
+   persisted results, or absence of any compatible recovery path. The run
+   enters terminal Failed. Failure never rolls back, deletes, hides, or
+   reinterprets a previously accepted Kernel effect.
+10. Human decline, owner rejection, cancellation, gate expiry, and a valid
+    Kernel rejection are not automatically Non-Recoverable Orchestration
+    Failures. Every Correction is forward-only, attributable, linked to its
+    Failure Record, and budget-consuming. Governed business truth may be
+    corrected only through a separately authorized compensating Kernel Command,
+    never by editing an Agent Run, Failure Record, Task Result, Business Event,
+    Stock Movement, Ledger Entry, or Kernel Command Result. Successful
+    Correction preserves the failure history and still requires the later
+    observation contract before completion.
+
+This contract fixes only failure classification, retry-versus-Correction
+boundaries, Correction lineage, escalation, and terminal failure. The exact
+stable failure-code catalog and the observation and completion contract remain
+later decisions in this ticket.
