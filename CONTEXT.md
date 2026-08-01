@@ -144,6 +144,22 @@ _Avoid_: Orchestration Run State, Workflow state, Business Event, Blueprint Appr
 The one closed condition for which an Orchestration Run in Waiting is durably stopped—Human Gate, Retry Backoff, Explicit Pause, Resume Blocker, Budget Exhausted, or Task Result—together with its declared resumption condition.
 _Avoid_: Control Phase, terminal outcome, error message, Workflow state, approval
 
+**Human Gate**:
+A durable, typed orchestration control point bound to one exact immutable subject that waits for one attributable eligible-human decision. It may satisfy one Wait Reason or authorize submission of one unchanged request, but it grants no Business Kernel authority or governed truth.
+_Avoid_: Blueprint Approval, permission prompt, UI modal, warning acknowledgement, operator override
+
+**Human Gate Type**:
+The closed classification—Clarification Gate, Review Gate, Kernel Submission Gate, Budget Gate, or Recovery Gate—that determines the permitted subject, responses, and non-effects of one Human Gate.
+_Avoid_: Role, approval level, Wait Reason, Workflow state, form type
+
+**Human Gate Identity**:
+A globally unique, opaque identity assigned once to one Human Gate and never reused or transferred; it identifies the gate occurrence, not its subject or decision.
+_Avoid_: Human Gate Decision, subject identity, Orchestration Run Identity, trace identity, approval token
+
+**Human Gate Decision**:
+An immutable, attributable record of one eligible human's explicit allowed response to one unchanged Human Gate subject and the review material presented. It satisfies only the gate's declared waiting condition and is not Blueprint Approval, a Kernel result, or governed truth.
+_Avoid_: Blueprint Approval, owner intent, operator edit, model response, Kernel result
+
 **Kernel Command**:
 A typed, attributable, idempotent request submitted to the Business Kernel to attempt one declared governed action. It is not approval, a tool call, a UI action, or the Business Event and governed effects that may result.
 _Avoid_: Business Event, tool call, UI action, prompt, approval
