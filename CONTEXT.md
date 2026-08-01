@@ -321,8 +321,24 @@ The deterministic result—Valid, Valid With Advisories, Invalid, or Indetermina
 _Avoid_: Approval Eligibility, Compatibility Verdict, Blueprint Approval, provisioning readiness, acceptance
 
 **Sandbox Experience**:
-A non-production expression of a Business Blueprint using fictitious data for owner review and acceptance.
-_Avoid_: Production tenant, live system, customer environment
+A target-specific, non-production expression of an Applied Blueprint for one Tenant, backed by exactly one active Sandbox Generation and containing only explicitly fictitious runtime business data for owner review and acceptance.
+_Avoid_: Production tenant, live system, customer environment, Blueprint, deployment
+
+**Sandbox Generation**:
+The exact, uniquely identified set of runtime business truth currently active for one Sandbox Experience, replaceable only through an authorized atomic Sandbox Reset while governance history remains outside it.
+_Avoid_: Database, deployment, Blueprint Version, session, backup
+
+**Sandbox Fixture**:
+An immutable, content-identified declaration of explicitly fictitious setup inputs and expected scope for one Reference Vertical Slice scenario; it becomes runtime truth only through accepted Business Kernel actions.
+_Avoid_: Seed database, production sample, migration, opening balance, test result
+
+**Fictitious Data**:
+Owner-reviewable data deliberately invented for the local Sandbox proof, marked with its fixture provenance and forbidden from representing or being combined with real customer, employee, payment, identity, clinical, or production data.
+_Avoid_: Anonymized production data, copied customer data, live data, backup, unknown-origin data
+
+**Sandbox Export**:
+A deterministic, content-identified, read-only evidence bundle for one exact Sandbox Experience and Sandbox Generation, containing scoped fictitious runtime facts and invariant results without granting import, restore, migration, approval, or execution authority.
+_Avoid_: Backup, database dump, migration package, audit opinion, deployment artifact
 
 **Reference Vertical Slice**:
 An executable, non-production proof that spans Owner Interview, Blueprint Approval, both Sandbox Experiences, and their required business invariants.
