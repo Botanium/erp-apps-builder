@@ -1,7 +1,7 @@
 # Define the agent control loop and human gates
 
 Type: grilling  
-Status: claimed
+Status: resolved
 Blocked by: 03, 05, 06, 07
 
 ## Question
@@ -556,3 +556,89 @@ The closed v1 catalog is:
 This contract fixes only the stable code format, closed v1 catalog, Failure
 Class mapping, precedence, versioning, and redaction behavior. The observation
 and completion contract remains the next decision in this ticket.
+
+#### Observation and completion contract
+
+Use immutable, typed Observation Records and one deterministic, fail-closed Run
+Completion Record. Observation establishes whether each declared Completion
+Condition is supported by exact durable results; it never creates governed
+business truth, owner acceptance, Blueprint Approval, or execution authority.
+
+1. Before work starts, the orchestration definition must declare every
+   Completion Condition with a stable identity and version; its relation to the
+   scoped objective; the exact subject and expected observable result;
+   permitted authoritative or non-authoritative source kinds; required
+   freshness, baseline, and bound versions; whether it is Required or Advisory;
+   and the safe diagnostic to expose when it cannot be established. A running
+   Agent may not invent, weaken, remove, or reinterpret a Completion Condition.
+2. Every observation creates one immutable Observation Record with a globally
+   unique identity; exact Orchestration Run and Completion Condition; subject
+   and expected result; exact Task Result, Human Gate Decision, Kernel Command
+   Result, Business Kernel authoritative-record, provisioning-attempt,
+   reset-attempt, or other declared source references; observed value or
+   disposition; responsible observer; effective and recorded times; bound
+   versions and baselines; consumed budget; safe diagnostics; and exactly one
+   Observation Verdict.
+3. Use three closed Observation Verdicts: Satisfied means the exact current
+   durable source proves the declared condition; Unsatisfied means a complete,
+   current observation proves the condition is not met; Indeterminate means a
+   required source, result, baseline, comparison, version, or effect status is
+   missing, stale, inconsistent, unresolved, or non-comparable. Indeterminate
+   fails closed and may never be guessed into Satisfied or Unsatisfied.
+4. Agent output, a tool message, an orchestration trace, task completion, Human
+   Gate viewing, Authorize Submission, Kernel Command submission, or a transient
+   response cannot substitute for the exact source a condition declares. A
+   governed condition may be Satisfied only from the Business Kernel's durable
+   result or authoritative record. A Human Gate observation proves only its
+   exact decision and declared effect; it never expands that decision into
+   Blueprint Approval, owner acceptance, or governed truth.
+5. Observation is read-only. It may query and correlate durable results but may
+   not resubmit a command, repeat an external effect, repair a result, create
+   Evidence, or mutate governed state. New observation work consumes its
+   applicable Run Budget; replay may return an unchanged recorded Observation
+   Record when every bound input remains identical.
+6. An Unsatisfied Required condition returns the Active run to Correcting or to
+   its declared recovery path and preserves the observation. An Indeterminate
+   Required condition enters Waiting with Task Result or Resume Blocker
+   according to the cause. Advisory conditions remain visible but cannot hide
+   or override a Required result. Any changed condition, source, baseline,
+   version, or subject makes the observation stale and requires a new
+   Observation Record.
+7. An Orchestration Run may enter Completed only from Active in the Observing
+   Control Phase after an exact-versioned completion evaluator atomically
+   rechecks that: the objective and orchestration definition are unchanged and
+   resolvable; every Required Completion Condition has one current Satisfied
+   observation; every submitted Kernel Command has one durable known Result and
+   every Accepted effect required by the objective is observed; every required
+   Human Gate has one valid decision; no Wait Reason, unresolved Failure Record,
+   active Agent Run, active task, pending command outcome, or active
+   provisioning or reset attempt remains; no required observation is
+   Unsatisfied or Indeterminate; every external or governed effect status is
+   known; and Run Budget usage and immutable task-result references reconcile.
+8. Successful evaluation records one immutable Run Completion Record binding
+   the exact Orchestration Run, objective and definition versions, final control
+   state and phase, complete set of Completion Conditions and Observation
+   Records, Human Gate Decisions, Task Results, Kernel Command Results, relevant
+   authoritative-record references, unresolved Advisory items and exclusions,
+   Failure Records, reconciled Run Budget, evaluator and policy versions,
+   responsible source, and effective and recorded times. The
+   Active-to-Completed transition and Run Completion Record commit atomically.
+9. Partial success must remain explicit for retail and cafe or any other target.
+   A run cannot aggregate partial success into Completed unless its objective
+   declared a partial-result report as the intended result before execution.
+   Failed or Cancelled runs never become Completed; continuation creates a new
+   Orchestration Run. Replay returns the existing Run Completion Record, while
+   a changed objective, condition, subject, or bound version requires a new run.
+10. Completed means only that the exact orchestration objective and its declared
+    observation conditions finished. It is not Blueprint Approval, Reference
+    Vertical Slice acceptance, proof that an Acceptance Condition passed,
+    production readiness, deployment, or authority for another action, and it
+    never rolls back, deletes, or reinterprets governed effects. The later
+    Reference Vertical Slice acceptance contract owns executable scenarios,
+    fixtures, invariant checks, reset proof, and final owner acceptance
+    Evidence.
+
+This contract fixes the final observation-and-completion boundary for this
+ticket: exact durable Observation Records determine Satisfied, Unsatisfied, or
+Indeterminate Completion Conditions, and only a deterministic fail-closed Run
+Completion Record may accompany the atomic transition to Completed.

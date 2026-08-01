@@ -168,6 +168,14 @@ _Avoid_: Orchestration Run State, Workflow state, Business Event, Blueprint Appr
 The one closed condition for which an Orchestration Run in Waiting is durably stopped—Human Gate, Retry Backoff, Explicit Pause, Resume Blocker, Budget Exhausted, or Task Result—together with its declared resumption condition.
 _Avoid_: Control Phase, terminal outcome, error message, Workflow state, approval
 
+**Observation Record**:
+An immutable, attributable record of whether one declared Completion Condition is Satisfied, Unsatisfied, or Indeterminate from exact durable sources under one bound version and baseline set, without creating governed truth or owner acceptance.
+_Avoid_: Agent report, Task Result, Kernel Command Result, Evidence, governed truth
+
+**Run Completion Record**:
+The immutable result of a deterministic, fail-closed evaluation that one exact Orchestration Run satisfied every Required Completion Condition and reconciled its gates, results, effects, failures, and budget before entering Completed.
+_Avoid_: Task finished, Kernel Command accepted, owner acceptance, Blueprint Approval, test passed
+
 **Human Gate**:
 A durable, typed orchestration control point bound to one exact immutable subject that waits for one attributable eligible-human decision. It may satisfy one Wait Reason or authorize submission of one unchanged request, but it grants no Business Kernel authority or governed truth.
 _Avoid_: Blueprint Approval, permission prompt, UI modal, warning acknowledgement, operator override
