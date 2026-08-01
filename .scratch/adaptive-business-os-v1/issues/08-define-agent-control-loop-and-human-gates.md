@@ -40,3 +40,43 @@ This contract fixes only control authority and state ownership. Durable run
 identity and safe resume, loop states, Human Gates, command idempotency and
 retry, budgets, failure and correction, and observation remain later decisions
 in this ticket.
+
+#### Durable run-identity and safe-resume contract
+
+Use one stable, globally unique, opaque Orchestration Run Identity for the
+whole scoped objective, with immutable, uniquely identified Agent Run attempts
+beneath it.
+
+1. Assign the Orchestration Run Identity once and never reuse or transfer it.
+   Bind the run to its exact scoped objective and attributable initiating
+   source; Tenant when applicable; source artifacts; orchestration definition;
+   agent instructions, tool, policy, and model version set; current control
+   state; pending Human Gate; budget counters; immutable task-result
+   references; correlation identities; expected Business Kernel baselines; and
+   effective and recorded times.
+2. Assign a new globally unique, opaque Agent Run Identity to every model-led
+   or tool-execution attempt. Each Agent Run identifies its parent
+   Orchestration Run and exact inputs, governing version set, usage, outcome,
+   and predecessor when applicable. Retry or resume never overwrites an
+   earlier attempt or result.
+3. Pause and resume continue the same Orchestration Run. When model-led or tool
+   work continues, resume creates a new Agent Run attempt; it does not pretend
+   the earlier attempt never stopped.
+4. Resume must fail closed unless the persisted control state, bound
+   orchestration and agent definition versions, referenced artifacts, pending
+   Human Gate subject and freshness, budget state, and expected Business Kernel
+   baselines are intact and compatible. A mismatch leaves governed state
+   unchanged and produces an owner-reviewable Resume Blocker; it requires an
+   explicit replan or a new Orchestration Run rather than silent migration,
+   guessed repair, or reinterpretation.
+5. Resume and replay may reuse completed immutable task results. Any repeated
+   Kernel Command must retain its original idempotency identity and return its
+   recorded result, so replay cannot duplicate Blueprint Approval or governed
+   effects.
+6. Neither run identity, current control state, successful resume, nor a
+   completed Agent Run grants approval, authorization, or execution authority.
+
+This contract fixes only durable run identity and safe resume. The exact
+control-state model and transitions, Human Gate contract, budget and retry
+policy, failure and correction rules, and observation contract remain later
+decisions in this ticket.

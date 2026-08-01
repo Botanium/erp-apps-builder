@@ -120,6 +120,18 @@ _Avoid_: Agent, Workflow, business process, Kernel execution, Business Event
 A durable, non-authoritative coordination record for one scoped objective that preserves control state, pending Human Gates, budgets, retries, task results, and correlation identities without owning governed business truth.
 _Avoid_: Workflow, business transaction, audit log, deployment
 
+**Orchestration Run Identity**:
+A globally unique, opaque identity assigned once to one Orchestration Run and retained unchanged across pause and resume; it is never reused or transferred.
+_Avoid_: Agent Run Identity, session ID, thread ID, objective label, correlation identity
+
+**Agent Run Identity**:
+A globally unique, opaque identity assigned once to one immutable Agent Run attempt within an Orchestration Run and never reused, transferred, or overwritten by retry or resume.
+_Avoid_: Orchestration Run Identity, attempt number, trace identity, tool-call identity, session ID
+
+**Resume Blocker**:
+An owner-reviewable condition that prevents an Orchestration Run from resuming because required persisted state, bound versions, referenced artifacts, pending Human Gate, budget state, or expected Business Kernel baseline is missing, stale, or incompatible.
+_Avoid_: Human Gate, owner rejection, Kernel rejection, warning, automatic migration
+
 **Kernel Command**:
 A typed, attributable, idempotent request submitted to the Business Kernel to attempt one declared governed action. It is not approval, a tool call, a UI action, or the Business Event and governed effects that may result.
 _Avoid_: Business Event, tool call, UI action, prompt, approval
