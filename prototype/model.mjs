@@ -180,7 +180,7 @@ function emptyTarget(profile, generationNumber = 1) {
     generationId: `generation.${profile.sandboxId}.${generationNumber}`,
     generationNumber,
     appliedBlueprint: null,
-    effectiveBlueprint: null,
+    activeConfiguration: null,
     stepIndex: 0,
     records: [],
     events: [],
@@ -195,6 +195,7 @@ export function createState() {
     blueprint: BLUEPRINT,
     lifecycle: "Draft",
     approval: null,
+    effectiveBlueprint: null,
     targets: Object.fromEntries(BLUEPRINT.content.targetProfiles.map(profile => [profile.sandboxId.split(".").at(-1), emptyTarget(profile)])),
     resetRecords: [],
     lastResult: { disposition: "Ready", message: "Explicitly approve the immutable Blueprint before compilation." },
@@ -435,29 +436,36 @@ export function compileAndProvision(state) {
   const next = clone(state);
   if (next.lifecycle !== "Approved" || !next.approval) return withLast(next, "Rejected", "Compilation for provisioning requires the exact Approved Blueprint.");
   const available = new Set(next.blueprint.content.capabilities.map(capability => capability.identity));
+  next.effectiveBlueprint = {
+    identity: "effective-blueprint.shared-v1",
+    sourceReference: next.blueprint.reference,
+    sourceContentIdentity: next.blueprint.contentIdentity,
+    versionSet: next.blueprint.versionSet,
+    resolvedConfiguration: next.blueprint.content,
+    contentIdentity: contentIdentity({ source: next.blueprint.contentIdentity, resolvedConfiguration: next.blueprint.content }),
+  };
   for (const profile of next.blueprint.content.targetProfiles) {
     const missing = profile.visibleCapabilities.filter(identity => !available.has(identity));
     if (missing.length) return withLast(next, "Rejected", `Profile ${profile.identity} references missing Capabilities: ${missing.join(", ")}`);
     const targetKey = profile.sandboxId.split(".").at(-1);
     const target = next.targets[targetKey];
-    target.effectiveBlueprint = {
-      identity: `effective.${profile.identity}`,
-      sourceReference: next.blueprint.reference,
-      sourceContentIdentity: next.blueprint.contentIdentity,
-      versionSet: next.blueprint.versionSet,
+    target.activeConfiguration = {
+      identity: `active-configuration.${profile.identity}`,
+      effectiveBlueprintIdentity: next.effectiveBlueprint.identity,
+      effectiveBlueprintContentIdentity: next.effectiveBlueprint.contentIdentity,
       profile,
-      contentIdentity: contentIdentity({ source: next.blueprint.contentIdentity, profile }),
+      contentIdentity: contentIdentity({ effectiveBlueprint: next.effectiveBlueprint.contentIdentity, profile }),
     };
     target.appliedBlueprint = { reference: next.blueprint.reference, contentIdentity: next.blueprint.contentIdentity };
   }
-  return withLast(next, "Accepted", "One Approved Blueprint compiled into two isolated target plans and both activated atomically per target.");
+  return withLast(next, "Accepted", "One target-neutral Effective Blueprint prepared two isolated target configurations and both activated atomically per target.");
 }
 
 export function executeNext(state, targetKey) {
   const next = clone(state);
   const target = next.targets[targetKey];
   if (!target) return withLast(next, "Rejected", `Unknown target ${targetKey}.`);
-  if (!target.appliedBlueprint || !target.effectiveBlueprint) return withLast(next, "Rejected", "The target has no Applied Blueprint.");
+  if (!target.appliedBlueprint || !target.activeConfiguration || !next.effectiveBlueprint) return withLast(next, "Rejected", "The target has no Applied Blueprint or active prepared configuration.");
   const scenario = FIXTURE[targetKey];
   const command = scenario.commands[target.stepIndex];
   if (!command) return withLast(next, "NoOp", `${targetKey} scenario is already complete.`);

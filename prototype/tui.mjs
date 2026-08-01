@@ -48,6 +48,7 @@ function render() {
   console.log(dim("One immutable Blueprint · two target profiles · one generic governed-action registry\n"));
   console.log(`${bold("Blueprint")} lifecycle=${state.lifecycle}  version=1  content=${BLUEPRINT.contentIdentity.slice(0, 22)}…`);
   console.log(`${bold("Approval")} ${state.approval ? green("explicit exact-Draft decision recorded") : amber("absent")}`);
+  console.log(`${bold("Effective Blueprint")} ${state.effectiveBlueprint ? `${state.effectiveBlueprint.identity} ${state.effectiveBlueprint.contentIdentity.slice(0, 18)}…` : amber("not compiled")}`);
   console.log(`${bold("Capabilities")} 11 selected once; retail exposes 10, cafe exposes 9\n`);
   console.log(targetLine("retail", state.targets.retail));
   console.log();

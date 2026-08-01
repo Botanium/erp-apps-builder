@@ -6,16 +6,17 @@ Scope: in-memory, local, fictitious, non-authoritative logic prototype
 ## Verdict
 
 Yes. One immutable Blueprint can select the closed v1 Capability union once,
-then compile two target profiles that expose different workflows and
+then compile one target-neutral Effective Blueprint from which provisioning
+prepares two target configurations that expose different workflows and
 experiences while one generic Business Kernel action registry executes both
 business paths. No handler branches on `retail`, `cafe`, Tenant identity, or a
 vertical application; the differences live in Blueprint target-profile data
 and fictitious scenario commands.
 
 The later Reference Vertical Slice should retain this shape: one source
-Blueprint contract, one target-neutral compiler, one shared governed-action
-registry, independently applied target artifacts, and target-generation state
-that never crosses the seam.
+Blueprint contract, one target-neutral Effective Blueprint, one shared
+governed-action registry, independently prepared and applied target
+configurations, and target-generation state that never crosses the seam.
 
 ## Observed run
 
@@ -25,8 +26,9 @@ The terminal prototype was driven manually through its public commands:
    remained clean and unapplied.
 2. One explicit action approved the exact Blueprint Reference and Content
    Identity.
-3. Compilation produced two Effective Blueprint profiles from that same exact
-   source and activated retail and cafe independently.
+3. Compilation produced one target-neutral Effective Blueprint from that exact
+   source, then preparation derived two target configurations and activated
+   retail and cafe independently.
 4. Retail advanced through Purchase Order confirmation, Supplier Receipt,
    Order acceptance, Sale fulfillment, and cash Payment.
 5. Cafe advanced through ingredient Purchase Order and Supplier Receipt setup,
@@ -65,8 +67,9 @@ The terminal prototype was driven manually through its public commands:
 1. The Blueprint's Capability selections should contain the supported union;
    target profiles then select Role, Workflow, interface, and report exposure.
    Presentation visibility never grants or removes Kernel authority.
-2. Compilation must be target-neutral and pure. Each target artifact binds the
-   same exact source Blueprint but has a different derived Content Identity.
+2. Compilation must be target-neutral and pure. It creates one Effective
+   Blueprint. Each later prepared target configuration binds that same
+   Effective Blueprint but has a different derived Content Identity.
 3. The command dispatcher should resolve a declared governed-action identity
    through a shared registry. Target-specific scenario ordering belongs to
    fixture or orchestration data, not to Kernel conditionals.
