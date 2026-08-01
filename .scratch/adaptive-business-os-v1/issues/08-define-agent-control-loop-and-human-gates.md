@@ -467,3 +467,92 @@ This contract fixes only failure classification, retry-versus-Correction
 boundaries, Correction lineage, escalation, and terminal failure. The exact
 stable failure-code catalog and the observation and completion contract remain
 later decisions in this ticket.
+
+#### Stable failure-code contract
+
+Use stable, project-owned codes in the exact uppercase three-part form
+`ORC.<FAMILY>.<REASON>`. Every code belongs to one Failure Class through its
+family, identifies one durable meaning, and determines one permitted
+disposition under the exact failure-policy version. A Failure Record carries
+exactly one primary code; provider messages, tool errors, validation
+diagnostics, and Kernel Command Result diagnostics remain referenced details
+and never become the primary orchestration code.
+
+The closed v1 catalog is:
+
+- `ORC.TRANSIENT`: `TRANSPORT_UNAVAILABLE`, `PROVIDER_UNAVAILABLE`,
+  `PROVIDER_RATE_LIMITED`, `TOOL_UNAVAILABLE`, `RESULT_RETRIEVAL_FAILED`,
+  `DELIVERY_OUTCOME_UNKNOWN`, `OPERATION_TIMEOUT`, and `PROCESS_INTERRUPTED`.
+- `ORC.CORRECTABLE`: `INPUT_INVALID`, `PROPOSAL_INVALID`,
+  `VALIDATION_BLOCKED`, `REVIEW_REVISION_REQUESTED`, `TASK_RESULT_REJECTED`, and
+  `CORRECTION_LIMIT_REACHED`.
+- `ORC.BASELINE`: `ARTIFACT_MISSING`, `ARTIFACT_STALE`,
+  `CONTENT_IDENTITY_MISMATCH`, `VERSION_MISMATCH`, `KERNEL_BASELINE_CHANGED`,
+  `HUMAN_GATE_STALE`, `BUDGET_STATE_MISMATCH`, `POLICY_CHANGED`, and
+  `RESUME_INCOMPATIBLE`.
+- `ORC.BUDGET`: `AGENT_RUN_ATTEMPTS_EXHAUSTED`, `INPUT_TOKENS_EXHAUSTED`,
+  `OUTPUT_TOKENS_EXHAUSTED`, `PROVIDER_REQUESTS_EXHAUSTED`,
+  `TOOL_TASK_ATTEMPTS_EXHAUSTED`, `TRANSIENT_RETRIES_EXHAUSTED`,
+  `KERNEL_DELIVERIES_EXHAUSTED`, `ACTIVE_TIME_EXHAUSTED`,
+  `ELAPSED_LIFETIME_EXHAUSTED`, and `MONETARY_SPEND_EXHAUSTED`.
+- `ORC.KERNEL`: `COMMAND_REJECTED`, `IDEMPOTENCY_CONFLICT`,
+  `AUTHORIZATION_REJECTED`, `EVIDENCE_REJECTED`, `POLICY_REJECTED`,
+  `INVARIANT_REJECTED`, `SAFETY_REJECTED`, `BASELINE_REJECTED`,
+  `VERSION_REJECTED`, and `SCHEMA_REJECTED`.
+- `ORC.INDETERMINATE`: `CLASSIFICATION_UNKNOWN`, `CLASSIFICATION_CONFLICT`,
+  `EFFECT_STATUS_UNKNOWN`, `REQUIRED_INPUT_MISSING`, `POLICY_UNAVAILABLE`,
+  `MEASUREMENT_UNAVAILABLE`, `CLASSIFIER_NONDETERMINISTIC`, and
+  `UNCLASSIFIED_FINDING`.
+- `ORC.NONRECOVERABLE`: `CONTROL_HISTORY_CORRUPT`,
+  `DURABLE_STATE_IRRECONCILABLE`, `TENANT_ISOLATION_BREACH`,
+  `PERSISTED_RESULT_NONDETERMINISTIC`, `NO_COMPATIBLE_RECOVERY`,
+  `POLICY_PROHIBITS_CONTINUATION`, and `AUTHORITY_BOUNDARY_BREACH`.
+
+1. Family mapping is exact: `TRANSIENT` maps to Transient Control Failure;
+   `CORRECTABLE` to Correctable Proposal Failure; `BASELINE` to Control Baseline
+   Conflict; `BUDGET` to Budget Exhaustion; `KERNEL` to Kernel Command
+   Rejection; `INDETERMINATE` to Indeterminate Control Failure; and
+   `NONRECOVERABLE` to Non-Recoverable Orchestration Failure.
+2. Code meaning, family, Failure Class, retryability, permitted disposition, and
+   relative precedence are immutable within one failure-policy version. Adding,
+   removing, renaming, reclassifying, or changing the disposition of a code
+   requires a new failure-policy version and makes affected review or resume
+   material stale.
+3. For identical bound inputs, effect knowledge, and policy version,
+   classification must produce the same primary code. AI, provider text,
+   operator editing, localization, replay, or retry may not invent, suppress,
+   remap, or downgrade a code.
+4. When more than one condition applies to one failed step, the primary code is
+   selected by this family precedence: `NONRECOVERABLE`, `INDETERMINATE`,
+   `BASELINE`, `BUDGET`, `KERNEL`, `CORRECTABLE`, `TRANSIENT`. Within the
+   selected family, a declared decision rule must yield one unique most-specific
+   reason; otherwise the primary code is
+   `ORC.INDETERMINATE.CLASSIFICATION_CONFLICT`. Every related finding remains
+   referenced so the primary code cannot hide another cause.
+5. An unknown, malformed, contradictory, or unmapped finding produces
+   `ORC.INDETERMINATE.UNCLASSIFIED_FINDING`. Non-deterministic classification
+   produces `ORC.INDETERMINATE.CLASSIFIER_NONDETERMINISTIC`. Neither may be
+   coerced into a permissive class.
+6. `ORC.KERNEL` codes summarize the primary rejection category only. The
+   Failure Record must reference the exact immutable Kernel Command Result and
+   all Kernel diagnostics; orchestration never rewrites or replaces Kernel
+   reasoning.
+7. `ORC.BUDGET` codes map one-for-one to the ten Balanced Local Slice Profile
+   dimensions. A Not Applicable monetary dimension cannot emit
+   `MONETARY_SPEND_EXHAUSTED`; unavailable or untrustworthy measurement emits
+   `ORC.INDETERMINATE.MEASUREMENT_UNAVAILABLE` instead.
+8. Owner-facing text and localization may change without changing code meaning.
+   Consumers rely on the code, bound policy version, class, disposition,
+   subject, and related references rather than message wording or display
+   order.
+9. A code is operational classification only. It is not an Orchestration Run
+   State, Wait Reason, Human Gate decision, Kernel Command Result, Blueprint
+   Approval, Business Event, Evidence, acceptance result, or authority.
+10. Failure codes and safe diagnostics must never expose credentials, secrets,
+    Restricted values, or unnecessary Confidential data. Redaction changes
+    presentation only and may not change the code or hide that protected data
+    was involved.
+
+This contract fixes only the stable code format, closed v1 catalog, Failure
+Class mapping, precedence, versioning, and redaction behavior. The observation
+and completion contract remains the next decision in this ticket.

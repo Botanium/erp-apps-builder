@@ -136,6 +136,10 @@ _Avoid_: Error message, Orchestration Run State, Kernel Command Result, Business
 The closed, deterministic classification attached to one Failure Record—Transient Control Failure, Correctable Proposal Failure, Control Baseline Conflict, Budget Exhaustion, Kernel Command Rejection, Indeterminate Control Failure, or Non-Recoverable Orchestration Failure—that constrains its permitted disposition.
 _Avoid_: Error code, severity, Orchestration Run State, Wait Reason, model diagnosis
 
+**Failure Code**:
+A stable, project-owned `ORC.<FAMILY>.<REASON>` identity assigned as the one primary classification of a Failure Record under an exact failure-policy version, mapping it to one Failure Class and permitted disposition.
+_Avoid_: Error message, provider code, HTTP status, Kernel diagnostic, severity
+
 **Correction**:
 A forward-only, attributable response to a Failure Record that creates a new non-authoritative subject or separately authorized compensating Kernel Command while preserving every prior attempt and governed fact.
 _Avoid_: Retry, repair in place, rollback, mutation, erasure
