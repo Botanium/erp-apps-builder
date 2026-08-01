@@ -112,6 +112,18 @@ _Avoid_: Interview completion, preview viewing, option selection
 A versioned, deterministic platform authority that validates, compiles, authorizes, and executes supported business behavior for every Tenant while enforcing isolation, Record and Workflow integrity, Evidence duties, accounting, stock, approval, provisioning, and reset truth. It is configured by an Approved Blueprint but never replaced or extended by tenant-specific runtime code.
 _Avoid_: ERP core, shared library, generated backend, tenant runtime, plugin host, AI agent
 
+**Agent Run**:
+A bounded, non-authoritative model-led attempt within an Orchestration Run that may interview, plan, explain, read permitted context, and produce proposals or typed requests without granting approval, authorization, or governed-state mutation.
+_Avoid_: Agent, Workflow, business process, Kernel execution, Business Event
+
+**Orchestration Run**:
+A durable, non-authoritative coordination record for one scoped objective that preserves control state, pending Human Gates, budgets, retries, task results, and correlation identities without owning governed business truth.
+_Avoid_: Workflow, business transaction, audit log, deployment
+
+**Kernel Command**:
+A typed, attributable, idempotent request submitted to the Business Kernel to attempt one declared governed action. It is not approval, a tool call, a UI action, or the Business Event and governed effects that may result.
+_Avoid_: Business Event, tool call, UI action, prompt, approval
+
 **Kernel Foundation**:
 The always-active, non-selectable part of the Business Kernel that preserves governance and execution invariants for every Tenant and cannot be disabled, replaced, or weakened by a Business Blueprint.
 _Avoid_: Core Capability, hidden Capability, base module, system feature, tenant default
