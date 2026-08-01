@@ -1,0 +1,8 @@
+{
+  "name": "adaptive-business-os-blueprint-kernel-prototype",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prototype": "node prototype/tui.mjs"
+  }
+}
