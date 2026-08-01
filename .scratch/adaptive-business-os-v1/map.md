@@ -46,13 +46,12 @@ fictitious data, and reset cleanly.
 - [Research agent control and durable workflow patterns](issues/03-research-agent-control-and-durable-workflows.md): separate agent proposal control, resumable orchestration, and idempotent Business Kernel commands; runtime traces and histories are operational evidence, not business audit truth.
 - [Research ledger and inventory invariants](issues/04-research-ledger-inventory-invariants.md): require balanced atomic postings, immutable linked corrections, idempotent stock and ledger effects, independently recomputable reconciliation, and whole-sandbox reset; ticket 09 still owns the v1 policy choices.
 - [Define the Intent Brief and Owner Interview contract](issues/05-define-intent-brief-and-interview-contract.md): require a versioned, source-attributed Intent Brief with explicit uncertainty, sensitive-data, Assumption, and Acceptance Condition contracts; permit Draft generation only when it is structurally traceable, safely scoped, and does not invent governed truth.
+- [Define the Business Blueprint schema and lifecycle](issues/06-define-blueprint-schema-and-lifecycle.md): use immutable complete Blueprint snapshots with exact lineage and content identity, explicit approval, fail-closed concurrency and compatibility, atomic provisioning, forward-only reversion, and separately authorized Sandbox Reset.
 
 ## Not yet specified
 
 - Capability-pack packaging, versioning, and extension semantics after the
   Business Kernel boundary is resolved.
-- Blueprint compatibility, migration, and rollback detail after schema
-  lifecycle and execution-graph decisions are resolved.
 - The final acceptance-seam matrix after public interfaces and prototype
   verdicts exist.
 
@@ -66,5 +65,8 @@ fictitious data, and reset cleanly.
 - Clinic and travel verticals.
 - Cafe tables, reservations, delivery, tips, loyalty, or advanced recipe
   costing.
+- State-preserving Blueprint migration in v1; a Migration Required verdict
+  blocks Approval Eligibility and provisioning rather than authorizing a
+  transformation.
 - Implementation beyond the Reference Vertical Slice before Botan approves the
   v1 specification.

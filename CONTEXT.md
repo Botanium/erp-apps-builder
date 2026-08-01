@@ -72,6 +72,14 @@ _Avoid_: Validation result, Blueprint Approval, deployment status, migration pla
 The exact Blueprint Reference and Blueprint Content Identity whose Governed Configuration is currently active for one Sandbox Experience following a successful target-specific atomic provisioning activation.
 _Avoid_: Current Approved Blueprint, deployed version, latest Blueprint, provisioning attempt, runtime state, Blueprint Lifecycle State
 
+**Blueprint Reversion**:
+An owner-directed creation of a new Draft Blueprint whose proposed Governed Configuration intentionally restores all or part of an earlier Blueprint Version while retaining a new identity, review, compatibility, approval, and provisioning path.
+_Avoid_: Rollback, reactivated Version, undo approval, restore runtime state, downgrade
+
+**Sandbox Reset**:
+An explicitly authorized replacement of one Sandbox Experience's active fictitious runtime generation with a declared clean or reprovisioned generation while preserving attributable governance history.
+_Avoid_: Blueprint Reversion, rollback, database wipe, logout, redeploy, migration
+
 **Draft Blueprint**:
 A Business Blueprint version that remains under owner review and is not authorized to provision or update a Sandbox Experience.
 _Avoid_: Proposed app, saved interview, pending system

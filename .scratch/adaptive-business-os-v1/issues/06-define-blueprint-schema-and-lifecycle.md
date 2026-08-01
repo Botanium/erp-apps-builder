@@ -1,7 +1,7 @@
 # Define the Business Blueprint schema and lifecycle
 
 Type: grilling  
-Status: claimed
+Status: resolved
 Blocked by: 01, 05
 
 ## Question
@@ -559,5 +559,102 @@ isolation, and atomic Applied-state transition only. It does not decide
 compilation internals, reset authorization and mechanics, rollback selection,
 business-data fixtures, or production deployment.
 
-This ticket remains claimed until the remaining Business Blueprint schema and
-lifecycle decisions are resolved.
+#### Blueprint Reversion and Sandbox Reset contract
+
+Use forward-only Blueprint Reversion and an explicitly authorized,
+generation-replacement Sandbox Reset. They are separate governed actions:
+Reversion changes proposed configuration through the normal Draft-to-Approved
+path; Reset destructively replaces one Sandbox Experience's fictitious runtime
+generation.
+
+**Blueprint Reversion:**
+
+1. Reversion never mutates, reactivates, or transfers authority from a
+   historical Blueprint Version. Restoring all or part of earlier Governed
+   Configuration creates a new Draft with a new Blueprint Reference, Version
+   Number, Content Identity, creation provenance, Intent Traceability, review
+   bundle, Compatibility Verdict, and explicit Blueprint Approval.
+2. The new Draft must identify the exact current source used to begin the edit
+   and the exact historical Blueprint Reference whose content informed the
+   proposal. The Semantic Diff must compare the proposed reversion against the
+   declared current baseline and expose every restored, removed, retained, or
+   still-non-comparable path.
+3. Reversion follows the ordinary concurrency, Approval Eligibility,
+   compatibility, provisioning, and Applied Blueprint contracts. Prior
+   Blueprint Approval, equal historical content, owner selection of an old
+   Version, or a prior successful Provisioning Attempt grants no authority to
+   apply the new Version.
+4. Reversion changes configuration only. It never reverses, deletes, or rewrites
+   Business Events, Records, Evidence, Stock Movements, Ledger Entries,
+   Payments, balances, or other business truth. Business corrections require
+   separately governed compensating business actions.
+
+**Sandbox Reset:**
+
+5. Reset requires a separate, explicit, attributable Reset Authorization. It
+   must bind the exact Tenant and Sandbox Experience; its expected Applied
+   Blueprint Reference and Content Identity or explicit absence; the exact
+   active runtime-generation identity; the complete deletion and preservation
+   scope; the reason; any Approved Blueprint intended for subsequent
+   provisioning; an expiry or freshness boundary; and one unique idempotency
+   identity.
+6. Before authorization, the owner must see that Reset is destructive and
+   Sandbox-only, which fictitious Records, Business Events, Evidence instances,
+   Stock Movements, Ledger Entries, Payments, balances, stock, cash,
+   participant assignments, fixtures, and other runtime state will cease to be
+   active, which governance artifacts remain, and whether the final target will
+   be clean-unapplied or reprovisioned. Blueprint Approval, Blueprint Rejection,
+   withdrawal, preview viewing, a Reset Required verdict, or starting a new run
+   is never Reset Authorization.
+7. Reset is forbidden if the target identity or scope is unresolved, a bound
+   input is stale, real customer or production data may be present, preserved
+   governance history cannot be separated, a conflicting provisioning or
+   business action is active, or the requested final state cannot be prepared
+   and validated under declared Business Kernel rules.
+8. The Business Kernel must prepare an isolated replacement generation before
+   destructive activation. For reset-and-reprovision, the exact Approved
+   Blueprint candidate and allowed reset path must be prepared and validated
+   first. For reset-to-clean, an empty declared baseline must be prepared and
+   validated. Failure before activation leaves the existing generation and
+   Applied Blueprint unchanged.
+9. Reset activation is one atomic compare-and-set against the expected active
+   generation and Applied Blueprint baseline. Success makes the replacement
+   generation active and either records the newly provisioned Applied Blueprint
+   or explicit absence. The prior generation becomes operationally
+   inaccessible; only data within the explicitly authorized deletion scope may
+   then be removed.
+10. A Reset Attempt moves through Requested, Validating, Prepared, Resetting,
+    and Reset states, or before activation to Failed or Cancelled. It is
+    idempotent, preserves stable diagnostics, and records the exact
+    authorization, before-and-after generation identities, Applied Blueprint
+    references, actual deletion scope, invariant results, responsible source,
+    and effective and recorded times.
+11. Reset clears only the authorized Sandbox runtime generation. It does not
+    alter Intent Briefs, Blueprint Versions, Content Identities, Blueprint
+    Lifecycle States, Blueprint Approvals, rejections, withdrawals, Semantic
+    Diffs, Compatibility Verdicts, Provisioning Attempt records, or the durable
+    Reset record needed to explain what occurred. Runtime Evidence instances
+    inside the replaced fictitious generation may be cleared only when named in
+    the authorization; governance Evidence remains preserved outside it.
+12. Reset success means the target reached its declared clean or reprovisioned
+    baseline and its reset invariants passed. It is not Blueprint Approval,
+    Blueprint Reversion, rollback success, Reference Vertical Slice acceptance,
+    deployment, or production readiness. Retail and cafe reset independently,
+    and a combined reset command must report partial failure without claiming a
+    clean whole-system reset.
+
+This contract defines Blueprint Reversion, Sandbox Reset authority, preserved
+history, idempotency, and atomic generation replacement only. The Reference
+Vertical Slice acceptance contract still owns exact fixture contents,
+one-command orchestration, invariant assertions, and proof that both targets
+reset cleanly. Production deletion, backup restoration, disaster recovery, and
+migration remain out of scope.
+
+### Resolution
+
+The Business Blueprint is a complete, immutable, closed-schema declaration of
+one Tenant's Governed Configuration and intent traceability. Exact identity,
+content identity, lifecycle, approval eligibility, concurrency, compatibility,
+provisioning, Applied state, forward-only reversion, and Sandbox Reset are
+separate, attributable contracts; none transfers approval or execution
+authority by inference.
