@@ -120,6 +120,10 @@ _Avoid_: Agent, Workflow, business process, Kernel execution, Business Event
 A durable, non-authoritative coordination record for one scoped objective that preserves control state, pending Human Gates, budgets, retries, task results, and correlation identities without owning governed business truth.
 _Avoid_: Workflow, business transaction, audit log, deployment
 
+**Run Budget**:
+An immutable, versioned set of monotonic resource ceilings and attributable usage bound to one Orchestration Run, constraining how much orchestration work may occur without granting authority to perform it.
+_Avoid_: Spending approval, token counter, rate limit, retry policy, execution authority
+
 **Orchestration Run Identity**:
 A globally unique, opaque identity assigned once to one Orchestration Run and retained unchanged across pause and resume; it is never reused or transferred.
 _Avoid_: Agent Run Identity, session ID, thread ID, objective label, correlation identity

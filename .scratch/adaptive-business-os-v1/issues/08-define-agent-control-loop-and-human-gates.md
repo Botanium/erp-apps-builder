@@ -293,3 +293,63 @@ This contract fixes only the Kernel Command envelope, Content Identity, Result,
 idempotency, and retry classification. The exact run-budget policy, failure and
 correction rules, and observation contract remain later decisions in this
 ticket.
+
+#### Run Budget contract
+
+Use one immutable, versioned, composed Run Budget bound to the exact
+Orchestration Run. It places monotonic hard ceilings on Agent Run attempts,
+input tokens, output tokens, model or provider requests, tool and Task Result
+attempts, transient retries, Kernel Command delivery submissions, active
+execution time, total elapsed lifetime, and—only where independently
+measurable—monetary spend. Each dimension records its exact limit, consumed
+amount, reserved amount, unit, source, and measurement rule. Exact v1 default
+quantities remain a later decision.
+
+1. The initial Run Budget is attributable, bound to the Orchestration Run and
+   its governing version set, and fixed before work starts. A budget constrains
+   work; it never authorizes a tool, Human Gate response, Kernel Command,
+   governed action, or external side effect.
+2. A Control Phase, Agent Run, or task may receive a declared sub-budget or
+   reservation, but its limits may not exceed or borrow beyond the parent Run
+   Budget. Releasing an unused reservation is attributable and does not erase
+   consumption.
+3. Before starting bounded work, the Orchestration Run must reserve the declared
+   worst-case measurable amount needed for that step. If a required dimension
+   cannot be measured or safely reserved, the step fails closed rather than
+   beginning with unbounded exposure.
+4. Consumption is monotonic and recorded through immutable, attributable usage
+   events tied to the responsible Agent Run, task, retry, or submission.
+   Reconciliation must independently reproduce consumed, reserved, released,
+   and remaining amounts.
+5. Every new model request, tool execution, task attempt, transient retry, and
+   command-delivery submission consumes its applicable budget even when it
+   fails. Reusing an immutable Task Result or retrieving an existing Kernel
+   Command Result does not repeat the prior governed effect, but any genuinely
+   new computation or request is still counted.
+6. Waiting stops the active-execution-time meter but does not stop the total
+   elapsed-lifetime or expiry boundary. Pausing, replay, resume, process
+   restart, or operator editing never resets consumption.
+7. Before any hard ceiling would be exceeded, the Orchestration Run enters
+   Waiting with Wait Reason Budget Exhausted. While there, it may only read
+   status or an already-recorded result, persist safe control state, receive the
+   pending Human Gate decision, cancel, or observe and record the outcome of an
+   already-submitted Kernel Command. It may not start a new Agent Run, tool or
+   task attempt, retry, or Kernel Command submission.
+8. Only one valid Budget Gate decision may authorize one exact bounded change.
+   The change creates a new attributable Run Budget version or amendment,
+   preserves every prior limit and usage event, changes only the named
+   dimensions, and may not reset counters, hide excess, or grant Business
+   Kernel authority.
+9. AI, orchestration policy, configuration, retry, replay, or a provider
+   response may never increase, waive, pool, reinterpret, or silently default a
+   Run Budget. Missing, stale, inconsistent, or non-deterministically measured
+   budget state is a Resume Blocker and fails closed.
+10. Budget Exhausted is not Failed, Cancelled, owner rejection, Blueprint
+    Approval, Kernel rejection, or reversal of an accepted governed effect.
+    Resumption requires the exact wait condition to be resolved through a valid
+    Budget Gate or Recovery Gate and then pass safe-resume, freshness,
+    compatibility, baseline, and budget checks.
+
+This contract fixes only the Run Budget dimensions, accounting, amendment, and
+exhaustion behavior. The exact v1 default quantities, failure and correction
+rules, and observation contract remain later decisions in this ticket.
