@@ -493,5 +493,71 @@ v1 eligibility consequences only. It does not decide provisioning steps,
 migration design, rollback behavior, reset authorization, or applied-state
 transitions.
 
+#### Blueprint provisioning and Applied Blueprint contract
+
+Use a target-specific, idempotent prepare-then-activate provisioning protocol.
+Blueprint Approval makes an exact Blueprint eligible to be requested for
+provisioning; it does not automatically start provisioning or change a Sandbox
+Experience.
+
+1. Each Sandbox Experience must externally record exactly one Applied Blueprint
+   Reference and Content Identity, or explicit absence, together with the
+   successful Provisioning Attempt, activation time, and exact Business Kernel,
+   Configuration Schema, Capability, and adapter versions that made it active.
+   Applied state is not stored in the immutable Blueprint and is separate from
+   Blueprint Lifecycle State and the lineage's current Approved target.
+2. Provisioning requires a separate, attributable Provisioning Request. It must
+   bind one exact Tenant and Sandbox Experience; the exact current Approved
+   Blueprint Reference, Content Identity, and Blueprint Approval; a fresh
+   target-specific Compatibility Verdict; the expected current Applied
+   Blueprint Reference and Content Identity or explicit absence; the governing
+   version set; and one unique idempotency identity.
+3. Initial Provision Compatible and In-Place Compatible may enter this protocol.
+   Reset Required remains blocked until the separately governed reset
+   authorization and reset preconditions are satisfied. Migration Required,
+   Incompatible, and Indeterminate cannot enter provisioning in v1.
+4. Before preparing anything, the Business Kernel must atomically recheck the
+   Blueprint's Approved state and current-approved authority, Content Identity,
+   approval record, Compatibility Verdict and all of its bound inputs, expected
+   Applied Blueprint baseline, governing versions, Tenant isolation, and
+   absence of a conflicting activation. Any mismatch fails closed without
+   changing the Sandbox or Blueprint lifecycle.
+5. The Provisioning Attempt moves through externally recorded Requested,
+   Validating, Prepared, Applying, and Applied states. Before activation it may
+   instead become Failed or Cancelled; after activation it is terminal as
+   Applied. Every transition preserves attributable source, effective and
+   recorded time, exact bound inputs, and stable diagnostics. A retry with the
+   same idempotency identity resumes or returns the same attempt; changed inputs
+   require a new attempt.
+6. Preparation must build the complete candidate experience in isolation and
+   validate all compiled configuration, references, interfaces, Workflow
+   bindings, Role scopes, Evidence rules, data handling, and target invariants
+   without changing active configuration or creating Business Events, Stock
+   Movements, Ledger Entries, Payments, or other runtime business truth.
+7. Activation is one atomic compare-and-set against the expected Applied
+   Blueprint baseline. Success makes the prepared candidate active, records its
+   exact Blueprint Reference and Content Identity as the Applied Blueprint, and
+   marks the attempt Applied. Failure leaves the prior Applied Blueprint and
+   runtime business state unchanged and marks no candidate as applied.
+8. Failed, cancelled, abandoned, or superseded candidates have no execution
+   authority and remain distinguishable from the active Sandbox. Cleanup may
+   remove only their isolated provisional artifacts; it may not erase
+   attributable attempt records or active business state.
+9. Approval, successful validation, a Prepared candidate, an Applying attempt,
+   equal Content Identity, or application to another Sandbox never counts as
+   Applied. Applied means only that the target-specific atomic activation
+   committed successfully; it does not mean Reference Vertical Slice
+   acceptance, business scenario success, deployment, or production readiness.
+10. Retail and cafe targets provision independently. A combined owner view must
+    expose partial success without claiming both are Applied. A Blueprint may
+    become Superseded or Withdrawn while a Sandbox still records it as Applied;
+    lifecycle change alone never silently mutates, rolls back, resets, or
+    deactivates the Sandbox.
+
+This contract decides provisioning authority, attempt states, idempotency,
+isolation, and atomic Applied-state transition only. It does not decide
+compilation internals, reset authorization and mechanics, rollback selection,
+business-data fixtures, or production deployment.
+
 This ticket remains claimed until the remaining Business Blueprint schema and
 lifecycle decisions are resolved.

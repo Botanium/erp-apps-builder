@@ -68,6 +68,10 @@ _Avoid_: Parent Version, applied Version, latest Blueprint, lifecycle state, app
 A fail-closed, independently recomputable classification bound to one exact Blueprint Reference and one exact Sandbox Experience baseline, stating whether that target can accept the Blueprint through initial provision, in-place application, or reset, or instead requires unsupported migration or remains incompatible or indeterminate.
 _Avoid_: Validation result, Blueprint Approval, deployment status, migration plan, provisioning result, runtime state
 
+**Applied Blueprint**:
+The exact Blueprint Reference and Blueprint Content Identity whose Governed Configuration is currently active for one Sandbox Experience following a successful target-specific atomic provisioning activation.
+_Avoid_: Current Approved Blueprint, deployed version, latest Blueprint, provisioning attempt, runtime state, Blueprint Lifecycle State
+
 **Draft Blueprint**:
 A Business Blueprint version that remains under owner review and is not authorized to provision or update a Sandbox Experience.
 _Avoid_: Proposed app, saved interview, pending system
