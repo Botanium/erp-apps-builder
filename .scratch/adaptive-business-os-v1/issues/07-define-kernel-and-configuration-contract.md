@@ -177,3 +177,140 @@ cannot be disabled, replaced, or weakened by a Business Blueprint.
 
 Avoid using core Capability, hidden Capability, base module, system feature, or
 tenant default as synonyms.
+
+#### Governed Configuration variation-surface contract
+
+Use closed, typed, versioned Configuration Points as the only way a Business
+Blueprint may vary supported behavior or experience. A Configuration Point
+must be declared by the canonical Blueprint Configuration Schema or by the
+exact version of an enabled Capability; anything not expressly declared is not
+configurable.
+
+Every Configuration Point must declare its stable identity and schema path;
+owning schema and version; value kind; allowed values, range, precision,
+length, or reference targets; required or optional status; collection and
+ordering semantics; whether absence means disabled or Not Applicable;
+permitted effect category; validation and cross-reference rules; Sensitive Data
+Class and retention requirements when relevant; and the Intent Traceability
+required for owner review. A Configuration Point may narrow or parameterize
+declared Kernel behavior but may never create a new governed action or
+executable semantic.
+
+Governed Configuration may express only these seven variation families:
+
+1. **Business scope and Capability composition:** supported business kinds,
+   countries, Locations and scopes, languages, time zones, currencies,
+   normalized units, tax or fiscal profile references, size or tier selection,
+   explicit exclusions, enabled v1 Capabilities, exact supported versions, and
+   schema-declared settings. It may not weaken the Kernel Foundation or omit a
+   required Capability dependency.
+2. **Record configuration:** select declared Record types; enable or disable
+   schema-declared optional fields; instantiate only schema-declared
+   supplemental-field slots; bind allowed relationships; and choose declared
+   requiredness, literal defaults, enumerations, ranges, lengths, precision,
+   and validation profiles. Supplemental fields are limited to declared
+   scalar, enumeration, date or time, money, quantity, and stable-reference
+   kinds; each needs a stable identity, Sensitive Data Class, retention
+   profile, and intent source. They are informational unless an enabled
+   Capability explicitly declares a Configuration Point that consumes them.
+   Configuration may not change Kernel-owned identity, tenancy, causation,
+   lifecycle, immutability, attribution, or audit fields; redefine a Record;
+   introduce an arbitrary Record type; or attach executable computation.
+3. **Workflow configuration:** select a declared Workflow template and exact
+   version; enable declared optional states and transitions; arrange only
+   declared paths; bind declared governed actions, Roles, Evidence
+   requirements, exception and cancellation paths; and parameterize guards
+   using only a Capability-declared predicate vocabulary over declared fields
+   and typed values. Guard configuration may use only bounded presence,
+   equality, membership, and numeric or temporal comparison forms explicitly
+   allowed by the schema. It may not introduce states, transitions, actions,
+   loops, expressions, side effects, network calls, runtime prompts, or
+   scripts; remove a mandatory invariant or correction path; or make
+   presentation order into Workflow truth.
+4. **Role and Evidence configuration:** create named Blueprint Roles from
+   declared responsibility and governed-action references; restrict their
+   Location or Record scope; bind Workflow participation, Evidence duties,
+   approval responsibilities, reviewer roles, timing, retention, and declared
+   separation-of-duty profiles. Configuration may restrict authority but may
+   not grant an action the enabled Capability does not expose, implement
+   authorization, waive a Kernel-required Evidence duty, let one Role violate
+   mandatory separation of duty, or contain participant assignments or
+   Evidence instances.
+5. **Policy Profile configuration:** select only declared sales, purchasing,
+   Payment, cash, accounting, inventory, data-handling, and external-AI
+   profiles and their typed parameters within fixed bounds. Numeric thresholds
+   and owner policy values must be Confirmed and source-attributed; fixed Kernel
+   invariants are not Configuration Points. A profile may choose among
+   implemented behaviors but may not contain formulas, posting maps, stock
+   arithmetic, tax code, authorization logic, migration instructions, or
+   executable expressions.
+6. **Experience configuration:** arrange Role-specific navigation, declared
+   forms and controls, field grouping and order, presentation-only visibility
+   or enabled state, labels, help text, localized copy, branding tokens, report
+   and dashboard selections, declared filters, dimensions, measures and
+   aggregations, device needs, and supported offline behavior. Every reference
+   must resolve to enabled Capability content. Free text and localized copy are
+   never parsed as execution instructions; visibility never grants or removes
+   authority; required business Evidence and owner-review information may not
+   be hidden; and reports may not contain arbitrary queries, SQL, formulas, or
+   new business truth.
+7. **Data-handling and integration configuration:** select supported Sensitive
+   Data Class handling, retention, minimization, redaction, external-AI
+   exposure, and adapter profiles; then bind only declared adapter identity and
+   version, direction, Business Event or data scope, mapping template, trigger
+   or schedule, Location or Role scope, and credential reference identity.
+   Configuration may become more restrictive but may not downgrade a Sensitive
+   Data Class or safety boundary. It contains no credentials, secrets,
+   arbitrary endpoints, custom mappings with executable semantics, adapter
+   code, or external production authority; Reference Vertical Slice adapters
+   may remain simulated or absent.
+
+Configuration values may be only schema-declared booleans, enumerations,
+bounded integers or fixed-precision decimals, normalized dates and times,
+bounded text, localized text maps, stable identity references, closed objects
+and collections, or fixed templates with typed parameters. When order matters,
+an explicit order field carries that meaning. User-authored regular
+expressions, general expression languages, code, SQL, templates with execution
+semantics, file paths, shell commands, arbitrary URLs, runtime prompts, and
+opaque provider payloads are forbidden.
+
+Every material value and every owner-visible default must be explicit in the
+complete Blueprint and traced to Confirmed intent or a fixed Kernel invariant.
+An optional omission has meaning only when its schema explicitly defines that
+meaning; otherwise it is invalid. Unknown, Ambiguous, Conflicting, Assumed, or
+Unsupported intent may remain only in deferred alternatives, exclusions, or
+unsupported review material and may not drive configuration eligible for
+approval. AI may propose a value but may not invent it, silently default it,
+convert free text into executable meaning, or mark it owner-confirmed.
+
+The retail and cafe Blueprints may differ in enabled Capabilities, declared
+fields, Workflow arrangements, Roles, Evidence duties, Policy Profile
+selections, interfaces, reports, dashboards, copy, and localization. Their
+eight shared Capability versions must retain identical governed-action
+semantics and invariants; configuration may tailor the experience and select
+declared policy variants but may not fork shared behavior.
+
+Every accepted configuration change belongs to the immutable Blueprint
+content, changes Blueprint Content Identity when canonical content changes,
+appears in the Semantic Diff, and requires the normal validation, Approval
+Eligibility, explicit Blueprint Approval, compatibility, and provisioning
+path. No Configuration Point grants authority by itself.
+
+This contract defines the permitted Governed Configuration surface only. Exact
+Configuration Schema diagnostic categories and codes, the compiled execution
+artifact, Capability machine identifiers and exact version numbers,
+compatibility rules, and the financial, stock, and audit policy values remain
+later decisions.
+
+Governed Configuration is the complete, schema-constrained set of
+Blueprint-declared selections and parameters that tailors supported
+Capabilities, Records, Workflows, Roles, Evidence, policies, and experience for
+one Tenant without defining executable business logic or granting execution
+authority.
+
+A Configuration Point is a named, versioned, schema-declared place where a
+Business Blueprint may select or parameterize one bounded aspect of Governed
+Configuration without defining executable behavior.
+
+Avoid using customization hook, code extension, formula, prompt instruction,
+arbitrary setting, or runtime rule as synonyms for Configuration Point.

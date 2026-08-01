@@ -149,8 +149,12 @@ An immutable, tenant-scoped fact recognized by the Business Kernel that a govern
 _Avoid_: Event log, command, action, webhook, trace
 
 **Governed Configuration**:
-AI-proposed Business Blueprint content constrained by Configuration Schemas and validated for execution by the Business Kernel.
+The complete, schema-constrained set of Blueprint-declared selections and parameters that tailors supported Capabilities, Records, Workflows, Roles, Evidence, policies, and experience for one Tenant without defining executable business logic or granting execution authority.
 _Avoid_: Generated code, prompt logic, tenant fork
+
+**Configuration Point**:
+A named, versioned, schema-declared place where a Business Blueprint may select or parameterize one bounded aspect of Governed Configuration without defining executable behavior.
+_Avoid_: Customization hook, code extension, formula, prompt instruction, arbitrary setting, runtime rule
 
 **Configuration Schema**:
 A versioned contract defining the structures and values allowed in Governed Configuration.
