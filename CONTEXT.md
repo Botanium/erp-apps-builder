@@ -157,8 +157,16 @@ A named, versioned, schema-declared place where a Business Blueprint may select 
 _Avoid_: Customization hook, code extension, formula, prompt instruction, arbitrary setting, runtime rule
 
 **Configuration Schema**:
-A versioned contract defining the structures and values allowed in Governed Configuration.
+A versioned, closed contract that declares Configuration Points, allowed structures, values, references, and deterministic rejection rules for Governed Configuration.
 _Avoid_: Prompt format, arbitrary JSON, generated model
+
+**Configuration Diagnostic**:
+A deterministic, owner-reviewable finding bound to one exact Blueprint candidate and validator version set, identified by a stable code and path and describing either a blocking contract violation or a permitted non-blocking advisory without granting authority.
+_Avoid_: Error message, warning text, lint result, AI critique, approval denial, test result
+
+**Configuration Validation Verdict**:
+The deterministic result—Valid, Valid With Advisories, Invalid, or Indeterminate—of validating one exact Blueprint candidate under one exact schema and validator version set; it is not Approval Eligibility, a Compatibility Verdict, Blueprint Approval, provisioning readiness, or acceptance.
+_Avoid_: Approval Eligibility, Compatibility Verdict, Blueprint Approval, provisioning readiness, acceptance
 
 **Sandbox Experience**:
 A non-production expression of a Business Blueprint using fictitious data for owner review and acceptance.

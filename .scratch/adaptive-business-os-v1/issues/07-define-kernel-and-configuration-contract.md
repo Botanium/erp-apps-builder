@@ -314,3 +314,180 @@ Configuration without defining executable behavior.
 
 Avoid using customization hook, code extension, formula, prompt instruction,
 arbitrary setting, or runtime rule as synonyms for Configuration Point.
+
+#### Configuration validation, rejection, and diagnostic contract
+
+Use deterministic, layered, fail-closed validation with a closed verdict model
+and stable project-owned diagnostic codes. Configuration Schemas declare
+structural constraints and Configuration Points; the Business Kernel applies
+the same canonical, reference, semantic, policy, safety, traceability, and
+authority validators for preview, Approval Eligibility recheck, compilation,
+and provisioning preparation. No layer may prune, repair, coerce, default,
+reinterpret, or waive invalid configuration.
+
+A Configuration Validation Report is an externally recorded, immutable review
+artifact. It must bind the exact Blueprint Reference and Blueprint Content
+Identity when independently recomputable; otherwise it must bind a
+non-authoritative fingerprint of the exact received candidate and state why no
+approval-eligible Content Identity exists. It also binds the exact canonical
+Blueprint Configuration Schema, selected Capability and Configuration Schema
+versions, canonicalization rules, validator-policy version, and
+validation-engine version; records the validation time and responsible Kernel
+source; contains the complete safe-to-report diagnostics; and records one
+Configuration Validation Verdict. It is not Blueprint content, Blueprint
+Lifecycle State, Approval Eligibility, a Compatibility Verdict, Blueprint
+Approval, provisioning authority, or runtime state.
+
+Validation proceeds in deterministic layers: artifact parsing and
+canonical-content checks; closed structural schema checks; identity and
+cross-reference checks; Capability composition and Configuration Point checks;
+Workflow and governance checks; Policy Profile and invariant checks;
+experience and integration checks; sensitive-data, safety, and Intent
+Traceability checks; and authority-boundary checks. Validators run as far as
+safely possible to return a useful complete set, but no partial run may yield a
+permissive verdict.
+
+Exactly one of four Configuration Validation Verdicts applies:
+
+1. **Valid:** every required validator completed against the bound version set
+   and produced no diagnostic.
+2. **Valid With Advisories:** every required validator completed, no Blocking
+   diagnostic exists, and at least one permitted Advisory exists.
+3. **Invalid:** every validator needed to decide validity completed
+   sufficiently and at least one Blocking diagnostic proves the candidate
+   violates a declared contract.
+4. **Indeterminate:** validity cannot be completely established because a
+   required schema, rule set, validator, mapping, bound version, or input is
+   missing, stale, failed, inconsistent, or non-deterministic. It fails closed
+   and may never be guessed into another verdict.
+
+Indeterminate takes precedence whenever validation completeness is unknown;
+otherwise Invalid takes precedence over Valid With Advisories, which takes
+precedence over Valid. Invalid and Indeterminate block Approval Eligibility.
+Valid and Valid With Advisories satisfy only the static-validation prerequisite
+and grant no approval or provisioning authority.
+
+Every Configuration Diagnostic must contain a stable code, fixed category and
+severity, validation layer, exact schema path using the canonical path
+convention, affected stable object identity when available, safe owner-facing
+summary, technical explanation, remediation category, related paths and
+identities, relevant Intent Brief statement and Acceptance Condition
+references, and the exact bound validator version set. Diagnostic text and
+localization may improve without changing meaning, but consumers rely on code,
+severity, paths, identities, and bound versions rather than message wording or
+ordering. Diagnostics must never expose credentials, secrets, Restricted
+values, or unnecessary Confidential data.
+
+Codes use the exact uppercase three-part form `CFG.<FAMILY>.<REASON>`. Code
+meaning and Blocking or Advisory severity are immutable within one
+validator-policy version. Adding a code, removing a code, or changing its
+meaning or severity requires a new validator-policy version and invalidates
+review freshness. The closed v1 Blocking code catalog is:
+
+- **CFG.ARTIFACT:** `PARSE_FAILED`, `DUPLICATE_KEY`,
+  `UNSUPPORTED_SERIALIZATION`, `CANONICALIZATION_FAILED`,
+  `CONTENT_IDENTITY_MISMATCH`.
+- **CFG.SCHEMA:** `UNSUPPORTED_VERSION`, `REQUIRED_MISSING`,
+  `UNKNOWN_PROPERTY`, `TYPE_MISMATCH`, `VALUE_NOT_ALLOWED`,
+  `RANGE_VIOLATION`, `PRECISION_VIOLATION`, `DATE_TIME_AMBIGUOUS`,
+  `NON_FINITE_NUMBER`, `ORDER_INVALID`, `COMMENT_FORBIDDEN`.
+- **CFG.IDENTITY:** `INVALID`, `DUPLICATE`, `TENANT_MISMATCH`,
+  `LINEAGE_MISMATCH`, `IMMUTABLE_MISMATCH`.
+- **CFG.REFERENCE:** `UNRESOLVED`, `WRONG_KIND`, `CROSS_TENANT`,
+  `DISABLED_OWNER`.
+- **CFG.CAPABILITY:** `UNKNOWN`, `VERSION_UNSUPPORTED`,
+  `DEPENDENCY_MISSING`, `DEPENDENCY_CONFLICT`, `FOUNDATION_OVERRIDE`,
+  `COMPOSITION_FORBIDDEN`.
+- **CFG.POINT:** `UNDECLARED`, `VALUE_KIND_FORBIDDEN`,
+  `ABSENCE_UNDEFINED`, `DEFAULT_UNTRACED`, `KERNEL_FIELD_OVERRIDE`,
+  `EXECUTABLE_CONTENT`.
+- **CFG.WORKFLOW:** `TEMPLATE_UNSUPPORTED`, `STATE_UNDECLARED`,
+  `TRANSITION_ILLEGAL`, `ACTION_UNDECLARED`, `GUARD_UNSUPPORTED`,
+  `REFERENCE_INVALID`, `REQUIRED_PATH_MISSING`, `STATE_UNREACHABLE`,
+  `CORRECTION_PATH_REMOVED`.
+- **CFG.GOVERNANCE:** `ACTION_OUT_OF_SCOPE`, `ROLE_SCOPE_INVALID`,
+  `SEPARATION_VIOLATION`, `EVIDENCE_REQUIRED`, `REVIEWER_INVALID`,
+  `AUTHORITY_BY_PRESENTATION`.
+- **CFG.POLICY:** `PROFILE_UNSUPPORTED`, `PARAMETER_INVALID`,
+  `INVARIANT_OVERRIDE`, `FORMULA_FORBIDDEN`, `NONCONFIRMED_VALUE`.
+- **CFG.EXPERIENCE:** `REFERENCE_UNRESOLVED`, `CONTROL_UNSUPPORTED`,
+  `REQUIRED_CONTENT_HIDDEN`, `QUERY_FORBIDDEN`, `OFFLINE_UNSUPPORTED`,
+  `PRESENTATION_AS_TRUTH`.
+- **CFG.INTEGRATION:** `ADAPTER_UNSUPPORTED`, `VERSION_UNSUPPORTED`,
+  `SCOPE_FORBIDDEN`, `ENDPOINT_FORBIDDEN`, `MAPPING_FORBIDDEN`,
+  `CREDENTIAL_EMBEDDED`, `PRODUCTION_AUTHORITY_FORBIDDEN`.
+- **CFG.SAFETY:** `CLASSIFICATION_MISSING`, `CLASSIFICATION_DOWNGRADE`,
+  `RETENTION_UNSUPPORTED`, `JURISDICTION_UNSUPPORTED`,
+  `EXTERNAL_AI_FORBIDDEN`, `SECRET_PRESENT`, `HANDLING_INDETERMINATE`.
+- **CFG.TRACEABILITY:** `SOURCE_MISSING`, `INTENT_STATE_MISSING`,
+  `NONCONFIRMED_ACTIVE`, `ASSUMPTION_ACTIVE`, `UNSUPPORTED_ACTIVE`,
+  `REQUIRED_ACCEPTANCE_UNMAPPED`, `EXCLUSION_MISSING`.
+- **CFG.AUTHORITY:** `CODE_FORBIDDEN`, `AUTHORIZATION_LOGIC_FORBIDDEN`,
+  `LEDGER_LOGIC_FORBIDDEN`, `STOCK_LOGIC_FORBIDDEN`,
+  `APPROVAL_LOGIC_FORBIDDEN`, `MIGRATION_FORBIDDEN`,
+  `RESET_LOGIC_FORBIDDEN`, `DEPLOYMENT_FORBIDDEN`,
+  `RUNTIME_PROMPT_FORBIDDEN`.
+- **CFG.VALIDATOR:** `RULESET_MISSING`, `EXECUTION_FAILED`, `RESULT_STALE`,
+  `NONDETERMINISTIC_RESULT`, `VERSION_MISMATCH`, `UNCLASSIFIED_FINDING`.
+
+`CFG.VALIDATOR` findings yield Indeterminate rather than Invalid because the
+system failed to establish candidate validity. Every other cataloged code is
+Blocking except these four exact Advisory codes:
+`CFG.ADVISORY.DESIRED_ACCEPTANCE_DEFERRED`,
+`CFG.ADVISORY.DESIRED_EXCLUSION`,
+`CFG.ADVISORY.SUPPORTED_DEPRECATION`, and
+`CFG.ADVISORY.PRESENTATION_FALLBACK`. An Advisory is permitted only when the
+candidate remains fully safe and semantically complete for every Required
+Acceptance Condition and Kernel invariant. Unknown properties, unsupported
+versions, unresolved references, non-Confirmed active values, safety or
+jurisdiction uncertainty, authority-boundary attempts, required-path gaps, and
+validator failures can never be Advisories.
+
+A Blocking diagnostic cannot be acknowledged, suppressed, waived, or
+downgraded by the owner, AI, interface, Blueprint, Capability, adapter, or
+provisioning request. Resolution requires an attributable Intent Brief or
+Blueprint change producing a new immutable Draft as applicable, or a versioned
+Kernel, Capability, schema, or validator-policy change followed by complete
+revalidation. Advisory acknowledgement may be recorded in the review bundle
+but does not alter the diagnostic, candidate, verdict, or lifecycle.
+
+For identical candidate content and identical bound schema, Capability,
+canonicalization, and validator-policy versions, validation must produce the
+same verdict and the same set of code, severity, path, and object-identity
+tuples. Results are sorted deterministically by validation layer, code, path,
+and object identity. Duplicate findings with the same tuple collapse into one
+diagnostic while preserving related causes. Any unexplained difference is
+`CFG.VALIDATOR.NONDETERMINISTIC_RESULT` and yields Indeterminate.
+
+A changed Blueprint candidate, Blueprint Content Identity, governing schema,
+selected Capability version, validator policy, canonicalization rule, or
+required validation input makes the prior report stale. Validation failure
+never changes Blueprint Lifecycle State, rejects the owner intent, mutates the
+Draft, authorizes repair, or proves runtime scenario failure. Static validity
+cannot prove financial, stock, workflow, reset, or Reference Vertical Slice
+acceptance; those remain separately executable evidence.
+
+This contract fixes validation layers, rejection behavior, report binding,
+verdicts, diagnostic fields, stable code format, the closed v1 code catalog,
+severity, determinism, redaction, and staleness. It does not yet define the
+compiled execution artifact, Capability machine identifiers and exact
+versions, version compatibility rules, provisioning diagnostics, or the later
+financial, stock, and audit invariant values.
+
+A Configuration Schema is a versioned, closed contract that declares
+Configuration Points, allowed structures, values, references, and
+deterministic rejection rules for Governed Configuration.
+
+A Configuration Diagnostic is a deterministic, owner-reviewable finding bound
+to one exact Blueprint candidate and validator version set, identified by a
+stable code and path and describing either a blocking contract violation or a
+permitted non-blocking advisory without granting authority.
+
+A Configuration Validation Verdict is the deterministic result—Valid, Valid
+With Advisories, Invalid, or Indeterminate—of validating one exact Blueprint
+candidate under one exact schema and validator version set; it is not Approval
+Eligibility, a Compatibility Verdict, Blueprint Approval, provisioning
+readiness, or acceptance.
+
+Avoid using error message, warning text, lint result, AI critique, approval
+denial, or test result as synonyms for Configuration Diagnostic.
