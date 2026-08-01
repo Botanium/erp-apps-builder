@@ -1,7 +1,7 @@
 # Define the agent control loop and human gates
 
 Type: grilling  
-Status: open  
+Status: claimed
 Blocked by: 03, 05, 06, 07
 
 ## Question
