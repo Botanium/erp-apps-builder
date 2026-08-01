@@ -344,6 +344,10 @@ _Avoid_: Backup, database dump, migration package, audit opinion, deployment art
 An executable, non-production proof that spans Owner Interview, Blueprint Approval, both Sandbox Experiences, and their required business invariants.
 _Avoid_: Clickable concept, production alpha, MVP
 
+**Reference Slice Acceptance Report**:
+An immutable, content-identified, owner-reviewable artifact that binds one exact Reference Vertical Slice run to its declared fixtures, versions, public-seam observations, Required and Advisory condition verdicts, invariant results, reset proof, and limitations without becoming Blueprint Approval, owner acceptance, or production readiness.
+_Avoid_: Test log, owner sign-off, Run Completion Record, audit opinion, deployment approval
+
 **Golden Transaction**:
 The v1 retail proof path from purchase through receipt, stock, sale, payment, and a balanced ledger.
 _Avoid_: Happy path, checkout demo, sales flow

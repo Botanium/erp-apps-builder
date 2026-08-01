@@ -54,11 +54,7 @@ fictitious data, and reset cleanly.
 - [Prototype the Owner Interview and Blueprint review](issues/11-prototype-owner-interview-and-blueprint-review.md): use a one-question guided cockpit with source and uncertainty beside a persistent exact-Draft preview, add a complete evidence workbook for pre-approval review, and keep explicit Blueprint Approval as a separate eligible-Draft confirmation; the disposable three-variant prototype is preserved at `bc0c18f`.
 - [Prototype Blueprint compilation and business state](issues/12-prototype-blueprint-compiler-and-business-state.md): compile one exact Approved Blueprint into one target-neutral Effective Blueprint, prepare isolated retail and cafe target configurations, and execute both through one shared governed-action registry with recomputable stock, ledger, causation, scope, and clean-reset invariants; the disposable logic prototype is preserved at `396430a`.
 - [Select the v1 reference architecture](issues/13-select-reference-architecture.md): build the slice as a dependency-light Node.js modular monolith with deep OwnerWorkbench, OrchestrationControl, BusinessKernel, AcceptanceEvaluator, and ReferenceSlice Modules; use one command, shared governed-action dispatch, MemoryStore and AtomicJsonStore Adapters, four public behavior seams, and statically versioned Capability manifests without claiming production infrastructure.
-
-## Not yet specified
-
-- The final acceptance-seam matrix after public interfaces and prototype
-  verdicts exist.
+- [Define the Reference Vertical Slice acceptance contract](issues/14-define-reference-slice-acceptance-contract.md): bind a closed `1.0.0` suite to exact owner-interview, retail, cafe, negative-path, isolation, invariant, reset-and-replay, and evidence conditions; fix literal fixture totals and four public TDD seams, and pass only when both targets finish in verified clean-unapplied generations.
 
 ## Out of scope
 
