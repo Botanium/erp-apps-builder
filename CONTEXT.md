@@ -132,6 +132,18 @@ _Avoid_: Orchestration Run Identity, attempt number, trace identity, tool-call i
 An owner-reviewable condition that prevents an Orchestration Run from resuming because required persisted state, bound versions, referenced artifacts, pending Human Gate, budget state, or expected Business Kernel baseline is missing, stale, or incompatible.
 _Avoid_: Human Gate, owner rejection, Kernel rejection, warning, automatic migration
 
+**Orchestration Run State**:
+The externally recorded durable lifecycle classification of one Orchestration Run—Created, Active, Waiting, Completed, Failed, or Cancelled—separate from its Control Phase, Wait Reason, and all Business Kernel state.
+_Avoid_: Control Phase, Wait Reason, Workflow state, Blueprint Lifecycle State, Kernel result
+
+**Control Phase**:
+The one closed classification of orchestration work currently active or retained while Waiting: Interviewing, Planning, Proposing, Validating, Requesting Human Decision, Submitting Kernel Command, Observing, or Correcting. It describes control work, not approval or Business Kernel execution.
+_Avoid_: Orchestration Run State, Workflow state, Business Event, Blueprint Approval, Kernel execution
+
+**Wait Reason**:
+The one closed condition for which an Orchestration Run in Waiting is durably stopped—Human Gate, Retry Backoff, Explicit Pause, Resume Blocker, Budget Exhausted, or Task Result—together with its declared resumption condition.
+_Avoid_: Control Phase, terminal outcome, error message, Workflow state, approval
+
 **Kernel Command**:
 A typed, attributable, idempotent request submitted to the Business Kernel to attempt one declared governed action. It is not approval, a tool call, a UI action, or the Business Event and governed effects that may result.
 _Avoid_: Business Event, tool call, UI action, prompt, approval

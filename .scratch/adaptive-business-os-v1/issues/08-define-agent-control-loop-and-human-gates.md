@@ -80,3 +80,58 @@ This contract fixes only durable run identity and safe resume. The exact
 control-state model and transitions, Human Gate contract, budget and retry
 policy, failure and correction rules, and observation contract remain later
 decisions in this ticket.
+
+#### Orchestration Run control-state contract
+
+Use three orthogonal, closed, externally recorded classifications rather than
+one overloaded flat status.
+
+1. Every Orchestration Run carries exactly one Orchestration Run State:
+   - **Created:** its identity and bound objective exist, but control work has
+     not started.
+   - **Active:** it may advance one declared control step within budget and
+     policy.
+   - **Waiting:** it is durably stopped at one declared Wait Reason and may not
+     advance autonomously.
+   - **Completed:** its declared orchestration objective and required
+     observation are complete; this is terminal but is not owner acceptance,
+     Blueprint Approval, or authority beyond the exact Kernel results it
+     references.
+   - **Failed:** a classified non-recoverable orchestration failure ended the
+     run; this is terminal and does not reverse or reinterpret governed truth.
+   - **Cancelled:** an attributable human cancellation ended the run before
+     completion; this is terminal and does not undo governed effects.
+2. Every nonterminal run after work starts carries exactly one Control Phase,
+   retained while Waiting: Interviewing, Planning, Proposing, Validating,
+   Requesting Human Decision, Submitting Kernel Command, Observing, or
+   Correcting. These name orchestration work only. Requesting Human Decision is
+   not Blueprint Approval, and Submitting Kernel Command is not Business Kernel
+   execution.
+3. A run in Waiting carries exactly one Wait Reason: Human Gate, Retry Backoff,
+   Explicit Pause, Resume Blocker, Budget Exhausted, or Task Result. A run
+   outside Waiting carries none. Each waiting record binds the exact pending
+   subject, responsible resolver when applicable, freshness or expiry boundary,
+   and declared condition for resumption.
+4. Allowed state transitions are creation to Created; Created to Active; Active
+   to Waiting, Completed, Failed, or Cancelled; and Waiting to Active, Failed,
+   or Cancelled. Created may also become Cancelled before work starts.
+   Completed, Failed, and Cancelled are terminal; continuation always creates a
+   new Orchestration Run.
+5. Control Phase changes only while Active and only according to the bound
+   orchestration definition. Waiting retains the phase at which work stopped.
+   Waiting returns to Active only after its exact wait condition is satisfied
+   and the safe-resume, freshness, compatibility, and budget checks pass.
+6. Recoverable transient failure enters Waiting with Retry Backoff; a
+   correctable proposal or input returns to Active in Correcting; Resume
+   Blocker and Budget Exhausted enter Waiting and never clear automatically.
+   Only a classified non-recoverable orchestration failure enters Failed.
+7. Every state, phase, and wait transition is immutable and attributable and
+   records prior and resulting classifications, trigger, reason, effective and
+   recorded times, bound version set, and related Agent Run, task-result, Human
+   Gate, or Kernel Command references. No classification or transition grants
+   approval, authorization, Kernel authority, or governed-state mutation.
+
+This contract fixes only the Orchestration Run control-state model and allowed
+transitions. The Human Gate contract, budget and retry policy, failure and
+correction rules, and observation contract remain later decisions in this
+ticket.
