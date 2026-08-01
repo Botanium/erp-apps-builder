@@ -244,21 +244,57 @@ _Avoid_: Customer, account, organization, workspace, database
 A named operational boundary within a Tenant to which business activity, Roles, Records, stock, cash, or service may be scoped. It may represent a shop, cafe, warehouse, or other operating point, but it is not merely an address, a Tenant, a department, a storage bin, or a device.
 _Avoid_: Branch, site, outlet, warehouse, address
 
+**Purchase Order**:
+A tenant-scoped Record of a confirmed request to a supplier for specified items, quantities, normalized units, prices, currency, and receiving Location, governed until cancellation or completion. It establishes purchasing intent but is not a Supplier Receipt, Stock Movement, Payment, payable, or Ledger Entry.
+_Avoid_: Purchase, supplier invoice, receipt, stock entry, payment request
+
+**Supplier Receipt**:
+A tenant-scoped Record that an authorized receiver accepted specified quantities from a supplier at one Location against a Purchase Order, preserving its attributable Evidence and acquisition-cost snapshot. It is not a Purchase Order, Payment receipt, supplier invoice, Stock Movement, or Ledger Entry.
+_Avoid_: Receipt artifact, purchase, invoice, stock balance, Payment
+
 **Order**:
 A tenant-scoped Record of an accepted customer request for specified goods or services, quantities, prices, and allowed choices, governed from acceptance through fulfillment or cancellation. It establishes commercial and fulfillment intent but is not a cart, quote, invoice, Payment, Kitchen Ticket, Purchase Order, or Stock Movement.
 _Avoid_: Sale, cart, invoice, Kitchen Ticket, Purchase Order
+
+**Sale**:
+The governed commercial fulfillment of an accepted Order, recognized through one Business Event that freezes its consideration and causes the declared inventory and accounting effects. It is not the Order, an invoice, Payment, Stock Movement, or Ledger Entry.
+_Avoid_: Order, checkout, invoice, Payment, sales transaction
 
 **Payment**:
 A tenant-scoped Record of a governed transfer of monetary value between parties, preserving its amount, currency, direction, method, effective time, and any allocation to an obligation. It is not a payment promise or intent, invoice, receipt artifact, cash-drawer action, or Ledger Entry.
 _Avoid_: Receipt, transaction, payment intent, cash entry, Ledger Entry
 
+**Cash Position**:
+An independently recomputable derived amount for one Tenant, Location, currency, and active Sandbox generation, calculated from accepted cash Payments and their linked Posting Sets. It is not a cash-drawer Record, bank balance, Ledger Entry, or editable amount.
+_Avoid_: Cash entry, bank balance, drawer count, Payment, Ledger Entry
+
 **Ledger Entry**:
 A tenant-scoped, immutable accounting Record that assigns one debit or credit amount in one currency to one ledger account as part of a balanced posting linked to a Business Event. It is not a Payment, invoice line, account balance, journal transaction, cash movement, or editable bookkeeping row.
 _Avoid_: Journal, transaction, posting, line item, balance
 
+**Posting Set**:
+The immutable, tenant-scoped collection of Ledger Entries created atomically for one declared effect group of one Business Event and one currency, whose total debits equal total credits. It is not a journal document, Payment, account balance, or editable batch.
+_Avoid_: Journal, transaction, batch, Payment, balance
+
 **Stock Movement**:
 A tenant-scoped, immutable inventory Record that transfers a positive quantity of one item or ingredient, in one normalized unit, from a source to a destination at an effective time and links the transfer to its causing Business Event. A source or destination may be a Tenant Location or an explicit supplier, customer, consumption, or adjustment boundary; it is not an on-hand balance, freehand stock edit, Order line, or Ledger Entry.
 _Avoid_: Stock balance, adjustment, transfer, inventory row, Ledger Entry
+
+**Stock Position**:
+An independently recomputable derived quantity and value for one item or ingredient at one Location in one active Sandbox generation, calculated from immutable Stock Movements and the selected Inventory Costing Policy. It is not a Record, Stock Movement, or editable balance.
+_Avoid_: Stock Movement, inventory row, freehand balance, count entry, Ledger Entry
+
+**Inventory Costing Policy**:
+A versioned Business Kernel policy that deterministically assigns accepted acquisition value to stock issued from a Location; v1 uses moving weighted average. It is not an owner-authored formula, selling price, standard cost, or proof of accounting compliance.
+_Avoid_: Price, markup, valuation script, accounting standard, configurable formula
+
+**Reversal**:
+A governed compensating Business Event that creates new, linked opposite effects while leaving the original Business Event and its Records unchanged. It is not deletion, mutation, cancellation, rollback, or Sandbox Reset.
+_Avoid_: Undo, edit, deletion, cancellation, rollback
+
+**Reconciliation**:
+An independently recomputable comparison of two declared financial or inventory sources that preserves matches, residuals, and variances without mutating either source. It is not a correction, write-off, approval, or proof of compliance.
+_Avoid_: Adjustment, write-off, balancing entry, approval, audit opinion
 
 **Business Event**:
 An immutable, tenant-scoped fact recognized by the Business Kernel that a governed business occurrence happened, preserving its effective time, recorded time, responsible source, and causation. It is the causal source to which any resulting Record transitions, Stock Movements, and balanced Ledger Entries link, but it is not a command, request, UI action, agent trace, log message, or any of those resulting effects.
@@ -309,5 +345,5 @@ The cafe fulfillment record that carries ordered Menu Items through accepted, pr
 _Avoid_: Order, invoice, kitchen note
 
 **Ingredient Consumption**:
-The reduction in ingredient stock attributable to fulfilled Menu Items.
-_Avoid_: Wastage, stock adjustment, purchase usage
+The governed inventory effect of a Kitchen Ticket's first valid transition to fulfilled, consisting of Stock Movements for its frozen normalized ingredient quantities from a Location to the consumption boundary and the linked inventory-cost Posting Set. It is not a recipe, estimate, wastage, adjustment, or Kitchen Ticket state.
+_Avoid_: Recipe, estimated usage, wastage, stock adjustment, Kitchen Ticket state
