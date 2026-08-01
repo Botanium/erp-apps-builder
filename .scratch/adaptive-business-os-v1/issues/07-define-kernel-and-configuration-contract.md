@@ -491,3 +491,37 @@ readiness, or acceptance.
 
 Avoid using error message, warning text, lint result, AI critique, approval
 denial, or test result as synonyms for Configuration Diagnostic.
+
+#### Effective Blueprint compilation-artifact contract
+
+Use one deterministic, immutable, self-contained, target-neutral Effective
+Blueprint compiled from one exact validated Blueprint candidate and an exact
+Business Kernel, Configuration Schema, Capability, validator, and compiler
+version set.
+
+The same compilation path may produce a non-authoritative Draft preview, while
+provisioning may rely only on an artifact whose exact source Blueprint is
+Approved and unchanged. The artifact is derived, independently recomputable,
+content-identified, side-effect-free, and never grants approval or execution
+authority by itself.
+
+It resolves only declared Capability dependencies, Record and Workflow
+contracts, Role and Evidence bindings, typed Policy Profile selections,
+experience manifests, supported adapter bindings, invariant references, and
+Intent Traceability. It excludes approval truth, credentials, arbitrary tenant
+code, target compatibility and provisioning state, runtime business truth,
+migrations, resets, deployments, fixtures, and test results.
+
+This contract fixes only the compiled execution-artifact boundary. Capability
+and Configuration Schema machine identities, exact versions, version
+compatibility rules, and provisioning diagnostics remain later decisions.
+
+An Effective Blueprint is a deterministic, immutable, self-contained,
+target-neutral resolution of one exact validated Blueprint candidate under one
+exact governing version set, containing only declared configuration for
+Business Kernel preview or provisioning. It is derived material, not Blueprint
+Approval, execution authority, target state, runtime truth, tenant code, or a
+deployment.
+
+Avoid using Business Blueprint, generated app, deployment package, target
+bundle, runtime snapshot, or approval token as synonyms.
