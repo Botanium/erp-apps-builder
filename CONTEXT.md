@@ -93,8 +93,8 @@ The explicit owner decision that accepts one specific Draft Blueprint version.
 _Avoid_: Interview completion, preview viewing, option selection
 
 **Business Kernel**:
-The governed business capabilities shared by every supported Business Blueprint rather than rebuilt for each business.
-_Avoid_: Shared kernel, ERP core, base app
+A versioned, deterministic platform authority that validates, compiles, authorizes, and executes supported business behavior for every Tenant while enforcing isolation, Record and Workflow integrity, Evidence duties, accounting, stock, approval, provisioning, and reset truth. It is configured by an Approved Blueprint but never replaced or extended by tenant-specific runtime code.
+_Avoid_: ERP core, shared library, generated backend, tenant runtime, plugin host, AI agent
 
 **Capability**:
 A reusable, versioned business ability provided by the Business Kernel and selected and configured by a Business Blueprint. It may shape records, workflows, roles, interfaces, reports, and governed business actions, but it is neither tenant-specific code nor an entire vertical application.
