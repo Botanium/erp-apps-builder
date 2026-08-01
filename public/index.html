@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Owner Interview Prototype</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17211b;
+        --muted: #68736c;
+        --line: #d9dfda;
+        --paper: #f7f5ee;
+        --panel: #fffef9;
+        --green: #1f6a49;
+        --green-soft: #dcecdf;
+        --amber: #9b5c16;
+        --amber-soft: #fff0cf;
+        --red: #a63737;
+        --red-soft: #fbe5e1;
+        --blue: #315f78;
+        --blue-soft: #e2eef4;
+        --shadow: 0 18px 45px rgba(30, 42, 34, 0.12);
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; color: var(--ink); background: var(--paper); font: 15px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      button { font: inherit; }
+      .app-header { height: 66px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: rgba(255,254,249,.94); position: sticky; top: 0; z-index: 5; }
+      .brand { display: flex; align-items: center; gap: 12px; font-weight: 760; letter-spacing: -.02em; }
+      .brand-mark { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; color: white; background: var(--green); }
+      .eyebrow { color: var(--muted); font-size: 11px; font-weight: 760; letter-spacing: .11em; text-transform: uppercase; }
+      .header-meta { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; }
+      .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 4px var(--amber-soft); }
+      main { min-height: calc(100vh - 66px); }
+      .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+      .confirmed { color: var(--green); background: var(--green-soft); }
+      .assumed { color: var(--amber); background: var(--amber-soft); }
+      .unsupported { color: var(--red); background: var(--red-soft); }
+      .internal { color: var(--blue); background: var(--blue-soft); }
+      .muted-pill { color: #5f675f; background: #eceee9; }
+      .card { border: 1px solid var(--line); border-radius: 18px; background: var(--panel); box-shadow: 0 8px 26px rgba(30,42,34,.06); }
+      .btn { border: 1px solid var(--line); border-radius: 10px; background: white; color: var(--ink); padding: 10px 14px; font-weight: 720; cursor: pointer; }
+      .btn:hover { border-color: #aab4ac; }
+      .btn.primary { color: white; background: var(--green); border-color: var(--green); }
+      .btn:disabled { cursor: not-allowed; opacity: .46; }
+      .small { font-size: 12px; color: var(--muted); }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .divider { height: 1px; background: var(--line); }
+      .hidden { display: none !important; }
+
+      /* Variant A: guided split cockpit */
+      .variant-a { display: grid; grid-template-columns: 220px minmax(420px, 1fr) minmax(320px, .82fr); min-height: calc(100vh - 66px); }
+      .a-rail { padding: 24px 16px; border-right: 1px solid var(--line); background: #eeeee6; }
+      .progress { height: 7px; border-radius: 9px; background: #d7dbd4; overflow: hidden; margin: 14px 0 20px; }
+      .progress > span { display: block; height: 100%; width: 75%; background: var(--green); }
+      .family { display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 11px; color: #59635c; font-size: 13px; }
+      .family.active { background: white; color: var(--ink); font-weight: 720; box-shadow: 0 2px 10px rgba(30,42,34,.08); }
+      .family-index { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 8px; background: #dfe3dd; font-size: 11px; font-weight: 800; }
+      .family.active .family-index { color: white; background: var(--green); }
+      .a-interview { padding: 34px clamp(28px,4vw,64px) 110px; }
+      .a-interview h1 { margin: 7px 0 10px; font: 760 clamp(28px,3vw,40px)/1.08 Georgia, serif; letter-spacing: -.025em; }
+      .question { padding: 26px; margin-top: 28px; }
+      .question h2 { font-size: 19px; line-height: 1.3; margin: 8px 0 18px; }
+      .answer-option { width: 100%; text-align: left; border: 1px solid var(--line); background: #fbfbf6; border-radius: 13px; padding: 14px; margin-top: 9px; cursor: pointer; }
+      .answer-option.selected { border-color: var(--green); box-shadow: 0 0 0 2px var(--green-soft); }
+      .answer-title { display: flex; justify-content: space-between; gap: 12px; font-weight: 720; }
+      .source-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px; }
+      .callout { border-left: 4px solid var(--amber); padding: 13px 15px; background: var(--amber-soft); border-radius: 0 11px 11px 0; margin-top: 18px; }
+      .a-preview { padding: 24px; border-left: 1px solid var(--line); background: #f1f2ec; }
+      .preview-card { padding: 20px; position: sticky; top: 90px; }
+      .preview-title { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+      .preview-title h2 { margin: 3px 0; font-size: 20px; }
+      .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 18px 0; }
+      .metric { background: #f4f5f0; border-radius: 12px; padding: 12px; }
+      .metric b { display: block; font-size: 20px; }
+      .trace-item { padding: 11px 0; border-top: 1px solid var(--line); }
+      .trace-item:first-child { border-top: 0; }
+      .approval-box { margin-top: 18px; padding: 15px; border-radius: 13px; background: var(--red-soft); border: 1px solid #efc9c2; }
+
+      /* Variant B: evidence workbook */
+      .variant-b { padding: 26px 28px 110px; }
+      .b-top { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+      .b-top h1 { margin: 4px 0 0; font: 760 34px/1.05 Georgia, serif; }
+      .workbook { overflow: hidden; }
+      table { width: 100%; border-collapse: collapse; }
+      th { text-align: left; font-size: 11px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; background: #eceee8; padding: 12px; border-bottom: 1px solid var(--line); }
+      td { padding: 14px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+      tbody tr:hover { background: #fbfcf7; }
+      .fact-family { font-weight: 750; }
+      .b-lower { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(300px,.6fr); gap: 18px; margin-top: 18px; }
+      .diff-panel, .decision-panel { padding: 20px; }
+      .diff-row { display: grid; grid-template-columns: 110px 1fr 1fr; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); }
+      .diff-row:first-of-type { border-top: 0; }
+      .old { color: var(--red); text-decoration: line-through; }
+      .new { color: var(--green); font-weight: 700; }
+
+      /* Variant C: chapter journey */
+      .variant-c { max-width: 1100px; margin: 0 auto; padding: 38px 28px 120px; }
+      .c-hero { display: grid; grid-template-columns: 1.25fr .75fr; gap: 28px; align-items: end; padding: 34px; background: #173d2f; color: white; border-radius: 24px; box-shadow: var(--shadow); }
+      .c-hero h1 { margin: 8px 0 5px; font: 760 42px/1.04 Georgia, serif; max-width: 700px; }
+      .c-hero .small { color: #bad0c4; }
+      .ring { width: 126px; height: 126px; border-radius: 50%; display: grid; place-items: center; margin-left: auto; border: 13px solid #78ad8d; border-right-color: #efbf72; font-size: 25px; font-weight: 800; }
+      .chapters { position: relative; margin-top: 30px; }
+      .chapters:before { content:""; position:absolute; left: 31px; top: 28px; bottom: 28px; width: 2px; background: #cbd2cb; }
+      .chapter { position: relative; display: grid; grid-template-columns: 64px minmax(0,1fr); gap: 18px; margin: 20px 0; }
+      .chapter-number { z-index: 1; width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; color: white; background: var(--green); border: 8px solid var(--paper); font-weight: 850; }
+      .chapter-card { padding: 22px; }
+      .chapter-card h2 { margin: 3px 0 8px; }
+      .chapter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+      .choice { padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: #f8f8f3; }
+      .c-final { background: #fff7e4; border-color: #ecd6a7; }
+
+      .switcher { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 20; display: flex; align-items: center; gap: 6px; padding: 7px; background: #101713; color: white; border-radius: 999px; box-shadow: 0 14px 40px rgba(0,0,0,.28); }
+      .switcher button { width: 38px; height: 38px; border: 0; border-radius: 50%; color: white; background: #2c3731; cursor: pointer; font-size: 18px; }
+      .switcher button:hover { background: #46544c; }
+      .switcher-label { min-width: 230px; text-align: center; font-size: 13px; font-weight: 750; }
+      .prototype-note { position: fixed; right: 18px; bottom: 22px; z-index: 15; padding: 7px 11px; border-radius: 8px; background: var(--amber-soft); color: var(--amber); font-size: 11px; font-weight: 800; }
+      dialog { border: 0; padding: 0; border-radius: 20px; box-shadow: var(--shadow); max-width: 510px; }
+      dialog::backdrop { background: rgba(12,18,14,.55); }
+      .dialog-body { padding: 25px; }
+      .dialog-body h2 { margin: 2px 0 10px; }
+      .dialog-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 20px; }
+      @media (max-width: 980px) {
+        .variant-a { grid-template-columns: 180px 1fr; }
+        .a-preview { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
+        .preview-card { position: static; }
+        .b-lower, .c-hero { grid-template-columns: 1fr; }
+        .ring { margin: 0; }
+      }
+      @media (max-width: 700px) {
+        .app-header { padding: 0 14px; }
+        .header-meta span:not(.status-dot) { display: none; }
+        .variant-a { display: block; }
+        .a-rail { border-right: 0; overflow-x: auto; display: flex; gap: 6px; }
+        .a-rail > .eyebrow, .a-rail > .progress { display: none; }
+        .family { min-width: 150px; }
+        .a-interview, .variant-b, .variant-c { padding-left: 16px; padding-right: 16px; }
+        .workbook { overflow-x: auto; }
+        .chapter-grid { grid-template-columns: 1fr; }
+        .prototype-note { display: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand"><span class="brand-mark">A</span><span>Adaptive Business OS</span></div>
+      <div class="header-meta"><span class="status-dot"></span><span>Fictitious owner review</span><span class="mono">BP-01 · v2</span></div>
+    </header>
+    <main id="root"></main>
+    <div class="prototype-note">NON-AUTHORITATIVE PROTOTYPE</div>
+    <nav class="switcher" aria-label="Prototype variants">
+      <button id="previous" aria-label="Previous variant">←</button>
+      <div class="switcher-label" id="variant-label"></div>
+      <button id="next" aria-label="Next variant">→</button>
+    </nav>
+    <dialog id="approval-dialog">
+      <div class="dialog-body">
+        <div class="eyebrow">Explicit Blueprint Approval</div>
+        <h2>Approve this exact immutable Draft?</h2>
+        <p>This stub would approve <b class="mono">BP-01 / ver-02</b> with Content Identity <b class="mono">sha256:9be4…7a10</b>. Preview viewing and option selection did not approve it.</p>
+        <div class="callout"><b>Prototype only.</b><br><span class="small">No Business Kernel command will be submitted.</span></div>
+        <div class="dialog-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" data-approve>Approve exact Blueprint</button></div>
+      </div>
+    </dialog>
+    <script>
+      const variants = {
+        A: { name: "Guided cockpit", render: renderA },
+        B: { name: "Evidence workbook", render: renderB },
+        C: { name: "Decision journey", render: renderC },
+      };
+      const state = { resolved: false, approved: false };
+      const root = document.querySelector("#root");
+      const dialog = document.querySelector("#approval-dialog");
+
+      function currentKey() {
+        const key = new URLSearchParams(location.search).get("variant")?.toUpperCase();
+        return variants[key] ? key : "A";
+      }
+
+      function setVariant(key) {
+        const url = new URL(location.href);
+        url.searchParams.set("variant", key);
+        history.replaceState({}, "", url);
+        render();
+      }
+
+      function cycle(direction) {
+        const keys = Object.keys(variants);
+        const index = keys.indexOf(currentKey());
+        setVariant(keys[(index + direction + keys.length) % keys.length]);
+      }
+
+      function render() {
+        const key = currentKey();
+        root.innerHTML = variants[key].render();
+        document.querySelector("#variant-label").textContent = `${key} — ${variants[key].name}`;
+        wireActions();
+      }
+
+      function statePill() {
+        return state.resolved ? '<span class="pill confirmed">Confirmed · owner</span>' : '<span class="pill assumed">Assumed · system</span>';
+      }
+
+      function eligibility() {
+        if (state.approved) return '<span class="pill confirmed">Approved</span>';
+        if (state.resolved) return '<span class="pill confirmed">Approval Eligible</span>';
+        return '<span class="pill unsupported">Blocked · 1 Assumption</span>';
+      }
+
+      function reviewButtons() {
+        if (state.approved) return '<button class="btn" disabled>Approved exact ver-02</button>';
+        return `<button class="btn" data-resolve>${state.resolved ? "Owner confirmed service mode" : "Resolve Assumption"}</button><button class="btn primary" data-open-approval ${state.resolved ? "" : "disabled"}>Approve exact Blueprint</button>`;
+      }
+
+      function renderA() {
+        return `
+          <section class="variant-a">
+            <aside class="a-rail">
+              <div class="eyebrow">Owner Interview · 6 of 8</div><div class="progress"><span></span></div>
+              ${["Purpose & scope","Safety & jurisdiction","Business shape","Customer journey","Supply & stock","People & governance","Money & accounting","Experience & integrations"].map((name, index) => `<div class="family ${index === 5 ? "active" : ""}"><span class="family-index">${index + 1}</span><span>${name}</span></div>`).join("")}
+            </aside>
+            <section class="a-interview">
+              <div class="eyebrow">People & governance · question 3 of 5</div>
+              <h1>How will the cafe serve customers in v1?</h1>
+              <p class="small">One material statement at a time. Source and uncertainty remain visible beside the answer.</p>
+              <article class="card question">
+                <div class="answer-title"><span>Recommended answer</span>${statePill()}</div>
+                <button class="answer-option selected"><span class="answer-title"><span>Counter service only</span><span>Recommended</span></span><span class="small">Tables, reservations, and delivery remain explicitly excluded from v1.</span></button>
+                <button class="answer-option"><span class="answer-title"><span>Table service with reservations</span></span><span class="small">Outside the approved v1 boundary; record as Unsupported rather than silently expand scope.</span></button>
+                <div class="source-row"><span class="pill internal">Internal data</span><span class="pill muted-pill">Source · interview follow-up #18</span><span class="pill muted-pill">Acceptance · cafe-fulfillment</span></div>
+                <div class="callout">${state.resolved ? "<b>Owner confirmation recorded:</b> this produces a new attributable Intent Brief update; it is not Blueprint Approval." : "<b>Assumption still open:</b> counter service only. This assumption cannot drive approval-eligible configuration."}</div>
+                <div style="display:flex;justify-content:space-between;gap:10px;margin-top:20px"><button class="btn">Back</button><button class="btn primary" data-resolve>Confirm recommended answer</button></div>
+              </article>
+            </section>
+            <aside class="a-preview">
+              <article class="card preview-card">
+                <div class="preview-title"><div><div class="eyebrow">Draft Blueprint preview</div><h2>Cedar & Steam · v2</h2></div>${eligibility()}</div>
+                <p class="small mono">ver-02 · sha256:9be4…7a10</p>
+                <div class="metric-grid"><div class="metric"><b>11</b><span class="small">Capabilities</span></div><div class="metric"><b>2</b><span class="small">Locations</span></div><div class="metric"><b>6</b><span class="small">Roles</span></div><div class="metric"><b>${state.resolved ? "0" : "1"}</b><span class="small">Open item</span></div></div>
+                <div class="eyebrow">Semantic Diff from v1</div>
+                <div class="trace-item"><b>+ Kitchen Operator Role</b><br><span class="small">Traced to owner interview #17</span></div>
+                <div class="trace-item"><b>+ Fulfilled transition Evidence</b><br><span class="small">Traced to cafe-fulfillment</span></div>
+                <div class="trace-item"><b>− Delivery path</b><br><span class="small">Explicit v1 exclusion</span></div>
+                <div class="approval-box"><b>${state.approved ? "Explicit decision recorded" : state.resolved ? "Ready for explicit decision" : "Approval blocked"}</b><p class="small">${state.approved ? "This prototype preserves the exact Blueprint Reference and Content Identity that the owner explicitly approved." : state.resolved ? "Every active value is Confirmed or a Kernel invariant." : "The counter-service Assumption must be confirmed or excluded."}</p><div style="display:flex;flex-wrap:wrap;gap:8px">${reviewButtons()}</div></div>
+              </article>
+            </aside>
+          </section>`;
+      }
+
+      function renderB() {
+        const rows = [
+          ["Purpose & scope","Retail + cafe reuse proof","Confirmed","Owner #1","Internal","2 proposals"],
+          ["Safety","No external AI for Restricted data","Confirmed","Owner #4","Restricted","3 policies"],
+          ["Business shape","USD · units / g / ml","Confirmed","Owner #8","Internal","5 settings"],
+          ["Customer journey","Counter service only",state.resolved ? "Confirmed" : "Assumed",state.resolved ? "Owner #18" : "System rationale","Internal","1 workflow"],
+          ["Supply & stock","Moving weighted average","Confirmed","Kernel invariant","Internal","2 policies"],
+          ["People","Kitchen Operator fulfills ticket","Confirmed","Owner #17","Internal","1 Role"],
+          ["Money","Cash payment after fulfillment","Confirmed","Owner #20","Confidential","2 actions"],
+          ["Experience","Tablet kitchen queue","Confirmed","Owner #23","Internal","3 surfaces"],
+        ];
+        return `<section class="variant-b">
+          <div class="b-top"><div><div class="eyebrow">Evidence workbook · 8 fact families</div><h1>Intent-to-Blueprint review</h1><p class="small">Dense review for owners who prefer completeness over guided pacing.</p></div><div style="text-align:right">${eligibility()}<p class="small mono">BP-01 / ver-02 / sha256:9be4…7a10</p></div></div>
+          <article class="card workbook"><table><thead><tr><th>Fact family</th><th>Material statement</th><th>Intent State</th><th>Source</th><th>Exposure</th><th>Blueprint trace</th></tr></thead><tbody>${rows.map(row => `<tr><td class="fact-family">${row[0]}</td><td>${row[1]}</td><td><span class="pill ${row[2] === "Assumed" ? "assumed" : "confirmed"}">${row[2]}</span></td><td class="small">${row[3]}</td><td><span class="pill internal">${row[4]}</span></td><td class="small">${row[5]}</td></tr>`).join("")}</tbody></table></article>
+          <section class="b-lower"><article class="card diff-panel"><div class="eyebrow">Semantic Diff · v1 → v2</div><h2>Three owner-visible changes</h2><div class="diff-row"><b>Role</b><span class="old">Cafe Staff</span><span class="new">Kitchen Operator</span></div><div class="diff-row"><b>Evidence</b><span class="old">None</span><span class="new">Fulfillment attribution</span></div><div class="diff-row"><b>Exclusion</b><span class="old">Unspecified</span><span class="new">Delivery excluded</span></div></article>
+          <article class="card decision-panel"><div class="eyebrow">Owner decision</div><h2>${state.resolved ? "Exact Draft ready" : "One blocker remains"}</h2><p>${state.resolved ? "Review bundle is current and bound to this exact Draft." : "Counter service is still an Assumption. It cannot become governed truth through approval."}</p><div style="display:flex;gap:8px;flex-wrap:wrap">${reviewButtons()}</div></article></section>
+        </section>`;
+      }
+
+      function renderC() {
+        return `<section class="variant-c">
+          <div class="c-hero"><div><div class="eyebrow" style="color:#bad0c4">Owner decision journey</div><h1>From what you said to what the Kernel may run</h1><p class="small">A narrative review that separates intent, proposed configuration, and explicit authority.</p></div><div class="ring">${state.resolved ? "8 / 8" : "7 / 8"}</div></div>
+          <div class="chapters">
+            <section class="chapter"><div class="chapter-number">1</div><article class="card chapter-card"><div class="eyebrow">Captured intent</div><h2>Your business in owner language</h2><div class="chapter-grid"><div class="choice"><b>Two operating points</b><p class="small">Retail and cafe Locations under one fictitious Tenant.</p><span class="pill confirmed">Confirmed · owner</span></div><div class="choice"><b>External AI boundary</b><p class="small">Restricted data never leaves the local proof.</p><span class="pill confirmed">Confirmed · owner</span></div></div></article></section>
+            <section class="chapter"><div class="chapter-number">2</div><article class="card chapter-card"><div class="eyebrow">Proposed configuration</div><h2>What changes in Blueprint v2</h2><p>Kitchen Operator Role, fulfillment Evidence, tablet queue, and the explicit removal of delivery. Each proposal links back to an owner source and Acceptance Condition.</p><div class="source-row"><span class="pill internal">3 additions</span><span class="pill muted-pill">1 exclusion</span><span class="pill muted-pill">0 executable extensions</span></div></article></section>
+            <section class="chapter"><div class="chapter-number">3</div><article class="card chapter-card ${state.resolved ? "" : "c-final"}"><div class="eyebrow">${state.resolved ? "Resolved meaning" : "Unresolved meaning"}</div><h2>${state.resolved ? "Counter service confirmed" : "One Assumption needs you"}</h2><p>${state.resolved ? "The attributable owner update creates new review material; it was not confirmed by previewing this page." : "The proposed cafe path assumes counter service only. Approving cannot silently confirm it."}</p><button class="btn ${state.resolved ? "" : "primary"}" data-resolve>${state.resolved ? "Confirmed from owner #18" : "Confirm counter-service scope"}</button></article></section>
+            <section class="chapter"><div class="chapter-number">4</div><article class="card chapter-card"><div class="eyebrow">Separate authority gate</div><h2>Approval is one exact, explicit action</h2><p>Blueprint <b class="mono">BP-01 / ver-02</b> · Content Identity <b class="mono">sha256:9be4…7a10</b>. No interview action, preview, or option selection counts.</p><div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">${eligibility()}${reviewButtons()}</div></article></section>
+          </div>
+        </section>`;
+      }
+
+      function wireActions() {
+        document.querySelectorAll("[data-resolve]").forEach(button => button.addEventListener("click", () => { state.resolved = true; state.approved = false; render(); }));
+        document.querySelectorAll("[data-open-approval]").forEach(button => button.addEventListener("click", () => dialog.showModal()));
+      }
+
+      document.querySelector("#previous").addEventListener("click", () => cycle(-1));
+      document.querySelector("#next").addEventListener("click", () => cycle(1));
+      document.querySelector("[data-close]").addEventListener("click", () => dialog.close());
+      document.querySelector("[data-approve]").addEventListener("click", () => { state.approved = true; dialog.close(); render(); });
+      window.addEventListener("keydown", event => {
+        if (["INPUT","TEXTAREA"].includes(document.activeElement?.tagName) || document.activeElement?.isContentEditable) return;
+        if (event.key === "ArrowLeft") cycle(-1);
+        if (event.key === "ArrowRight") cycle(1);
+      });
+      window.addEventListener("popstate", render);
+      render();
+    </script>
+  </body>
+</html>

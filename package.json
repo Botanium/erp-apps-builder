@@ -1,0 +1,8 @@
+{
+  "name": "adaptive-business-os-owner-review-prototype",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prototype": "node server.mjs"
+  }
+}
