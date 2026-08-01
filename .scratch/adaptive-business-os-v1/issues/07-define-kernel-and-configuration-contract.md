@@ -1,7 +1,7 @@
 # Define the Business Kernel and Governed Configuration contract
 
 Type: grilling  
-Status: claimed
+Status: resolved
 Blocked by: 01, 02, 06
 
 ## Question
@@ -525,3 +525,46 @@ deployment.
 
 Avoid using Business Blueprint, generated app, deployment package, target
 bundle, runtime snapshot, or approval token as synonyms.
+
+#### Machine identity, exact-version, and compatibility contract
+
+Use stable, project-owned, lower-case machine identities that never change or
+transfer, exact independently versioned SemVer releases bound to immutable
+provenance and content identity, and an explicit Business Kernel-owned
+Compatibility Registry. Start each independently governed v1 contract at
+`1.0.0`.
+
+Every Blueprint, Effective Blueprint, Configuration Validation Report,
+compatibility artifact, and Provisioning Request must pin the exact identities
+and versions it uses; ranges, wildcards, aliases, and `latest` selectors are
+forbidden. SemVer communicates intended change only and never grants
+compatibility.
+
+Compatibility must be declared directionally for exact source and target
+Version Sets with any required schema comparison mapping; absence, staleness,
+mismatch, or non-comparability fails closed. Every bound-version change
+requires revalidation and recompilation.
+
+A changed Blueprint selection or changed owner-reviewed effective meaning
+requires a new Draft and explicit Blueprint Approval. Migration Required
+remains unsupported in v1. Retail and cafe must pin the same exact Machine
+Identities and versions for their shared Capabilities.
+
+A Machine Identity is a stable, project-owned, lower-case identifier that names
+one independently versioned Business Kernel contract across releases and is
+never changed, transferred, or reused.
+
+A Version Set is an immutable collection of exact Machine Identity and SemVer
+release bindings, together with their provenance and content identities, that
+identifies the governing contracts for one Blueprint-related artifact or
+request.
+
+A Compatibility Registry is the Business Kernel-owned, versioned collection of
+directional compatibility declarations and schema comparison mappings between
+exact Version Sets. It grants no compatibility when a required declaration is
+absent, stale, mismatched, or non-comparable.
+
+Avoid using display label, alias, package name, version, or latest selector as
+synonyms for Machine Identity. Avoid using SemVer rule, package resolver,
+migration plan, Compatibility Verdict, or latest-version policy as synonyms
+for Compatibility Registry.

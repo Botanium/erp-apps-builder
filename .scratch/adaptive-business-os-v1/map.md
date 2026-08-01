@@ -47,11 +47,13 @@ fictitious data, and reset cleanly.
 - [Research ledger and inventory invariants](issues/04-research-ledger-inventory-invariants.md): require balanced atomic postings, immutable linked corrections, idempotent stock and ledger effects, independently recomputable reconciliation, and whole-sandbox reset; ticket 09 still owns the v1 policy choices.
 - [Define the Intent Brief and Owner Interview contract](issues/05-define-intent-brief-and-interview-contract.md): require a versioned, source-attributed Intent Brief with explicit uncertainty, sensitive-data, Assumption, and Acceptance Condition contracts; permit Draft generation only when it is structurally traceable, safely scoped, and does not invent governed truth.
 - [Define the Business Blueprint schema and lifecycle](issues/06-define-blueprint-schema-and-lifecycle.md): use immutable complete Blueprint snapshots with exact lineage and content identity, explicit approval, fail-closed concurrency and compatibility, atomic provisioning, forward-only reversion, and separately authorized Sandbox Reset.
+- [Define the Business Kernel and Governed Configuration contract](issues/07-define-kernel-and-configuration-contract.md): make one deterministic Business Kernel the sole governed executor; compose retail and cafe from a closed shared Capability inventory, constrain variation to typed Configuration Points, reject invalid configuration fail-closed, compile one Effective Blueprint, and pin exact versions under directional compatibility declarations.
 
 ## Not yet specified
 
-- Capability-pack packaging, versioning, and extension semantics after the
-  Business Kernel boundary is resolved.
+- Release packaging for versioned Capabilities and declared adapters after the
+  v1 reference architecture is selected; tenant runtime extensions remain out
+  of scope.
 - The final acceptance-seam matrix after public interfaces and prototype
   verdicts exist.
 

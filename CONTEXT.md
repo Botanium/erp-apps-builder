@@ -56,6 +56,18 @@ _Avoid_: Version Identity, file checksum, approval token, digital signature, Sem
 A deterministic, immutable, self-contained, target-neutral resolution of one exact validated Blueprint candidate under one exact governing version set, containing only declared configuration for Business Kernel preview or provisioning. It is derived material, not Blueprint Approval, execution authority, target state, runtime truth, tenant code, or a deployment.
 _Avoid_: Business Blueprint, generated app, deployment package, target bundle, runtime snapshot, approval token
 
+**Machine Identity**:
+A stable, project-owned, lower-case identifier that names one independently versioned Business Kernel contract across releases and is never changed, transferred, or reused.
+_Avoid_: Display label, alias, package name, version, latest selector
+
+**Version Set**:
+An immutable collection of exact Machine Identity and SemVer release bindings, together with their provenance and content identities, that identifies the governing contracts for one Blueprint-related artifact or request.
+_Avoid_: Version range, release channel, platform latest, compatibility claim, environment label
+
+**Compatibility Registry**:
+The Business Kernel-owned, versioned collection of directional compatibility declarations and schema comparison mappings between exact Version Sets. It grants no compatibility when a required declaration is absent, stale, mismatched, or non-comparable.
+_Avoid_: SemVer rule, package resolver, migration plan, Compatibility Verdict, latest-version policy
+
 **Blueprint Lifecycle State**:
 The externally recorded review-and-authorization status of one immutable Blueprint Version—Draft, Approved, Rejected, Superseded, or Withdrawn—without describing validation, provisioning, deployment, or runtime state.
 _Avoid_: Blueprint content, interview stage, validation result, compatibility verdict, deployment status, applied Version, runtime state
