@@ -1,7 +1,7 @@
 # Define the Business Kernel and Governed Configuration contract
 
 Type: grilling  
-Status: open  
+Status: claimed
 Blocked by: 01, 02, 06
 
 ## Question
