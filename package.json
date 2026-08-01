@@ -1,0 +1,12 @@
+{
+  "name": "adaptive-business-os-reference-slice",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18 <27"
+  },
+  "scripts": {
+    "test": "node --test",
+    "reference-slice": "node reference-slice/src/cli.mjs"
+  }
+}

@@ -1,0 +1,136 @@
+import { contentIdentity } from "./canonical.mjs";
+
+export const TENANT_ID = "tenant.cedar-steam";
+export const SENTINEL_TENANT_ID = "tenant.isolation-sentinel";
+export const BLUEPRINT_ID = "blueprint.cedar-steam";
+
+export const VERSION_SET = Object.freeze({
+  kernel: "business-kernel@1.0.0",
+  schema: "blueprint-configuration-schema@1.0.0",
+  validator: "configuration-validator@1.0.0",
+  compiler: "blueprint-compiler@1.0.0",
+  policy: "financial-stock-audit@1.0.0",
+  acceptanceSuite: "reference-slice.acceptance-suite@1.0.0",
+  fixture: "reference-slice.fixture.cedar-steam@1.0.0",
+});
+
+export const CAPABILITIES = Object.freeze([
+  "party-registry", "catalog", "purchasing", "receiving", "inventory",
+  "ordering", "sales", "payment", "cash", "ledger", "kitchen-operations",
+].map(identity => ({ identity: `capability.${identity}`, version: "1.0.0", configurationSchemaVersion: "1.0.0", enabled: true })));
+
+const roles = [
+  ["role.owner", ["blueprint.approve", "sandbox.provision", "sandbox.reset"]],
+  ["role.buyer", ["purchase.confirm"]],
+  ["role.receiver", ["receipt.accept"]],
+  ["role.retail-cashier", ["order.accept", "sale.fulfill", "payment.accept"]],
+  ["role.cafe-cashier", ["order.accept", "payment.accept"]],
+  ["role.kitchen-operator", ["kitchen.accept", "kitchen.prepare", "kitchen.ready", "kitchen.fulfill"]],
+];
+
+export function createIntentBrief(version, counterServiceState) {
+  const source = version === 1 ? "source.owner-standing-direction" : "source.owner-confirmation.counter-service";
+  return {
+    identity: `intent-brief.cedar-steam.v${version}`,
+    version,
+    tenantId: TENANT_ID,
+    factFamilies: [
+      "purpose-and-scope", "safety-and-jurisdiction", "business-shape",
+      "customer-and-fulfillment", "supply-stock-capacity", "people-and-governance",
+      "money-and-accounting", "experience-and-integrations",
+    ].map((family, index) => ({ identity: `intent.${version}.${index + 1}`, family, statement: family === "customer-and-fulfillment" ? "Counter service only; tables, reservations, and delivery excluded." : `Confirmed fictitious ${family} fixture.`, intentState: family === "customer-and-fulfillment" ? counterServiceState : "Confirmed", source: family === "customer-and-fulfillment" ? source : "source.owner-standing-direction" })),
+    sensitiveData: [
+      { category: "fictitious-operational", class: "Internal", rationale: "No real person or production data.", source: "source.owner-standing-direction" },
+      { category: "fictitious-financial", class: "Confidential", rationale: "Invented detailed financial fixture values.", source: "source.owner-standing-direction" },
+    ],
+    acceptanceConditions: [{ identity: "acceptance.required.reuse-proof", criticality: "Required", intentState: "Confirmed", source: "source.owner-standing-direction", outcome: "One Kernel demonstrates retail and cafe reuse." }],
+    assumptions: counterServiceState === "Assumed" ? [{ identity: "assumption.counter-service", proposition: "Cafe uses counter service only.", rationale: "Continue Draft review within v1 scope.", impact: "Cafe Workflow and exclusions.", risk: "Wrong fulfillment experience.", reviewer: "participant.owner", resolution: "Explicit owner confirmation.", source: "source.system-proposal" }] : [],
+  };
+}
+
+function blueprintCanonicalContent(blueprint) {
+  const { envelope, ...sections } = blueprint.content;
+  return {
+    tenantId: envelope.tenantId,
+    blueprintId: envelope.blueprintId,
+    configurationSchema: envelope.configurationSchema,
+    sourceIntentBriefs: envelope.sourceIntentBriefs,
+    ...sections,
+  };
+}
+
+export function createBlueprint(versionNumber, intentBrief, counterServiceState) {
+  const versionId = `blueprint-version.cedar-steam.v${versionNumber}`;
+  const parentVersionId = versionNumber === 1 ? null : `blueprint-version.cedar-steam.v${versionNumber - 1}`;
+  const content = {
+    envelope: {
+      tenantId: TENANT_ID,
+      blueprintId: BLUEPRINT_ID,
+      versionId,
+      versionNumber,
+      parentVersionId,
+      configurationSchema: VERSION_SET.schema,
+      sourceIntentBriefs: [intentBrief.identity],
+      provenance: "fictitious-reference-slice",
+    },
+    businessScope: {
+      businessKinds: ["retail", "cafe"],
+      countries: ["US-FICTITIOUS"],
+      locations: ["location.retail", "location.cafe"],
+      language: "en",
+      timeZone: "UTC",
+      currency: "USD",
+      units: ["each", "g", "ml"],
+      tier: "medium",
+      exclusions: ["tables", "reservations", "delivery", "tips", "loyalty", "advanced-recipe-costing"],
+    },
+    capabilitySelections: CAPABILITIES,
+    recordDefinitions: ["Purchase Order", "Supplier Receipt", "Order", "Sale", "Payment", "Kitchen Ticket"].map(identity => ({ identity, version: "1.0.0" })),
+    workflowDefinitions: [
+      { identity: "workflow.retail-golden", version: "1.0.0", states: ["accepted", "fulfilled", "cancelled"] },
+      { identity: "workflow.cafe-kitchen", version: "1.0.0", states: ["accepted", "preparing", "ready", "fulfilled"] },
+    ],
+    roleDefinitions: roles.map(([identity, actions]) => ({ identity, responsibilities: [identity], actions, locations: identity.includes("retail") ? ["location.retail"] : identity.includes("cafe") || identity.includes("kitchen") ? ["location.cafe"] : ["location.retail", "location.cafe"] })),
+    evidenceRules: [{ identity: "evidence.attribution", kind: "responsible-source", reviewerRole: "role.owner" }],
+    policyProfiles: { currency: "USD", moneyPrecision: "integer-minor-unit", inventoryCosting: "moving-weighted-average", ledger: "balanced-posting-sets", externalAi: "none" },
+    experienceConfiguration: {
+      profiles: [
+        { identity: "profile.retail", targetId: "retail", locationId: "location.retail", visibleCapabilities: CAPABILITIES.filter(capability => capability.identity !== "capability.kitchen-operations").map(capability => capability.identity) },
+        { identity: "profile.cafe", targetId: "cafe", locationId: "location.cafe", visibleCapabilities: CAPABILITIES.filter(capability => !["capability.purchasing", "capability.receiving"].includes(capability.identity)).map(capability => capability.identity) },
+      ],
+      ownerReviewModel: "guided-cockpit-with-evidence-workbook",
+    },
+    integrationConfiguration: [],
+    intentTraceability: {
+      sources: intentBrief.factFamilies.map(statement => ({ statementId: statement.identity, intentState: statement.intentState, source: statement.source })),
+      assumptions: counterServiceState === "Assumed" ? ["assumption.counter-service"] : [],
+      acceptanceConditions: ["acceptance.required.reuse-proof"],
+    },
+  };
+  const blueprint = {
+    reference: { tenantId: TENANT_ID, blueprintId: BLUEPRINT_ID, versionId },
+    versionNumber,
+    parentVersionId,
+    content,
+  };
+  return { ...blueprint, contentIdentity: contentIdentity(blueprintCanonicalContent(blueprint)) };
+}
+
+export function makeCommand({ identity, action, input = {}, targetId = null, locationId = null, generationId = null, role = "role.owner", gateDecision = null }) {
+  const body = {
+    identity,
+    tenantId: TENANT_ID,
+    targetId,
+    locationId,
+    generationId,
+    action,
+    version: "1.0.0",
+    input,
+    role,
+    gateDecision,
+    responsibleSource: "participant.owner.fixture",
+    effectiveTime: "2026-01-15T09:00:00.000Z",
+    versionSet: VERSION_SET,
+  };
+  return { ...body, contentIdentity: contentIdentity(body) };
+}
