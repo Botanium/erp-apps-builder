@@ -21,8 +21,8 @@ standing approval for the remaining Wayfinder tickets.
 The isolated implementation is preserved on branch
 `codex/reference-slice-v1`:
 
-- source and tests: `f934ef9f77f164c29d6b6fccf857573660766b7c`;
-- source-bound acceptance evidence: `8224550`;
+- source and tests: `c708e89ef866dba5dd235acffef4420121e31f50`;
+- source-bound acceptance evidence: `2237d9e`;
 - one command: `npm run reference-slice`;
 - test command: `npm test`;
 - runtime actually observed: Node.js `v26.5.0` on Darwin arm64; and
@@ -31,9 +31,9 @@ The isolated implementation is preserved on branch
 The final branch test run passed all 11 behavior tests. The committed
 Reference Slice Acceptance Report records `Passed`; all 12 Required conditions
 are `Satisfied`; its SHA-256 Content Identity independently recomputes; and its
-source binding names clean commit `f934ef9f77f164c29d6b6fccf857573660766b7c`
+source binding names clean commit `c708e89ef866dba5dd235acffef4420121e31f50`
 with source-file Content Identity
-`sha256:5c8acaccb1609fd119dac2f6dcc71b2013db945175d16d227e6c99e37c81ec66`.
+`sha256:60e3a66c9c3c1da35ce54dcb62dcec3ddd6524b9d02e3a478950a9704e8475ba`.
 
 The slice proves, through the four approved public Interfaces:
 
@@ -51,8 +51,8 @@ The slice proves, through the four approved public Interfaces:
    cost; Payment produces the USD 49.00 / USD 49.00 ending trial balance.
 6. Schema, stale-baseline, idempotency, Tenant, target, Location, generation,
    Applied Blueprint, Role, stock, unit, currency, posting, Payment, immutable
-   effect, and stale-reset cases fail closed or retain their exact explicit
-   residual without unintended effects.
+   effect, excess-Payment, and stale-reset cases fail closed without unintended
+   effects; a partial Payment retains its exact positive receivable residual.
 7. Each Sandbox Reset uses its own exact authorization and atomic generation
    replacement. Both experiences reprovision and replay with equal business
    content, then finish at generation 3 clean and unapplied while governance
@@ -74,3 +74,15 @@ production implementation, deployment permission, accounting or regulatory
 compliance, authentication, scaling, backups, billing, external integrations,
 or production hardening. The implementation branch remains isolated and is
 not merged into `master` by this decision.
+
+## Readiness-audit correction
+
+Ticket 16 found that historical implementation commit `f934ef9` accepted an
+excess Payment into an undeclared seventh `Customer Credit` account. That
+conflicted with Ticket 09's closed six-account taxonomy and explicit
+overpayment rejection rule. Corrected source commit `c708e89` removes the
+undeclared account, retains partial-Payment residuals, and rejects excess
+Payment atomically with `ORC.KERNEL.INVARIANT_REJECTED`. All 11 tests pass, and
+evidence commit `2237d9e` records a new source-clean `Passed` report with all 12
+Required conditions Satisfied. The historical `f934ef9`/`8224550` evidence is
+superseded and is not current acceptance evidence.
