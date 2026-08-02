@@ -9,10 +9,12 @@ const FACT_FAMILIES = Object.freeze([
   "experience-and-integrations",
 ]);
 
-const UNRESOLVED_INTENT_STATES = new Set([
+const RESTRICTIVE_CLASSIFICATION_STATES = new Set([
   "Unknown",
   "Ambiguous",
   "Conflicting",
+  "Assumed",
+  "Unsupported",
 ]);
 
 const INTENT_STATES = new Set([
@@ -42,7 +44,7 @@ const PROHIBITED_ANSWER_FIELDS = new Set([
 ]);
 
 const isNonEmptyString = (value) =>
-  typeof value === "string" && value.length > 0;
+  typeof value === "string" && value.trim().length > 0;
 
 const findProhibitedAnswerField = (value) => {
   if (Array.isArray(value)) {
@@ -239,7 +241,7 @@ const attributableDataCategory = (category, interview, recordedTime) => {
       (left, right) =>
         SENSITIVE_DATA_CLASS_RANK[right] - SENSITIVE_DATA_CLASS_RANK[left]
     )[0];
-    const effectiveClass = UNRESOLVED_INTENT_STATES.has(
+    const effectiveClass = RESTRICTIVE_CLASSIFICATION_STATES.has(
       content.classificationIntentState
     )
       ? "Restricted"
@@ -294,6 +296,8 @@ const draftReviewFor = (interview, intentBrief) => {
         !isNonEmptyString(statement.identity) ||
         !FACT_FAMILIES.includes(statement.factFamily) ||
         !INTENT_STATES.has(statement.intentState) ||
+        (statement.factFamily !== "purpose-and-scope" &&
+          !isNonEmptyString(statement.value)) ||
         statement.source?.kind !== "Owner" ||
         !isNonEmptyString(statement.source?.identity) ||
         !isNonEmptyString(statement.source?.recordedTime)
@@ -306,6 +310,28 @@ const draftReviewFor = (interview, intentBrief) => {
         category.externalAiHandling !== "Prohibited"
     )
     .map((category) => category.identity);
+  const unsupportedExternalAiCategories = (intentBrief.dataCategories ?? [])
+    .filter((category) => {
+      if (
+        !["Internal", "Confidential"].includes(category.sensitiveDataClass) ||
+        category.externalAiHandling === "Prohibited"
+      ) {
+        return false;
+      }
+      const lacksSharedSafeguard =
+        !isNonEmptyString(
+          category.externalAiSafeguards?.providerPolicyIdentity
+        ) ||
+        category.externalAiSafeguards?.dataMinimization !== true ||
+        category.externalAiSafeguards?.ownerApproval !== true;
+      const lacksConfidentialSafeguard =
+        category.sensitiveDataClass === "Confidential" &&
+        !isNonEmptyString(
+          category.externalAiSafeguards?.jurisdictionHandlingProfileIdentity
+        );
+      return lacksSharedSafeguard || lacksConfidentialSafeguard;
+    })
+    .map((category) => category.identity);
   const unsupportedSafetyStatements = intentBrief.statements
     .filter(
       (statement) =>
@@ -313,6 +339,13 @@ const draftReviewFor = (interview, intentBrief) => {
         statement.intentState === "Unsupported"
     )
     .map((statement) => statement.identity);
+  const unsupportedSafetyCategories = (intentBrief.dataCategories ?? [])
+    .filter(
+      (category) =>
+        category.intentState === "Unsupported" ||
+        category.classificationIntentState === "Unsupported"
+    )
+    .map((category) => category.identity);
   const incompleteDataCategories = (intentBrief.dataCategories ?? [])
     .filter(
       (category) =>
@@ -360,7 +393,7 @@ const draftReviewFor = (interview, intentBrief) => {
     .filter(
       (condition) =>
         !isNonEmptyString(condition.identity) ||
-        !isNonEmptyString(condition.intentState) ||
+        !INTENT_STATES.has(condition.intentState) ||
         !isNonEmptyString(condition.outcome) ||
         !isNonEmptyString(condition.whyItMatters) ||
         !condition.scope ||
@@ -426,12 +459,28 @@ const draftReviewFor = (interview, intentBrief) => {
         "An unsupported safety, jurisdiction, or data-handling profile prevents Draft Blueprint generation.",
     });
   }
+  if (unsupportedSafetyCategories.length > 0) {
+    return blockedDraftReview({
+      code: "INTENT.DRAFT_BLOCKER.UNSUPPORTED_SAFETY_PROFILE",
+      dataCategoryIdentities: unsupportedSafetyCategories,
+      summary:
+        "An unsupported safety, jurisdiction, or data-handling profile prevents Draft Blueprint generation.",
+    });
+  }
   if (incompleteDataCategories.length > 0) {
     return blockedDraftReview({
       code: "INTENT.DRAFT_BLOCKER.SENSITIVE_DATA_CLASSIFICATION_INCOMPLETE",
       dataCategoryIdentities: incompleteDataCategories,
       summary:
         "Every named data category requires one supported Sensitive Data Class, rationale, and attributable source.",
+    });
+  }
+  if (unsupportedExternalAiCategories.length > 0) {
+    return blockedDraftReview({
+      code: "INTENT.DRAFT_BLOCKER.EXTERNAL_AI_HANDLING_UNSUPPORTED",
+      dataCategoryIdentities: unsupportedExternalAiCategories,
+      summary:
+        "External AI handling for Internal or Confidential data requires every declared class-specific safeguard.",
     });
   }
   if (incompleteAssumptions.length > 0) {
@@ -609,7 +658,7 @@ export class OwnerWorkbench {
       state.interviews[interviewIndex] = structuredClone(interview);
       state.intentBriefVersions.push({
         ownerInterviewIdentity: interview.identity,
-        intentBrief: structuredClone(intentBrief),
+        reviewProjection: structuredClone(interview),
       });
       return { state, result: interview };
     });
@@ -621,14 +670,14 @@ export class OwnerWorkbench {
     const interview = state.interviews.find(
       (candidate) => candidate.identity === ownerInterviewIdentity
     );
-    const intentBrief = state.intentBriefVersions.find(
+    const reviewProjection = state.intentBriefVersions.find(
       (version) =>
         version.ownerInterviewIdentity === ownerInterviewIdentity &&
-        version.intentBrief.versionIdentity === versionIdentity
-    )?.intentBrief;
-    if (!interview || !intentBrief) {
+        version.reviewProjection.intentBrief.versionIdentity === versionIdentity
+    )?.reviewProjection;
+    if (!interview || !reviewProjection) {
       throw new Error("The Intent Brief Version is unknown.");
     }
-    return structuredClone({ ...interview, intentBrief });
+    return structuredClone(reviewProjection);
   }
 }

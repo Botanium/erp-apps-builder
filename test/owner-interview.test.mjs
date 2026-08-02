@@ -385,6 +385,18 @@ test("completed interview correction creates a new version and recomputes Draft 
     ],
     draftBlueprint: null,
   });
+
+  const historical = await system.referenceSlice.dispatch({
+    type: "reference-slice.review-intent-brief",
+    ownerInterviewIdentity: completed.ownerInterview.identity,
+    versionIdentity: completed.ownerInterview.intentBrief.versionIdentity,
+  });
+  assert.equal(historical.ownerInterview.currentQuestion, null);
+  assert.deepEqual(historical.ownerInterview.draftReview, {
+    disposition: "ReadyForDraftProposal",
+    draftBlockers: [],
+    draftBlueprint: null,
+  });
 });
 
 test("complete supported interview produces all eight fact families and review contracts", async () => {
@@ -784,6 +796,27 @@ test("empty Confirmed owner purpose cannot anchor Draft Blueprint generation", a
   });
 });
 
+test("empty Confirmed non-purpose fact cannot satisfy required coverage", async () => {
+  const system = await createInterviewSystem();
+
+  const view = await completeMinimalInterview(system, {
+    safetyAnswer: { value: "" },
+  });
+
+  assert.deepEqual(view.ownerInterview.draftReview, {
+    disposition: "Blocked",
+    draftBlockers: [
+      {
+        code: "INTENT.DRAFT_BLOCKER.STATEMENT_TRACEABILITY_INCOMPLETE",
+        statementIdentities: ["intent-statement.safety-and-jurisdiction"],
+        summary:
+          "Every material statement requires exactly one supported Intent State and an attributable source.",
+      },
+    ],
+    draftBlueprint: null,
+  });
+});
+
 test("absence of a Confirmed Required Acceptance Condition blocks Draft generation", async () => {
   const system = await createInterviewSystem();
 
@@ -957,6 +990,112 @@ test("Restricted external-AI intent creates a safety Draft Blocker", async () =>
   });
 });
 
+test("Internal external-AI intent without its required safeguards creates a Draft Blocker", async () => {
+  const system = await createInterviewSystem();
+
+  const view = await completeMinimalInterview(system, {
+    safetyAnswer: {
+      dataCategories: [
+        {
+          identity: "data-category.internal-external-ai",
+          name: "Internal external AI sentinel",
+          intentState: "Confirmed",
+          classificationIntentState: "Confirmed",
+          sensitiveDataClass: "Internal",
+          rationale:
+            "The category represents non-public low-harm operational data.",
+          externalAiHandling: "ExternalProviderRequested",
+        },
+      ],
+    },
+  });
+
+  assert.deepEqual(view.ownerInterview.draftReview, {
+    disposition: "Blocked",
+    draftBlockers: [
+      {
+        code: "INTENT.DRAFT_BLOCKER.EXTERNAL_AI_HANDLING_UNSUPPORTED",
+        dataCategoryIdentities: ["data-category.internal-external-ai"],
+        summary:
+          "External AI handling for Internal or Confidential data requires every declared class-specific safeguard.",
+      },
+    ],
+    draftBlueprint: null,
+  });
+});
+
+test("Confidential external-AI intent without jurisdiction handling creates a Draft Blocker", async () => {
+  const system = await createInterviewSystem();
+
+  const view = await completeMinimalInterview(system, {
+    safetyAnswer: {
+      dataCategories: [
+        {
+          identity: "data-category.confidential-external-ai",
+          name: "Confidential external AI sentinel",
+          intentState: "Confirmed",
+          classificationIntentState: "Confirmed",
+          sensitiveDataClass: "Confidential",
+          rationale: "The category represents detailed commercial information.",
+          externalAiHandling: "ExternalProviderRequested",
+          externalAiSafeguards: {
+            providerPolicyIdentity: "provider-policy.local-review",
+            dataMinimization: true,
+            ownerApproval: true,
+          },
+        },
+      ],
+    },
+  });
+
+  assert.deepEqual(view.ownerInterview.draftReview, {
+    disposition: "Blocked",
+    draftBlockers: [
+      {
+        code: "INTENT.DRAFT_BLOCKER.EXTERNAL_AI_HANDLING_UNSUPPORTED",
+        dataCategoryIdentities: ["data-category.confidential-external-ai"],
+        summary:
+          "External AI handling for Internal or Confidential data requires every declared class-specific safeguard.",
+      },
+    ],
+    draftBlueprint: null,
+  });
+});
+
+test("Confidential external-AI intent with every class-specific safeguard remains reviewable", async () => {
+  const system = await createInterviewSystem();
+
+  const view = await completeMinimalInterview(system, {
+    safetyAnswer: {
+      dataCategories: [
+        {
+          identity: "data-category.confidential-external-ai-supported",
+          name: "Supported Confidential external AI sentinel",
+          intentState: "Confirmed",
+          classificationIntentState: "Confirmed",
+          sensitiveDataClass: "Confidential",
+          rationale:
+            "The category represents minimized fictitious commercial information.",
+          externalAiHandling: "ExternalProviderRequested",
+          externalAiSafeguards: {
+            providerPolicyIdentity: "provider-policy.local-review",
+            dataMinimization: true,
+            ownerApproval: true,
+            jurisdictionHandlingProfileIdentity:
+              "jurisdiction-handling.local-fictitious",
+          },
+        },
+      ],
+    },
+  });
+
+  assert.deepEqual(view.ownerInterview.draftReview, {
+    disposition: "ReadyForDraftProposal",
+    draftBlockers: [],
+    draftBlueprint: null,
+  });
+});
+
 test("data category without complete classification traceability blocks Draft generation", async () => {
   const system = await createInterviewSystem();
 
@@ -1121,6 +1260,29 @@ test("incomplete Acceptance Condition envelope blocks Draft generation", async (
   });
 });
 
+test("Acceptance Condition with an unsupported Intent State blocks Draft generation", async () => {
+  const system = await createInterviewSystem();
+  const condition = requiredAcceptanceCondition();
+  condition.intentState = "Definitely";
+
+  const view = await completeMinimalInterview(system, {
+    acceptanceConditions: [condition],
+  });
+
+  assert.deepEqual(view.ownerInterview.draftReview, {
+    disposition: "Blocked",
+    draftBlockers: [
+      {
+        code: "INTENT.DRAFT_BLOCKER.ACCEPTANCE_CONDITION_INCOMPLETE",
+        acceptanceConditionIdentities: ["acceptance-condition.shared-reuse"],
+        summary:
+          "Every Acceptance Condition requires an attributable outcome, scope, observable boundary, Evidence path, reviewer, criticality, and dependencies.",
+      },
+    ],
+    draftBlueprint: null,
+  });
+});
+
 test("material statement without exactly one Intent State blocks Draft generation", async () => {
   const system = await createInterviewSystem();
 
@@ -1275,6 +1437,44 @@ test("Unsupported safety profile remains visible and blocks Draft generation", a
       {
         code: "INTENT.DRAFT_BLOCKER.UNSUPPORTED_SAFETY_PROFILE",
         statementIdentities: ["intent-statement.safety-and-jurisdiction"],
+        summary:
+          "An unsupported safety, jurisdiction, or data-handling profile prevents Draft Blueprint generation.",
+      },
+    ],
+    draftBlueprint: null,
+  });
+});
+
+test("Unsupported data classification remains visible and blocks Draft generation", async () => {
+  const system = await createInterviewSystem();
+
+  const view = await completeMinimalInterview(system, {
+    safetyAnswer: {
+      dataCategories: [
+        {
+          identity: "data-category.unsupported-classification",
+          name: "Unsupported classification sentinel",
+          intentState: "Confirmed",
+          classificationIntentState: "Unsupported",
+          sensitiveDataClass: "Internal",
+          rationale:
+            "The requested classification profile is outside the supported safety boundary.",
+          externalAiHandling: "Prohibited",
+        },
+      ],
+    },
+  });
+
+  assert.equal(
+    view.ownerInterview.intentBrief.dataCategories[0].sensitiveDataClass,
+    "Restricted"
+  );
+  assert.deepEqual(view.ownerInterview.draftReview, {
+    disposition: "Blocked",
+    draftBlockers: [
+      {
+        code: "INTENT.DRAFT_BLOCKER.UNSUPPORTED_SAFETY_PROFILE",
+        dataCategoryIdentities: ["data-category.unsupported-classification"],
         summary:
           "An unsupported safety, jurisdiction, or data-handling profile prevents Draft Blueprint generation.",
       },
