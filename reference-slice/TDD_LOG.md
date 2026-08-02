@@ -23,3 +23,15 @@ test output are the durable ordering evidence.
   Approved Blueprint, while two target-specific compatibility verdicts and
   atomic Provisioning Attempts apply it independently to retail and cafe.
 - Accumulated suite: 2 tests passed.
+
+## Tracer 3: Retail Golden Transaction
+
+- Red: `npm test -- --test-name-pattern='retail Golden'` failed because the
+  retail scenario action did not exist.
+- Intermediate red: the first implementation reported USD 166.00 of posting
+  turnover instead of the contract's USD 98.00 ending trial-balance totals.
+- Green: purchase, receipt, stock admission, accepted Order, fulfilled Sale,
+  cash Payment, immutable Stock Movements, balanced Posting Sets, and derived
+  balances now reach the exact retail literals without using implementation
+  arithmetic to construct expected test values.
+- Accumulated suite: 3 tests passed.

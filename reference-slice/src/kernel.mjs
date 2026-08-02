@@ -87,14 +87,14 @@ export class BusinessKernel {
       };
     }
     const transaction = this.store.transact(current.revision, candidate => {
-      const beforeEffects = effectCount(candidate);
+      const working = deepClone(candidate);
       let result;
       try {
-        result = dispatch(candidate, command);
+        result = dispatch(working, command);
       } catch (error) {
         result = { commandIdentity: command.identity, action: command.action, disposition: "Rejected", code: error.code ?? "KERNEL_REJECTED", diagnostics: [{ code: error.code ?? "KERNEL_REJECTED", message: error.message }] };
       }
-      if (result.disposition === "Rejected" && effectCount(candidate) !== beforeEffects) throw new Error("Rejected command changed governed effects.");
+      if (result.disposition === "Accepted") Object.assign(candidate, working);
       candidate.commandResults.push(result);
       candidate.commandBindings[command.identity] = { contentIdentity: command.contentIdentity, result };
       return result;
@@ -107,6 +107,7 @@ export class BusinessKernel {
     const state = this.store.read();
     if (query.type === "snapshot") return state;
     if (query.type === "target") return deepClone(state.targets[query.targetId] ?? null);
+    if (query.type === "target-summary") return deriveTargetSummary(state.targets[query.targetId] ?? null);
     throw new Error(`Unsupported Kernel query ${query.type}.`);
   }
 }
@@ -116,7 +117,255 @@ function dispatch(state, command) {
   if (command.action === "blueprint.create-draft") return createDraft(state, command);
   if (command.action === "blueprint.approve") return approve(state, command);
   if (command.action === "sandbox.provision") return provision(state, command);
+  if (command.action === "purchase.confirm") return confirmPurchase(state, command);
+  if (command.action === "receipt.accept") return acceptReceipt(state, command);
+  if (command.action === "order.accept") return acceptOrder(state, command);
+  if (command.action === "sale.fulfill") return fulfillSale(state, command);
+  if (command.action === "payment.accept") return acceptPayment(state, command);
   reject("ORC.KERNEL.SCHEMA_REJECTED", `Unsupported governed action ${command.action}.`);
+}
+
+function confirmPurchase(state, command) {
+  const target = validateBusinessCommand(state, command);
+  const { recordId, supplierId, lines, currency } = command.input;
+  validateNewRecord(target, recordId);
+  validateMoney(currency, lines);
+  const record = recordFrom(command, "Purchase Order", recordId, "confirmed", { supplierId, lines, currency });
+  const event = eventFrom(command, "purchase-confirmed", [recordId]);
+  target.records.push(record);
+  target.events.push(event);
+  return accepted(command, { record, businessEvent: event });
+}
+
+function acceptReceipt(state, command) {
+  const target = validateBusinessCommand(state, command);
+  const { recordId, purchaseOrderId, lines, currency } = command.input;
+  validateNewRecord(target, recordId);
+  const purchaseOrder = requireRecord(target, purchaseOrderId, "Purchase Order", "confirmed");
+  validateMoney(currency, lines);
+  if (canonicalLines(lines) !== canonicalLines(purchaseOrder.lines)) reject("ORC.KERNEL.BASELINE_REJECTED", "Receipt lines do not match the confirmed Purchase Order.");
+  const totalMinor = lines.reduce((sum, line) => sum + line.quantity * line.unitCostMinor, 0);
+  const eventId = `business-event.${command.identity}`;
+  const movements = lines.map((line, index) => movementFrom(command, eventId, `${recordId}.${index + 1}`, line.itemId, line.unit, line.quantity, line.quantity * line.unitCostMinor, "boundary.supplier", target.locationId));
+  const postingSet = postingSetFrom(command, eventId, `posting-set.${recordId}`, currency, [
+    debit("Inventory", totalMinor),
+    credit("Accounts Payable", totalMinor),
+  ]);
+  const record = recordFrom(command, "Supplier Receipt", recordId, "accepted", { purchaseOrderId, lines, currency });
+  const event = eventFrom(command, "supplier-receipt-accepted", [recordId, ...movements.map(item => item.identity), postingSet.identity]);
+  target.records.push(record);
+  target.events.push(event);
+  target.movements.push(...movements);
+  target.postingSets.push(postingSet);
+  return accepted(command, { record, businessEvent: event, movements, postingSets: [postingSet] });
+}
+
+function acceptOrder(state, command) {
+  const target = validateBusinessCommand(state, command);
+  const { recordId, customerId, lines, currency } = command.input;
+  validateNewRecord(target, recordId);
+  validateMoney(currency, lines, "unitPriceMinor");
+  const totalMinor = lines.reduce((sum, line) => sum + line.quantity * line.unitPriceMinor, 0);
+  const record = recordFrom(command, "Order", recordId, "accepted", { customerId, lines, currency, totalMinor });
+  const event = eventFrom(command, "order-accepted", [recordId]);
+  target.records.push(record);
+  target.events.push(event);
+  return accepted(command, { record, businessEvent: event });
+}
+
+function fulfillSale(state, command) {
+  const target = validateBusinessCommand(state, command);
+  const { recordId, orderId } = command.input;
+  validateNewRecord(target, recordId);
+  const order = requireRecord(target, orderId, "Order", "accepted");
+  const costs = order.lines.map(line => {
+    const position = deriveStock(target)[line.itemId];
+    if (!position || position.unit !== line.unit) reject("ORC.KERNEL.INVARIANT_REJECTED", "Normalized stock unit mismatch.");
+    if (position.quantity < line.quantity) reject("ORC.KERNEL.INVARIANT_REJECTED", "Sale would create negative stock.");
+    const unitCostMinor = position.valueMinor / position.quantity;
+    if (!Number.isInteger(unitCostMinor)) reject("ORC.KERNEL.INVARIANT_REJECTED", "Stock cost cannot be represented exactly.");
+    return { ...line, costMinor: unitCostMinor * line.quantity };
+  });
+  const costMinor = costs.reduce((sum, line) => sum + line.costMinor, 0);
+  const eventId = `business-event.${command.identity}`;
+  const movements = costs.map((line, index) => movementFrom(command, eventId, `${recordId}.${index + 1}`, line.itemId, line.unit, -line.quantity, -line.costMinor, target.locationId, "boundary.customer"));
+  const commercial = postingSetFrom(command, eventId, `posting-set.${recordId}.commercial`, order.currency, [
+    debit("Accounts Receivable", order.totalMinor),
+    credit("Sales Revenue", order.totalMinor),
+  ]);
+  const inventory = postingSetFrom(command, eventId, `posting-set.${recordId}.inventory`, order.currency, [
+    debit("Cost of Goods Sold", costMinor),
+    credit("Inventory", costMinor),
+  ]);
+  order.state = "fulfilled";
+  const record = recordFrom(command, "Sale", recordId, "fulfilled", { orderId, currency: order.currency, totalMinor: order.totalMinor, costMinor });
+  const event = eventFrom(command, "sale-fulfilled", [recordId, orderId, ...movements.map(item => item.identity), commercial.identity, inventory.identity]);
+  target.records.push(record);
+  target.events.push(event);
+  target.movements.push(...movements);
+  target.postingSets.push(commercial, inventory);
+  return accepted(command, { record, businessEvent: event, movements, postingSets: [commercial, inventory] });
+}
+
+function acceptPayment(state, command) {
+  const target = validateBusinessCommand(state, command);
+  const { recordId, saleId, amountMinor, currency, method, receiptReference } = command.input;
+  validateNewRecord(target, recordId);
+  if (!Number.isInteger(amountMinor) || amountMinor <= 0) reject("ORC.KERNEL.SCHEMA_REJECTED", "Payment amount must be a positive integer minor-unit value.");
+  const sale = requireRecord(target, saleId, "Sale", "fulfilled");
+  if (currency !== sale.currency) reject("ORC.KERNEL.INVARIANT_REJECTED", "Payment currency does not match the Sale.");
+  const alreadyAllocated = target.payments.filter(payment => payment.saleId === saleId).reduce((sum, payment) => sum + payment.allocatedMinor, 0);
+  const obligationBefore = sale.totalMinor - alreadyAllocated;
+  const allocatedMinor = Math.min(amountMinor, Math.max(obligationBefore, 0));
+  const residualMinor = obligationBefore - allocatedMinor;
+  const unallocatedMinor = amountMinor - allocatedMinor;
+  const entries = [debit("Cash", amountMinor), credit("Accounts Receivable", allocatedMinor)];
+  if (unallocatedMinor > 0) entries.push(credit("Customer Credit", unallocatedMinor));
+  const eventId = `business-event.${command.identity}`;
+  const postingSet = postingSetFrom(command, eventId, `posting-set.${recordId}`, currency, entries);
+  const payment = {
+    ...effectMeta(command),
+    identity: recordId,
+    type: "Payment",
+    state: "accepted",
+    saleId,
+    amountMinor,
+    allocatedMinor,
+    residualMinor,
+    unallocatedMinor,
+    currency,
+    method,
+    receiptReference,
+    businessEventId: eventId,
+  };
+  const event = eventFrom(command, "payment-accepted", [payment.identity, postingSet.identity]);
+  target.records.push(payment);
+  target.payments.push(payment);
+  target.events.push(event);
+  target.postingSets.push(postingSet);
+  return accepted(command, { payment, businessEvent: event, postingSets: [postingSet] });
+}
+
+function validateBusinessCommand(state, command) {
+  const target = state.targets[command.targetId];
+  if (!target || command.locationId !== target.locationId || command.generationId !== target.generationId) reject("ORC.KERNEL.BASELINE_REJECTED", "Target, Location, or generation baseline mismatch.");
+  if (!target.appliedBlueprint) reject("ORC.KERNEL.AUTHORIZATION_REJECTED", "Target has no Applied Blueprint.");
+  const expected = command.input.expectedAppliedBlueprint;
+  if (!expected || expected.reference.versionId !== target.appliedBlueprint.reference.versionId || expected.contentIdentity !== target.appliedBlueprint.contentIdentity) reject("ORC.KERNEL.BASELINE_REJECTED", "Applied Blueprint baseline mismatch.");
+  const role = state.effectiveBlueprint.roleDefinitions.find(candidate => candidate.identity === command.role);
+  if (!role || !role.actions.includes(command.action) || !role.locations.includes(target.locationId)) reject("ORC.KERNEL.AUTHORIZATION_REJECTED", "Role is not authorized for this governed action and scope.");
+  return target;
+}
+
+function validateNewRecord(target, identity) {
+  if (!identity || target.records.some(record => record.identity === identity)) reject("ORC.KERNEL.BASELINE_REJECTED", "Record identity already exists or is absent.");
+}
+
+function requireRecord(target, identity, type, state) {
+  const record = target.records.find(candidate => candidate.identity === identity);
+  if (!record || record.type !== type || record.state !== state) reject("ORC.KERNEL.BASELINE_REJECTED", `Required ${type} in ${state} was not found.`);
+  return record;
+}
+
+function validateMoney(currency, lines, priceField = "unitCostMinor") {
+  if (currency !== "USD" || !Array.isArray(lines) || lines.length === 0) reject("ORC.KERNEL.SCHEMA_REJECTED", "A supported currency and at least one line are required.");
+  for (const line of lines) {
+    if (!line.itemId || !["each", "g", "ml"].includes(line.unit) || !Number.isInteger(line.quantity) || line.quantity <= 0 || !Number.isInteger(line[priceField]) || line[priceField] <= 0) reject("ORC.KERNEL.SCHEMA_REJECTED", "Line quantity, normalized unit, and minor-unit price must be valid.");
+  }
+}
+
+function canonicalLines(lines) {
+  return JSON.stringify(lines.map(({ itemId, quantity, unit, unitCostMinor }) => ({ itemId, quantity, unit, unitCostMinor })));
+}
+
+function effectMeta(command) {
+  return {
+    tenantId: command.tenantId,
+    targetId: command.targetId,
+    locationId: command.locationId,
+    generationId: command.generationId,
+    appliedBlueprintContentIdentity: command.input.expectedAppliedBlueprint.contentIdentity,
+    responsibleSource: command.responsibleSource,
+    effectiveTime: command.effectiveTime,
+    recordedTime: command.effectiveTime,
+    commandIdentity: command.identity,
+  };
+}
+
+function recordFrom(command, type, identity, state, fields) {
+  return { ...effectMeta(command), identity, type, state, ...deepClone(fields) };
+}
+
+function eventFrom(command, eventType, effectReferences) {
+  return { ...effectMeta(command), identity: `business-event.${command.identity}`, type: "Business Event", eventType, causation: command.identity, effectReferences };
+}
+
+function movementFrom(command, eventId, suffix, itemId, unit, signedQuantity, signedValueMinor, source, destination) {
+  return { ...effectMeta(command), identity: `stock-movement.${suffix}`, type: "Stock Movement", itemId, unit, signedQuantity, signedValueMinor, source, destination, businessEventId: eventId };
+}
+
+function debit(account, amountMinor) {
+  return { account, side: "debit", amountMinor };
+}
+
+function credit(account, amountMinor) {
+  return { account, side: "credit", amountMinor };
+}
+
+function postingSetFrom(command, eventId, identity, currency, entries) {
+  const debits = entries.filter(entry => entry.side === "debit").reduce((sum, entry) => sum + entry.amountMinor, 0);
+  const credits = entries.filter(entry => entry.side === "credit").reduce((sum, entry) => sum + entry.amountMinor, 0);
+  if (currency !== "USD" || entries.some(entry => !Number.isInteger(entry.amountMinor) || entry.amountMinor <= 0) || debits !== credits) reject("ORC.KERNEL.INVARIANT_REJECTED", "Posting Set must contain positive balanced entries in one supported currency.");
+  return { ...effectMeta(command), identity, type: "Posting Set", currency, businessEventId: eventId, entries };
+}
+
+function deriveStock(target) {
+  const stock = {};
+  for (const movement of target?.movements ?? []) {
+    const current = stock[movement.itemId] ?? { quantity: 0, unit: movement.unit, valueMinor: 0 };
+    if (current.unit !== movement.unit) return { ...stock, [movement.itemId]: { ...current, unitMismatch: true } };
+    current.quantity += movement.signedQuantity;
+    current.valueMinor += movement.signedValueMinor;
+    stock[movement.itemId] = current;
+  }
+  return stock;
+}
+
+function deriveTargetSummary(target) {
+  if (!target) return null;
+  const stock = deriveStock(target);
+  const accounts = {};
+  let balancedPostingSets = true;
+  for (const postingSet of target.postingSets) {
+    const setDebits = postingSet.entries.filter(entry => entry.side === "debit").reduce((sum, entry) => sum + entry.amountMinor, 0);
+    const setCredits = postingSet.entries.filter(entry => entry.side === "credit").reduce((sum, entry) => sum + entry.amountMinor, 0);
+    if (setDebits !== setCredits || setDebits <= 0) balancedPostingSets = false;
+    for (const entry of postingSet.entries) accounts[entry.account] = (accounts[entry.account] ?? 0) + (entry.side === "debit" ? entry.amountMinor : -entry.amountMinor);
+  }
+  for (const account of ["Inventory", "Cash", "Accounts Receivable", "Cost of Goods Sold", "Accounts Payable", "Sales Revenue", "Customer Credit"]) accounts[account] ??= 0;
+  const stockValueMinor = Object.values(stock).reduce((sum, position) => sum + position.valueMinor, 0);
+  const cashPaymentsMinor = target.payments.filter(payment => payment.method === "cash").reduce((sum, payment) => sum + payment.amountMinor, 0);
+  const debitsMinor = Object.values(accounts).filter(balance => balance > 0).reduce((sum, balance) => sum + balance, 0);
+  const creditsMinor = -Object.values(accounts).filter(balance => balance < 0).reduce((sum, balance) => sum + balance, 0);
+  return {
+    targetId: target.targetId,
+    generationId: target.generationId,
+    appliedBlueprint: deepClone(target.appliedBlueprint),
+    records: deepClone(target.records),
+    events: deepClone(target.events),
+    movements: deepClone(target.movements),
+    postingSets: deepClone(target.postingSets),
+    payments: deepClone(target.payments),
+    stock,
+    accounts,
+    trialBalance: { debitsMinor, creditsMinor, differenceMinor: debitsMinor - creditsMinor },
+    invariants: {
+      balancedPostingSets,
+      stockMatchesMovements: Object.values(stock).every(position => !position.unitMismatch && position.quantity >= 0 && position.valueMinor >= 0),
+      inventoryControlMatchesStock: accounts.Inventory === stockValueMinor,
+      cashMatchesPayments: accounts.Cash === cashPaymentsMinor,
+    },
+  };
 }
 
 function createDraft(state, command) {
@@ -240,8 +489,4 @@ function reject(code, message) {
   const error = new Error(message);
   error.code = code;
   throw error;
-}
-
-function effectCount(state) {
-  return Object.values(state.targets).reduce((sum, target) => sum + target.records.length + target.events.length + target.movements.length + target.postingSets.length + target.payments.length, 0);
 }

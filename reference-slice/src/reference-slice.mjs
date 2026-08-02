@@ -1,5 +1,5 @@
 import { deepClone } from "./canonical.mjs";
-import { createBlueprint, createIntentBrief, makeCommand } from "./fixtures.mjs";
+import { createBlueprint, createIntentBrief, makeCommand, RETAIL_FIXTURE } from "./fixtures.mjs";
 import { BusinessKernel, createKernelState } from "./kernel.mjs";
 import { MemoryStore } from "./store.mjs";
 
@@ -49,6 +49,8 @@ export function createReferenceSlice({ store = new MemoryStore(createKernelState
         disposition: results.every(result => result.disposition === "Accepted") ? "Applied" : "Rejected",
         results,
       };
+    } else if (action.type === "scenario.retail") {
+      session.lastResult = runRetailScenario(kernel);
     } else {
       throw new Error(`Unsupported ReferenceSlice action ${action.type}.`);
     }
@@ -66,9 +68,33 @@ export function createReferenceSlice({ store = new MemoryStore(createKernelState
       previews: session.previews,
       humanGates: deepClone(session.humanGates),
       humanGateDecisions: deepClone(session.humanGateDecisions),
+      business: {
+        retail: kernel.observe({ type: "target-summary", targetId: "retail" }),
+        cafe: kernel.observe({ type: "target-summary", targetId: "cafe" }),
+      },
       kernel: snapshot,
     };
   }
 
   return { dispatch, view, kernel };
+}
+
+function runRetailScenario(kernel) {
+  const fixture = RETAIL_FIXTURE;
+  const target = kernel.observe({ type: "target", targetId: fixture.targetId });
+  const baseline = target.appliedBlueprint;
+  const common = {
+    targetId: fixture.targetId,
+    locationId: fixture.locationId,
+    generationId: target.generationId,
+  };
+  const commands = [
+    makeCommand({ ...common, identity: "command.retail.purchase.confirm.01", action: "purchase.confirm", role: "role.buyer", input: { expectedAppliedBlueprint: baseline, recordId: fixture.purchaseOrderId, supplierId: "party.supplier.retail", currency: fixture.currency, lines: [{ itemId: fixture.itemId, unit: fixture.unit, quantity: fixture.purchaseQuantity, unitCostMinor: fixture.unitCostMinor }] } }),
+    makeCommand({ ...common, identity: "command.retail.receipt.accept.01", action: "receipt.accept", role: "role.receiver", input: { expectedAppliedBlueprint: baseline, recordId: fixture.receiptId, purchaseOrderId: fixture.purchaseOrderId, currency: fixture.currency, lines: [{ itemId: fixture.itemId, unit: fixture.unit, quantity: fixture.purchaseQuantity, unitCostMinor: fixture.unitCostMinor }] } }),
+    makeCommand({ ...common, identity: "command.retail.order.accept.01", action: "order.accept", role: "role.retail-cashier", input: { expectedAppliedBlueprint: baseline, recordId: fixture.orderId, customerId: "party.customer.retail", currency: fixture.currency, lines: [{ itemId: fixture.itemId, unit: fixture.unit, quantity: fixture.saleQuantity, unitPriceMinor: fixture.unitPriceMinor }] } }),
+    makeCommand({ ...common, identity: "command.retail.sale.fulfill.01", action: "sale.fulfill", role: "role.retail-cashier", input: { expectedAppliedBlueprint: baseline, recordId: fixture.saleId, orderId: fixture.orderId } }),
+    makeCommand({ ...common, identity: "command.retail.payment.accept.01", action: "payment.accept", role: "role.retail-cashier", input: { expectedAppliedBlueprint: baseline, recordId: fixture.paymentId, saleId: fixture.saleId, amountMinor: fixture.paymentMinor, currency: fixture.currency, method: "cash", receiptReference: fixture.receiptReference } }),
+  ];
+  const results = commands.map(command => kernel.submit(command));
+  return { disposition: results.every(result => result.disposition === "Accepted") ? "Completed" : "Rejected", results };
 }

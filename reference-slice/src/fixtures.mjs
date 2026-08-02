@@ -19,6 +19,25 @@ export const CAPABILITIES = Object.freeze([
   "ordering", "sales", "payment", "cash", "ledger", "kitchen-operations",
 ].map(identity => ({ identity: `capability.${identity}`, version: "1.0.0", configurationSchemaVersion: "1.0.0", enabled: true })));
 
+export const RETAIL_FIXTURE = Object.freeze({
+  targetId: "retail",
+  locationId: "location.retail",
+  itemId: "catalog.widget",
+  purchaseOrderId: "purchase-order.retail.01",
+  receiptId: "supplier-receipt.retail.01",
+  orderId: "order.retail.01",
+  saleId: "sale.retail.01",
+  paymentId: "payment.retail.01",
+  receiptReference: "receipt.retail.01",
+  purchaseQuantity: 10,
+  unit: "each",
+  unitCostMinor: 500,
+  saleQuantity: 4,
+  unitPriceMinor: 1200,
+  paymentMinor: 4800,
+  currency: "USD",
+});
+
 const roles = [
   ["role.owner", ["blueprint.approve", "sandbox.provision", "sandbox.reset"]],
   ["role.buyer", ["purchase.confirm"]],
