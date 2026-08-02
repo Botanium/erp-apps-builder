@@ -10,6 +10,7 @@ export const VERSION_SET = Object.freeze({
   validator: "configuration-validator@1.0.0",
   compiler: "blueprint-compiler@1.0.0",
   policy: "financial-stock-audit@1.0.0",
+  adapter: "local-state-adapter@1.0.0",
   acceptanceSuite: "reference-slice.acceptance-suite@1.0.0",
   fixture: "reference-slice.fixture.cedar-steam@1.0.0",
 });

@@ -72,3 +72,21 @@ test output are the durable ordering evidence.
   reuses the same compiled artifact, retail and cafe business results replay
   identically, and a second reset leaves generations 3 clean and unapplied.
 - Accumulated suite: 9 tests passed.
+
+## Tracer 7: One-command evidence and completion
+
+- Red: the focused test failed at module load because
+  `AcceptanceEvaluator.evaluate` and the CLI did not exist.
+- Intermediate red: the first runner reused the same provisioning command
+  identity before and after approval. The Kernel correctly treated the changed
+  request as an idempotency conflict, leaving both targets unapplied. Each
+  provisioning request now receives a distinct immutable identity.
+- Green: `npm run reference-slice` persists real Kernel state through the
+  AtomicJsonStore, evaluates twelve Required conditions fail-closed, writes a
+  canonical JSON report plus derived owner-readable HTML, independently
+  verifies the report Content Identity, observes both final generation-3
+  targets clean and unapplied, and exits zero only for `Passed`.
+- Budget evidence: the complete proof consumes 75 Kernel deliveries. It starts
+  from the accepted 48-delivery Balanced Local Slice default and records one
+  explicit bounded Budget Gate amendment to 96 before exceeding that ceiling.
+- Accumulated suite: 11 tests passed.

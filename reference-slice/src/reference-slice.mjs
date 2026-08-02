@@ -12,6 +12,7 @@ export function createReferenceSlice({ store = new MemoryStore(createKernelState
     previews: 0,
     humanGates: [],
     humanGateDecisions: [],
+    provisionRequestNumber: 0,
   };
 
   function dispatch(action) {
@@ -33,11 +34,12 @@ export function createReferenceSlice({ store = new MemoryStore(createKernelState
       session.humanGateDecisions.push(decision);
       session.lastResult = kernel.submit(makeCommand({ identity: "command.blueprint.approve.v2", action: "blueprint.approve", input: { reference: session.blueprint.reference, contentIdentity: session.blueprint.contentIdentity, approvalBaseline: null }, gateDecision: decision }));
     } else if (action.type === "provision.all") {
+      session.provisionRequestNumber += 1;
       const approved = kernel.observe().currentApprovedBlueprint;
       const results = ["retail", "cafe"].map(targetId => {
         const target = kernel.observe({ type: "target", targetId });
         return kernel.submit(makeCommand({
-          identity: `command.provision.${targetId}.${target.generationId}`,
+          identity: `command.provision.${targetId}.${target.generationId}.r${session.provisionRequestNumber}`,
           action: "sandbox.provision",
           targetId,
           locationId: target.locationId,
@@ -100,8 +102,13 @@ function runRetailScenario(kernel) {
     makeCommand({ ...common, identity: `command.retail.sale.fulfill.01.${occurrence}`, action: "sale.fulfill", role: "role.retail-cashier", input: { expectedAppliedBlueprint: baseline, recordId: fixture.saleId, orderId: fixture.orderId } }),
     makeCommand({ ...common, identity: `command.retail.payment.accept.01.${occurrence}`, action: "payment.accept", role: "role.retail-cashier", input: { expectedAppliedBlueprint: baseline, recordId: fixture.paymentId, saleId: fixture.saleId, amountMinor: fixture.paymentMinor, currency: fixture.currency, method: "cash", receiptReference: fixture.receiptReference } }),
   ];
-  const results = commands.map(command => kernel.submit(command));
-  return { disposition: results.every(result => result.disposition === "Accepted") ? "Completed" : "Rejected", results };
+  const results = [];
+  const checkpoints = {};
+  for (const [index, command] of commands.entries()) {
+    results.push(kernel.submit(command));
+    checkpoints[["purchase", "receipt", "order", "fulfilled", "payment"][index]] = kernel.observe({ type: "target-summary", targetId: fixture.targetId });
+  }
+  return { disposition: results.every(result => result.disposition === "Accepted") ? "Completed" : "Rejected", results, checkpoints };
 }
 
 function runCafeScenario(kernel) {
