@@ -1,9 +1,10 @@
 # Adaptive Business OS — Platform Blueprint
 
 **Working name:** Botanium Business OS  
-**Status:** Gate 1 closed and Wayfinder map charted; no implementation authorized  
+**Status:** Wayfinder Gates 0–8 closed; owner-approved v1 specification and validated local Reference Vertical Slice; no production implementation authorized
 **Research date:** 2026-07-31  
 **Canonical purpose:** Product thesis, architecture, scope, and staged delivery plan
+**Normative v1 specification:** [Adaptive Business OS v1](.scratch/adaptive-business-os-v1/spec.md)
 
 ## Executive recommendation
 
@@ -124,14 +125,16 @@ client.
   branches for the three unblocked research tickets. Do not push, deploy, or
   begin production implementation.
 
-### Proposed and awaiting approval
+### Canonical v1 disposition
 
-- The product model in this document.
-- A native intent-first architecture whose contracts and stack are resolved
-  through a Wayfinder decision map before implementation.
-- Clinic after an explicit privacy, hosting, consent, retention, and compliance
-  design.
-- Travel after structured discovery with a real agency operator.
+- The intent-first product model is approved for the local v1 scope defined by
+  the normative specification and resolved Wayfinder tickets.
+- ADR 0001 selects a dependency-light Node.js modular monolith only for the
+  Reference Vertical Slice; production architecture remains a later decision.
+- Clinic remains deferred until an explicit privacy, hosting, consent,
+  retention, clinical-safety, and compliance design exists.
+- Travel remains deferred until structured discovery with a real agency
+  operator is complete.
 
 ## The product thesis
 
@@ -807,14 +810,15 @@ Targets should be baselined during Phase 0, then tracked:
 
 ## Immediate next decision
 
-The canonical local Wayfinder map owns the current decision frontier. The first
-three research notes were reviewed and integrated as evidence without selecting
-a stack or authorizing implementation. Work the frontier one claimed decision
-ticket at a time and keep full resolutions in their child tickets.
+The canonical Wayfinder map is closed and the owner-approved v1 specification
+is ready for Gate 9. The next decision is how to decompose that specification
+into small tracer-bullet implementation tickets with explicit blocking edges,
+public-seam acceptance criteria, and sandbox/production boundaries.
 
-No implementation, deployment, customer data import, or production change
-should begin until the decision map produces an owner-approved specification
-and Botan explicitly authorizes the build phase.
+No implementation beyond the isolated Reference Vertical Slice, deployment,
+customer-data import, or production change begins merely because the
+specification is approved. Those actions require separately reviewed tickets
+and explicit build authorization.
 
 ## Research sources
 

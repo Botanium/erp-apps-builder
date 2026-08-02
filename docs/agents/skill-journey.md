@@ -1,6 +1,6 @@
 # Adaptive Business OS — Matt Pocock Skill Journey
 
-**Status:** Gates 0–2 completed; decision resolution has not started  
+**Status:** Gates 0–8 completed; Gate 9 implementation-ticket creation has not started
 **Destination:** Produce an owner-approved, implementation-ready v1
 specification and validated executable Reference Vertical Slice proving that an
 Owner Interview can create a Draft Blueprint, explicit Blueprint Approval can
@@ -71,10 +71,10 @@ flowchart LR
 - Single repository with no remote.
 - Single-context domain-document layout.
 
-**Still requires owner choices**
+**Completed owner choices**
 
-- Keep or replace the five default triage labels.
-- Create `AGENTS.md` or `CLAUDE.md` as the repository instruction file.
+- Keep the five default triage labels.
+- Use `AGENTS.md` as the repository instruction file.
 
 **Durable output**
 
@@ -181,10 +181,11 @@ appearance or interaction questions. The artifact is deliberately throwaway,
 clearly marked, starts with one command, keeps state visible, and records the
 verdict it produced.
 
-The approved destination's “tested prototype” means a **validated throwaway
-prototype rehearsed against explicit acceptance scenarios with a recorded
-verdict**. It does not mean production-grade automated testing. TDD begins only
-after the specification and implementation tickets are approved.
+The approved destination's “tested prototype” means a **validated local
+prototype rehearsed against predeclared automated behavior scenarios with a
+recorded verdict**. Its prototype TDD is evidence-building, not authorization
+for production implementation. Production implementation TDD begins only after
+the specification and its implementation tickets are approved.
 
 For v1, that prototype is the **Reference Vertical Slice**: it starts locally
 with one command, spans Owner Interview → Blueprint Approval → both Sandbox
@@ -321,11 +322,10 @@ Use these only when their trigger exists:
 - `resolving-merge-conflicts` during an active merge or rebase conflict; and
 - `handoff` when continuity crosses a context boundary.
 
-## Provisional Wayfinder decision horizon
+## Historical Wayfinder decision horizon
 
-These are candidate questions derived from the current blueprint. They are not
-canonical tickets until destination and breadth-first grilling confirms that
-each question is sharp enough.
+These candidate questions produced the now-resolved canonical tickets. The
+closed map and its child tickets, not this historical list, own the decisions.
 
 1. Define v1 acceptance and explicit non-goals.
 2. Establish the ubiquitous language for Intent Brief, Business Blueprint,
@@ -423,9 +423,18 @@ governed path.
 - [x] Write and verify the one-time repository skill configuration.
 - [x] Run destination and non-goal grilling.
 - [x] Chart the canonical Wayfinder map and initial frontier.
+- [x] Resolve all 16 Wayfinder decision, research, prototype, architecture,
+  acceptance, and readiness tickets.
+- [x] Validate the isolated Reference Vertical Slice with 12 passing behavior
+  tests and 12 Satisfied Required conditions.
+- [x] Close the canonical map with no in-scope fog.
+- [x] Synthesize and owner-approve the v1 `1.0.0` specification.
+- [ ] Create and review Gate 9 tracer-bullet implementation tickets.
 
 ## Standing safety boundary
 
-This journey authorizes planning artifacts and decision prototypes only.
-Production implementation, deployment, customer-data import, public release,
-payments, and client communication require separate explicit authorization.
+This journey authorizes planning artifacts, decision prototypes, the accepted
+local Reference Vertical Slice, and the owner-approved specification only.
+Implementation beyond that proof, deployment, customer-data import, public
+release, payments, and client communication require separately reviewed tickets
+and explicit authorization.

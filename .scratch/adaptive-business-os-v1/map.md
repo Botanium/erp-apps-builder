@@ -56,6 +56,18 @@ fictitious data, and reset cleanly.
 - [Select the v1 reference architecture](issues/13-select-reference-architecture.md): build the slice as a dependency-light Node.js modular monolith with deep OwnerWorkbench, OrchestrationControl, BusinessKernel, AcceptanceEvaluator, and ReferenceSlice Modules; use one command, shared governed-action dispatch, MemoryStore and AtomicJsonStore Adapters, four public behavior seams, and statically versioned Capability manifests without claiming production infrastructure.
 - [Define the Reference Vertical Slice acceptance contract](issues/14-define-reference-slice-acceptance-contract.md): bind a closed `1.0.0` suite to exact owner-interview, retail, cafe, negative-path, isolation, invariant, reset-and-replay, and evidence conditions; fix literal fixture totals and four public TDD seams, and pass only when both targets finish in verified clean-unapplied generations.
 - [Build and evaluate the Reference Vertical Slice](issues/15-build-and-evaluate-reference-vertical-slice.md): preserve final isolated source at `95fd4f8` and evidence at `cad005c`; all 12 behavior tests and 12 Required acceptance conditions pass through the four approved public Interfaces, canonical positive Stock Movements, scoped Ledger Entries, complete intent-contract fixtures, distinct participant attribution, exact command-bound gates, content-identified Sandbox Exports, the closed six-account and overpayment-rejection rules, two-target reuse, deterministic replay, and final clean generation-3 resets all hold.
+- [Validate v1 specification readiness](issues/16-validate-v1-spec-readiness.md): close the map with all 16 tickets resolved, no in-scope fog, one accepted ADR, recorded prototype verdicts, corrected contract drift, final isolated slice evidence, and the owner-approved [`1.0.0` specification](spec.md) ready for Gate 9 tracer-bullet ticket creation.
+
+## Closure
+
+- **Wayfinder state:** Closed; Gates 0 through 8 complete.
+- **Open decision tickets:** None.
+- **In-scope fog:** None.
+- **Destination result:** Owner-approved v1 specification plus a tested,
+  content-identified, executable local Reference Vertical Slice.
+- **Next frontier:** Gate 9 may derive implementation tickets from the approved
+  specification. Ticket creation grants no implementation, push, deployment,
+  production, or owner-acceptance authority.
 
 ## Out of scope
 
@@ -70,5 +82,5 @@ fictitious data, and reset cleanly.
 - State-preserving Blueprint migration in v1; a Migration Required verdict
   blocks Approval Eligibility and provisioning rather than authorizing a
   transformation.
-- Implementation beyond the Reference Vertical Slice before Botan approves the
-  v1 specification.
+- Implementation beyond the Reference Vertical Slice is not part of this closed
+  decision map and must proceed only through separately reviewed Gate 9 tickets.
