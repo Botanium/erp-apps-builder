@@ -93,6 +93,50 @@ export class MemoryStore {
   }
 }
 
+/**
+ * Constrained namespace over one complete StateStore envelope. OwnerWorkbench
+ * operations can observe and replace only their non-authoritative interview
+ * projection while the root Store retains one shared revision boundary.
+ */
+export class OwnerWorkbenchStatePort {
+  #store;
+
+  /** @param {{store: StateStore}} options */
+  constructor({ store }) {
+    this.#store = store;
+  }
+
+  async read() {
+    const state = await this.#store.read();
+    return this.#project(state);
+  }
+
+  async transact(expectedRevision, operation) {
+    return this.#store.transact(expectedRevision, async (rootState) => {
+      const outcome = await operation(this.#project(rootState));
+      if (
+        !Array.isArray(outcome.state?.interviews) ||
+        !Array.isArray(outcome.state?.intentBriefVersions)
+      ) {
+        throw new TypeError(
+          "OwnerWorkbench transaction must return its complete constrained state."
+        );
+      }
+      rootState.interviews = clone(outcome.state.interviews);
+      rootState.intentBriefVersions = clone(outcome.state.intentBriefVersions);
+      return { state: rootState, result: outcome.result };
+    });
+  }
+
+  #project(rootState) {
+    return {
+      revision: rootState.revision,
+      interviews: clone(rootState.interviews),
+      intentBriefVersions: clone(rootState.intentBriefVersions),
+    };
+  }
+}
+
 export class AtomicJsonStore {
   #stateFile;
 

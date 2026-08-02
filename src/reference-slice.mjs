@@ -10,7 +10,11 @@ import {
 } from "./contracts.mjs";
 import { createKernelCommand } from "./kernel-command.mjs";
 import { OwnerWorkbench } from "./owner-workbench.mjs";
-import { AtomicJsonStore, MemoryStore } from "./store.mjs";
+import {
+  AtomicJsonStore,
+  MemoryStore,
+  OwnerWorkbenchStatePort,
+} from "./store.mjs";
 
 /** @typedef {{type: "reference-slice.start-empty-authority-shell"}} StartEmptyAuthorityShellAction */
 /** @typedef {{type: "reference-slice.start-owner-interview", ownerSourceIdentity: string}} StartOwnerInterviewAction */
@@ -209,7 +213,7 @@ export const createLocalReferenceSlice = async ({
   const businessKernel = new BusinessKernel({ store });
   const ownerWorkbench = new OwnerWorkbench({
     identitySource,
-    store,
+    store: new OwnerWorkbenchStatePort({ store }),
   });
   const acceptanceEvaluator = new AcceptanceEvaluator();
   const referenceSlice = new ReferenceSlice({
