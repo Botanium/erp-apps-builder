@@ -20,3 +20,4 @@
 ## Comments
 
 - 2026-08-02 — ADR 0002 adds Eve only as a removable outer delivery Adapter. Ticket 03 must continue to generate and review Draft Blueprint behavior through `ReferenceSlice.dispatch`; Eve session state, tool approval, and traces cannot become Blueprint content, Blueprint Approval, validation truth, or a new public business-authority seam.
+- 2026-08-03 — Claimed for Gate 11 on branch `codex/ticket-03-immutable-draft-blueprint`, based on owner-accepted integration commit `df079f5`. The public behavior seam must be owner-approved before the first failing test. No Ticket 03 test or implementation has begun; push, deployment, external services, production authority, and real data remain excluded.
