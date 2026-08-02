@@ -256,7 +256,7 @@ test("stock, currency, unit, posting, and immutable-record violations are atomic
   assert.deepEqual(targetEffects(overConsumption, cafeTarget), beforeOverConsumption);
 });
 
-test("partial and excess Payments preserve explicit residuals without write-off", () => {
+test("partial Payment preserves its residual and excess Payment is rejected without write-off", () => {
   const slice = provisionedSlice();
   slice.dispatch({ type: "scenario.retail" });
   const order = scopedCommand(slice, {
@@ -305,13 +305,15 @@ test("partial and excess Payments preserve explicit residuals without write-off"
   });
   slice.kernel.submit(order3);
   slice.kernel.submit(sale3);
+  const beforeExcess = targetEffects(slice);
   const excess = slice.kernel.submit(scopedCommand(slice, {
     identity: "command.retail.payment.excess.03",
     action: "payment.accept",
     role: "role.retail-cashier",
     input: { recordId: "payment.retail.excess.03", saleId: "sale.retail.03", amountMinor: 1300, currency: "USD", method: "cash", receiptReference: "receipt.retail.excess.03" },
   }));
-  assert.equal(excess.output.payment.residualMinor, 0);
-  assert.equal(excess.output.payment.unallocatedMinor, 100);
-  assert.equal(slice.kernel.observe({ type: "target-summary", targetId: "retail" }).accounts["Customer Credit"], -100);
+  assert.equal(excess.disposition, "Rejected");
+  assert.equal(excess.code, "ORC.KERNEL.INVARIANT_REJECTED");
+  assert.deepEqual(targetEffects(slice), beforeExcess);
+  assert.equal(Object.hasOwn(slice.kernel.observe({ type: "target-summary", targetId: "retail" }).accounts, "Customer Credit"), false);
 });

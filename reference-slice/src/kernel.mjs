@@ -317,11 +317,11 @@ function acceptPayment(state, command) {
   if (currency !== sale.currency) reject("ORC.KERNEL.INVARIANT_REJECTED", "Payment currency does not match the Sale.");
   const alreadyAllocated = target.payments.filter(payment => payment.saleId === saleId).reduce((sum, payment) => sum + payment.allocatedMinor, 0);
   const obligationBefore = sale.totalMinor - alreadyAllocated;
-  const allocatedMinor = Math.min(amountMinor, Math.max(obligationBefore, 0));
+  if (amountMinor > obligationBefore) reject("ORC.KERNEL.INVARIANT_REJECTED", "Payment exceeds the remaining receivable; v1 has no unapplied-funds account.");
+  const allocatedMinor = amountMinor;
   const residualMinor = obligationBefore - allocatedMinor;
-  const unallocatedMinor = amountMinor - allocatedMinor;
+  const unallocatedMinor = 0;
   const entries = [debit("Cash", amountMinor), credit("Accounts Receivable", allocatedMinor)];
-  if (unallocatedMinor > 0) entries.push(credit("Customer Credit", unallocatedMinor));
   const eventId = `business-event.${command.identity}`;
   const postingSet = postingSetFrom(command, eventId, `posting-set.${recordId}`, currency, entries);
   const payment = {
@@ -443,7 +443,7 @@ function deriveTargetSummary(target) {
     if (setDebits !== setCredits || setDebits <= 0) balancedPostingSets = false;
     for (const entry of postingSet.entries) accounts[entry.account] = (accounts[entry.account] ?? 0) + (entry.side === "debit" ? entry.amountMinor : -entry.amountMinor);
   }
-  for (const account of ["Inventory", "Cash", "Accounts Receivable", "Cost of Goods Sold", "Accounts Payable", "Sales Revenue", "Customer Credit"]) accounts[account] ??= 0;
+  for (const account of ["Inventory", "Cash", "Accounts Receivable", "Cost of Goods Sold", "Accounts Payable", "Sales Revenue"]) accounts[account] ??= 0;
   const stockValueMinor = Object.values(stock).reduce((sum, position) => sum + position.valueMinor, 0);
   const cashPaymentsMinor = target.payments.filter(payment => payment.method === "cash").reduce((sum, payment) => sum + payment.amountMinor, 0);
   const debitsMinor = Object.values(accounts).filter(balance => balance > 0).reduce((sum, balance) => sum + balance, 0);

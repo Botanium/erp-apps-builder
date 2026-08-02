@@ -90,3 +90,14 @@ test output are the durable ordering evidence.
   from the accepted 48-delivery Balanced Local Slice default and records one
   explicit bounded Budget Gate amendment to 96 before exceeding that ceiling.
 - Accumulated suite: 11 tests passed.
+
+## Readiness-audit correction: closed account taxonomy
+
+- Red: Ticket 16's contract audit found that the excess-Payment test and
+  implementation created an undeclared seventh `Customer Credit` account,
+  conflicting with Ticket 09's closed six-account taxonomy and explicit rule
+  that v1 overpayments are rejected.
+- Green: partial Payment still leaves its exact receivable residual, an exact
+  remaining Payment reaches zero, and an excess Payment now returns
+  `ORC.KERNEL.INVARIANT_REJECTED` with no Payment, Posting Set, cash, account,
+  or other governed effect.

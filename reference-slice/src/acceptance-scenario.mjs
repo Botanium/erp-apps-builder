@@ -311,19 +311,22 @@ function runNegativePaths(context) {
   }
 
   const paymentResults = [];
+  let excessUnchanged = false;
   for (const excess of [false, true]) {
     const kernel = kernelFrom(context.afterFirstRun);
     const suffix = excess ? "excess" : "partial";
     submit(kernel, scoped(kernel, { identity: `command.negative.payment.${suffix}.order`, action: "order.accept", role: "role.retail-cashier", input: { recordId: `order.negative.payment.${suffix}`, customerId: "party.customer.retail", currency: "USD", lines: [{ itemId: "catalog.widget", unit: "each", quantity: 1, unitPriceMinor: 1200 }] } }));
     submit(kernel, scoped(kernel, { identity: `command.negative.payment.${suffix}.sale`, action: "sale.fulfill", role: "role.retail-cashier", input: { recordId: `sale.negative.payment.${suffix}`, orderId: `order.negative.payment.${suffix}` } }));
     if (excess) {
+      const before = effectsIdentity(kernel, "retail");
       paymentResults.push(submit(kernel, scoped(kernel, { identity: "command.negative.payment.excess", action: "payment.accept", role: "role.retail-cashier", input: { recordId: "payment.negative.excess", saleId: "sale.negative.payment.excess", amountMinor: 1300, currency: "USD", method: "cash", receiptReference: "receipt.negative.excess" } })));
+      excessUnchanged = effectsIdentity(kernel, "retail") === before;
     } else {
       paymentResults.push(submit(kernel, scoped(kernel, { identity: "command.negative.payment.partial", action: "payment.accept", role: "role.retail-cashier", input: { recordId: "payment.negative.partial", saleId: "sale.negative.payment.partial", amountMinor: 400, currency: "USD", method: "cash", receiptReference: "receipt.negative.partial" } })));
       paymentResults.push(submit(kernel, scoped(kernel, { identity: "command.negative.payment.remainder", action: "payment.accept", role: "role.retail-cashier", input: { recordId: "payment.negative.remainder", saleId: "sale.negative.payment.partial", amountMinor: 800, currency: "USD", method: "cash", receiptReference: "receipt.negative.remainder" } })));
     }
   }
-  paths.push(path("payment-residual", paymentResults.length === 3 && paymentResults.every(item => item.disposition === "Accepted") && paymentResults[0].output.payment.residualMinor === 800 && paymentResults[1].output.payment.residualMinor === 0 && paymentResults[2].output.payment.unallocatedMinor === 100, paymentResults));
+  paths.push(path("payment-residual", paymentResults.length === 3 && paymentResults[0].disposition === "Accepted" && paymentResults[0].output.payment.residualMinor === 800 && paymentResults[1].disposition === "Accepted" && paymentResults[1].output.payment.residualMinor === 0 && paymentResults[2].disposition === "Rejected" && paymentResults[2].code === "ORC.KERNEL.INVARIANT_REJECTED" && excessUnchanged, paymentResults));
 
   const immutableResults = [];
   for (const [identity, action] of [["update", "record.update-direct"], ["delete", "business-event.delete"]]) {
