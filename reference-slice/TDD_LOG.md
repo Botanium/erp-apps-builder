@@ -46,3 +46,18 @@ test output are the durable ordering evidence.
   consumes exactly 27 g beans and 120 ml milk and posts USD 1.74 cost; the cash
   Payment closes the USD 9.00 receivable.
 - Accumulated suite: 4 tests passed.
+
+## Tracer 5: Fail-closed command matrix
+
+- Red: the focused matrix first failed at module load because independently
+  recomputable Blueprint Content Identity was not exposed.
+- Intermediate red: a mutated Capability object leaked between fixture clones,
+  proving that fixture construction was not isolated. Blueprint construction
+  now copies every Capability selection.
+- Green: schema and version rejection, stale approval and changed Human Gate
+  subjects, exact replay, idempotency conflict, Tenant/target/Location/
+  generation/Applied-Blueprint/Role boundaries, negative stock, ingredient
+  over-consumption, unit and currency mismatch, unbalanced or direct mutation
+  attempts, and partial/excess Payment behavior all preserve the declared
+  effects boundary.
+- Accumulated suite: 8 tests passed.

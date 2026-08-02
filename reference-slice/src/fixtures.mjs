@@ -103,6 +103,10 @@ function blueprintCanonicalContent(blueprint) {
   };
 }
 
+export function recomputeBlueprintContentIdentity(blueprint) {
+  return contentIdentity(blueprintCanonicalContent(blueprint));
+}
+
 export function createBlueprint(versionNumber, intentBrief, counterServiceState) {
   const versionId = `blueprint-version.cedar-steam.v${versionNumber}`;
   const parentVersionId = versionNumber === 1 ? null : `blueprint-version.cedar-steam.v${versionNumber - 1}`;
@@ -128,7 +132,7 @@ export function createBlueprint(versionNumber, intentBrief, counterServiceState)
       tier: "medium",
       exclusions: ["tables", "reservations", "delivery", "tips", "loyalty", "advanced-recipe-costing"],
     },
-    capabilitySelections: CAPABILITIES,
+    capabilitySelections: CAPABILITIES.map(capability => ({ ...capability })),
     recordDefinitions: ["Purchase Order", "Supplier Receipt", "Order", "Sale", "Payment", "Kitchen Ticket"].map(identity => ({ identity, version: "1.0.0" })),
     workflowDefinitions: [
       { identity: "workflow.retail-golden", version: "1.0.0", states: ["accepted", "fulfilled", "cancelled"] },
@@ -157,7 +161,7 @@ export function createBlueprint(versionNumber, intentBrief, counterServiceState)
     parentVersionId,
     content,
   };
-  return { ...blueprint, contentIdentity: contentIdentity(blueprintCanonicalContent(blueprint)) };
+  return { ...blueprint, contentIdentity: recomputeBlueprintContentIdentity(blueprint) };
 }
 
 export function makeCommand({ identity, action, input = {}, targetId = null, locationId = null, generationId = null, role = "role.owner", gateDecision = null }) {

@@ -31,7 +31,7 @@ export function createReferenceSlice({ store = new MemoryStore(createKernelState
       const decision = { identity: "human-gate-decision.blueprint-approval.v2", gateId: gate.identity, response: "Authorize Submission", subjectVersionId: gate.subjectVersionId, subjectContentIdentity: gate.subjectContentIdentity, responder: "participant.owner.fixture" };
       session.humanGates.push(gate);
       session.humanGateDecisions.push(decision);
-      session.lastResult = kernel.submit(makeCommand({ identity: "command.blueprint.approve.v2", action: "blueprint.approve", input: { reference: session.blueprint.reference, contentIdentity: session.blueprint.contentIdentity }, gateDecision: decision }));
+      session.lastResult = kernel.submit(makeCommand({ identity: "command.blueprint.approve.v2", action: "blueprint.approve", input: { reference: session.blueprint.reference, contentIdentity: session.blueprint.contentIdentity, approvalBaseline: null }, gateDecision: decision }));
     } else if (action.type === "provision.all") {
       const approved = kernel.observe().currentApprovedBlueprint;
       const results = ["retail", "cafe"].map(targetId => {

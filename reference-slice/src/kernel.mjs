@@ -1,11 +1,10 @@
 import { contentIdentity, deepClone } from "./canonical.mjs";
-import { BLUEPRINT_ID, TENANT_ID, VERSION_SET } from "./fixtures.mjs";
+import { BLUEPRINT_ID, recomputeBlueprintContentIdentity, TENANT_ID, VERSION_SET } from "./fixtures.mjs";
 
 export function createKernelState() {
   return {
     revision: 0,
     tenantId: TENANT_ID,
-    sentinel: { tenantId: "tenant.isolation-sentinel", effects: [] },
     blueprints: {},
     lifecycle: {},
     currentApprovedBlueprint: null,
@@ -48,6 +47,7 @@ function validateBlueprint(blueprint) {
   const unknown = properties.filter(property => !requiredSections.includes(property));
   const missing = requiredSections.filter(property => !properties.includes(property));
   const diagnostics = [];
+  if (recomputeBlueprintContentIdentity(blueprint) !== blueprint.contentIdentity) diagnostics.push({ code: "CFG.ARTIFACT.CONTENT_IDENTITY_MISMATCH", path: "/contentIdentity", severity: "Blocking" });
   unknown.forEach(property => diagnostics.push({ code: "CFG.SCHEMA.UNKNOWN_PROPERTY", path: `/${property}`, severity: "Blocking" }));
   missing.forEach(property => diagnostics.push({ code: "CFG.SCHEMA.REQUIRED_MISSING", path: `/${property}`, severity: "Blocking" }));
   if (blueprint.content.capabilitySelections.some(capability => capability.version !== "1.0.0")) diagnostics.push({ code: "CFG.CAPABILITY.VERSION_UNSUPPORTED", path: "/capabilitySelections", severity: "Blocking" });
@@ -57,7 +57,7 @@ function validateBlueprint(blueprint) {
     identity: `validation.${blueprint.reference.versionId}`,
     blueprintReference: blueprint.reference,
     contentIdentity: blueprint.contentIdentity,
-    verdict: diagnostics.some(diagnostic => diagnostic.code === "CFG.SCHEMA.UNKNOWN_PROPERTY" || diagnostic.code === "CFG.SCHEMA.REQUIRED_MISSING" || diagnostic.code === "CFG.CAPABILITY.VERSION_UNSUPPORTED") ? "Invalid" : assumptions.length ? "Valid" : "Valid",
+    verdict: diagnostics.length > 0 ? "Invalid" : "Valid",
     approvalEligible: diagnostics.length === 0,
     diagnostics,
     versionSet: VERSION_SET,
@@ -438,21 +438,28 @@ function createDraft(state, command) {
   if (blueprint.reference.tenantId !== TENANT_ID || blueprint.reference.blueprintId !== BLUEPRINT_ID) reject("CFG.IDENTITY.TENANT_MISMATCH", "Blueprint identity scope mismatch.");
   const report = validateBlueprint(blueprint);
   state.validationReports.push(report);
-  if (report.verdict === "Invalid") reject(report.diagnostics[0].code, "Blueprint validation failed.");
+  const nonReviewable = report.diagnostics.find(diagnostic => diagnostic.code !== "CFG.TRACEABILITY.ASSUMPTION_ACTIVE");
+  if (nonReviewable) reject(nonReviewable.code, "Blueprint validation failed.");
   state.blueprints[blueprint.reference.versionId] = blueprint;
   state.lifecycle[blueprint.reference.versionId] = "Draft";
   return accepted(command, { blueprintReference: blueprint.reference, validationReport: report });
 }
 
 function approve(state, command) {
-  const { reference, contentIdentity: blueprintContentIdentity } = command.input;
+  const { reference, contentIdentity: blueprintContentIdentity, approvalBaseline } = command.input;
   const blueprint = state.blueprints[reference.versionId];
   if (!blueprint || state.lifecycle[reference.versionId] !== "Draft") reject("ORC.KERNEL.BASELINE_REJECTED", "Exact Draft does not exist.");
   if (blueprint.contentIdentity !== blueprintContentIdentity) reject("ORC.KERNEL.BASELINE_REJECTED", "Blueprint Content Identity mismatch.");
   const validation = state.validationReports.find(report => report.blueprintReference.versionId === reference.versionId);
   if (!validation?.approvalEligible) reject("ORC.KERNEL.POLICY_REJECTED", "Draft is not Approval Eligible.");
+  const actualBaseline = state.currentApprovedBlueprint ? {
+    reference: state.currentApprovedBlueprint.reference,
+    contentIdentity: state.currentApprovedBlueprint.contentIdentity,
+  } : null;
+  if (JSON.stringify(approvalBaseline) !== JSON.stringify(actualBaseline)) reject("ORC.BASELINE.KERNEL_BASELINE_CHANGED", "Approval Baseline is stale.");
   const decision = command.gateDecision;
   if (!decision || decision.response !== "Authorize Submission" || decision.subjectContentIdentity !== blueprintContentIdentity || decision.subjectVersionId !== reference.versionId) reject("ORC.KERNEL.AUTHORIZATION_REJECTED", "Exact Human Gate Decision is required.");
+  if (state.currentApprovedBlueprint) state.lifecycle[state.currentApprovedBlueprint.reference.versionId] = "Superseded";
   state.lifecycle[reference.versionId] = "Approved";
   const approval = { identity: "blueprint-approval.cedar-steam.v2", reference, contentIdentity: blueprintContentIdentity, humanGateDecisionId: decision.identity, effectiveTime: command.effectiveTime };
   state.currentApprovedBlueprint = approval;
