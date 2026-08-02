@@ -21,19 +21,19 @@ standing approval for the remaining Wayfinder tickets.
 The isolated implementation is preserved on branch
 `codex/reference-slice-v1`:
 
-- source and tests: `c708e89ef866dba5dd235acffef4420121e31f50`;
-- source-bound acceptance evidence: `2237d9e`;
+- source and tests: `c0ff59a03eab91b96ff750f3e7fd277794c117bc`;
+- source-bound acceptance evidence: `83c00e1`;
 - one command: `npm run reference-slice`;
 - test command: `npm test`;
 - runtime actually observed: Node.js `v26.5.0` on Darwin arm64; and
 - supported local range: Node.js `>=22.18 <27`.
 
-The final branch test run passed all 11 behavior tests. The committed
+The final branch test run passed all 12 behavior tests. The committed
 Reference Slice Acceptance Report records `Passed`; all 12 Required conditions
 are `Satisfied`; its SHA-256 Content Identity independently recomputes; and its
-source binding names clean commit `c708e89ef866dba5dd235acffef4420121e31f50`
+source binding names clean commit `c0ff59a03eab91b96ff750f3e7fd277794c117bc`
 with source-file Content Identity
-`sha256:60e3a66c9c3c1da35ce54dcb62dcec3ddd6524b9d02e3a478950a9704e8475ba`.
+`sha256:c833807924c99eddc30c3a685db72944ad27f3e338ac03353703362db69e9cb4`.
 
 The slice proves, through the four approved public Interfaces:
 
@@ -86,3 +86,14 @@ Payment atomically with `ORC.KERNEL.INVARIANT_REJECTED`. All 11 tests pass, and
 evidence commit `2237d9e` records a new source-clean `Passed` report with all 12
 Required conditions Satisfied. The historical `f934ef9`/`8224550` evidence is
 superseded and is not current acceptance evidence.
+
+The same readiness audit also found that outbound Stock Movements used signed
+quantities and that entry-level ledger attribution, exact command-bound gates,
+durable replay material, and explicit Sandbox Exports were incomplete.
+Corrected source commit `c0ff59a` now uses positive Stock Movement quantities
+with source and destination, individually identified and scoped Ledger Entries,
+Human Gates bound to exact proposed Kernel Commands, durable command replay,
+and independently content-identified retail and cafe Sandbox Exports. Evidence
+commit `83c00e1` supersedes `2237d9e`; all 12 tests and all 12 Required
+conditions pass with expanded causation, effect-scope, stock, ledger, cash,
+Payment, and isolation invariants.
