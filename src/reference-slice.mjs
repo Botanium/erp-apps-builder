@@ -10,10 +10,6 @@ import {
 } from "./contracts.mjs";
 import { createKernelCommand } from "./kernel-command.mjs";
 import { OwnerWorkbench } from "./owner-workbench.mjs";
-import {
-  AtomicJsonOwnerWorkbenchStore,
-  MemoryOwnerWorkbenchStore,
-} from "./owner-workbench-store.mjs";
 import { AtomicJsonStore, MemoryStore } from "./store.mjs";
 
 /** @typedef {{type: "reference-slice.start-empty-authority-shell"}} StartEmptyAuthorityShellAction */
@@ -201,16 +197,11 @@ export const createLocalReferenceSlice = async ({
   identitySource = { next: () => randomUUID() },
 }) => {
   let store;
-  let ownerWorkbenchStore;
   if (persistence.kind === "memory") {
     store = new MemoryStore();
-    ownerWorkbenchStore = new MemoryOwnerWorkbenchStore();
   } else if (persistence.kind === "atomic-json") {
     store = await AtomicJsonStore.create({
       stateFile: persistence.stateFile,
-    });
-    ownerWorkbenchStore = await AtomicJsonOwnerWorkbenchStore.create({
-      stateFile: `${persistence.stateFile}.owner-workbench.json`,
     });
   } else {
     throw new TypeError("Unsupported local persistence Adapter.");
@@ -218,7 +209,7 @@ export const createLocalReferenceSlice = async ({
   const businessKernel = new BusinessKernel({ store });
   const ownerWorkbench = new OwnerWorkbench({
     identitySource,
-    store: ownerWorkbenchStore,
+    store,
   });
   const acceptanceEvaluator = new AcceptanceEvaluator();
   const referenceSlice = new ReferenceSlice({

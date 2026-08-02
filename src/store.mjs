@@ -34,6 +34,8 @@ const commitTransaction = async ({
  * @property {Array<object>} ledgerEntries
  * @property {Array<object>} payments
  * @property {Array<object>} kernelCommandResults
+ * @property {Array<object>} interviews
+ * @property {Array<object>} intentBriefVersions
  */
 
 /**
@@ -58,6 +60,8 @@ export const createEmptyKernelState = () => ({
   ledgerEntries: [],
   payments: [],
   kernelCommandResults: [],
+  interviews: [],
+  intentBriefVersions: [],
 });
 
 export class MemoryStore {
