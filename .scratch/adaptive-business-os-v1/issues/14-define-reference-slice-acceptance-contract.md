@@ -236,9 +236,10 @@ posting, allocation, and positive residual:
 9. Kitchen accepted, preparing, and ready leave ingredient, revenue,
    receivable, cost, and cash effects unchanged. Repeated fulfilled uses the
    original command result and creates no duplicate effect.
-10. A partial or excess Payment remains unreconciled with an explicit residual;
-    the Kernel does not invent a write-off. The accepted exact Payment then
-    reaches zero residual.
+10. A permitted partial Payment is accepted with an explicit positive
+    receivable residual. An excess Payment is rejected atomically because v1
+    has no unapplied-funds account, customer-credit account, or invented
+    write-off. The accepted exact full Payment reaches zero residual.
 11. A direct update or deletion of a Ledger Entry, Posting Set, Stock Movement,
     Business Event, accepted Payment, or fulfilled Record is unavailable
     through the public command vocabulary and rejected if attempted.

@@ -27,10 +27,12 @@ The durable decision and trade-offs are recorded in
 1. **Deployment shape:** one local process, one repository, one composition
    root, and one writer. This is a modular monolith, not a set of services and
    not a generated application per target.
-2. **Runtime:** pin the validated Node.js 22 runtime range; use dependency-light
-   ECMAScript Modules and JSDoc contracts, npm scripts, and Node built-ins. The
-   slice introduces no live model provider, framework agent runtime, database
-   server, container, or external service.
+2. **Runtime:** support the validated Node.js range `>=22.18 <27` and record the
+   exact runtime used by each evidence run; the accepted run used Node.js
+   `v26.5.0` on Darwin arm64. Use dependency-light ECMAScript Modules and JSDoc
+   contracts, npm scripts, and Node built-ins. The slice introduces no live
+   model provider, framework agent runtime, database server, container, or
+   external service.
 3. **Persistence:** use a `StateStore` internal Port with two real Adapters:
    MemoryStore for tests and AtomicJsonStore for the runnable slice. The file
    Adapter commits one complete revision by temporary write and atomic rename

@@ -168,8 +168,8 @@ supplier Payment are outside the Reference Vertical Slice.
 1. Each item or ingredient declares exactly one normalized stock unit in v1.
    Every Stock Movement carries a positive integer quantity in that unit.
    Runtime unit conversion, fractional base-unit quantity, unit guessing, and
-   mixed-unit arithmetic are forbidden; fixtures use `unit`, `gram`, or
-   `millilitre` as appropriate.
+   mixed-unit arithmetic are forbidden; the fixed Reference Slice fixture uses
+   the normalized codes `each`, `g`, or `ml` as appropriate.
 2. Each Stock Movement names exactly one source and destination. Tenant
    Locations and explicit supplier, customer, consumption, restoration, and
    correction boundaries are distinct; quantity may never appear without an
