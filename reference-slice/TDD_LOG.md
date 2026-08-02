@@ -15,3 +15,11 @@ test output are the durable ordering evidence.
   a new immutable Draft; and only an exact Human Gate decision plus accepted
   Kernel Command creates Blueprint Approval.
 
+## Tracer 2: Shared compilation and independent activation
+
+- Red: `npm test -- --test-name-pattern='compiles once'` failed because no
+  Provisioning Attempt collection or Effective Blueprint existed.
+- Green: one target-neutral Effective Blueprint is compiled once from the exact
+  Approved Blueprint, while two target-specific compatibility verdicts and
+  atomic Provisioning Attempts apply it independently to retail and cafe.
+- Accumulated suite: 2 tests passed.

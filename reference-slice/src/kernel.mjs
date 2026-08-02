@@ -12,6 +12,9 @@ export function createKernelState() {
     approvals: [],
     validationReports: [],
     effectiveBlueprint: null,
+    compilationRecords: [],
+    compatibilityVerdicts: [],
+    provisioningAttempts: [],
     commandResults: [],
     commandBindings: {},
     targets: {
@@ -144,11 +147,89 @@ function approve(state, command) {
 }
 
 function provision(state, command) {
-  if (!state.currentApprovedBlueprint) reject("ORC.KERNEL.AUTHORIZATION_REJECTED", "No current Approved Blueprint.");
+  const currentApproved = state.currentApprovedBlueprint;
+  if (!currentApproved) reject("ORC.KERNEL.AUTHORIZATION_REJECTED", "No current Approved Blueprint.");
   const target = state.targets[command.targetId];
   if (!target) reject("ORC.KERNEL.BASELINE_REJECTED", "Target does not exist.");
+  if (command.locationId !== target.locationId || command.generationId !== target.generationId) reject("ORC.KERNEL.BASELINE_REJECTED", "Target baseline mismatch.");
   if (target.appliedBlueprint) reject("ORC.KERNEL.BASELINE_REJECTED", "Initial target is not clean.");
-  return accepted(command, { targetId: command.targetId, prepared: false });
+  const requested = command.input.blueprint;
+  if (!requested || requested.reference.versionId !== currentApproved.reference.versionId || requested.contentIdentity !== currentApproved.contentIdentity) {
+    reject("ORC.KERNEL.BASELINE_REJECTED", "Provisioning request does not bind the current Approved Blueprint.");
+  }
+
+  const effectiveBlueprint = compileEffectiveBlueprint(state, currentApproved);
+  const profile = effectiveBlueprint.experienceProfiles.find(candidate => candidate.targetId === target.targetId);
+  if (!profile) reject("CFG.EXPERIENCE.REFERENCE_UNRESOLVED", "No declared target experience profile.");
+
+  const verdict = {
+    identity: `compatibility.${target.targetId}.${target.generationId}`,
+    targetId: target.targetId,
+    generationId: target.generationId,
+    blueprintReference: currentApproved.reference,
+    blueprintContentIdentity: currentApproved.contentIdentity,
+    verdict: "Initial Provision Compatible",
+    versionSet: VERSION_SET,
+  };
+  state.compatibilityVerdicts.push(verdict);
+
+  const attempt = {
+    identity: `provisioning-attempt.${target.targetId}.${target.generationId}`,
+    targetId: target.targetId,
+    generationId: target.generationId,
+    state: "Applied",
+    blueprintReference: currentApproved.reference,
+    blueprintContentIdentity: currentApproved.contentIdentity,
+    effectiveBlueprintContentIdentity: effectiveBlueprint.contentIdentity,
+    compatibilityVerdictId: verdict.identity,
+    commandIdentity: command.identity,
+    activationTime: command.effectiveTime,
+  };
+  target.activeConfiguration = {
+    targetId: target.targetId,
+    locationId: target.locationId,
+    effectiveBlueprintContentIdentity: effectiveBlueprint.contentIdentity,
+    capabilities: effectiveBlueprint.capabilities,
+    visibleCapabilities: profile.visibleCapabilities,
+  };
+  target.appliedBlueprint = deepClone(currentApproved);
+  state.provisioningAttempts.push(attempt);
+  return accepted(command, { targetId: command.targetId, attempt, appliedBlueprint: target.appliedBlueprint });
+}
+
+function compileEffectiveBlueprint(state, approval) {
+  if (state.effectiveBlueprint) {
+    if (state.effectiveBlueprint.sourceBlueprintContentIdentity !== approval.contentIdentity) {
+      reject("ORC.KERNEL.VERSION_REJECTED", "A different Effective Blueprint is already bound to this slice.");
+    }
+    return state.effectiveBlueprint;
+  }
+
+  const source = state.blueprints[approval.reference.versionId];
+  const body = {
+    identity: `effective-blueprint.${approval.reference.versionId}`,
+    sourceBlueprintReference: approval.reference,
+    sourceBlueprintContentIdentity: approval.contentIdentity,
+    versionSet: VERSION_SET,
+    capabilities: source.content.capabilitySelections,
+    recordDefinitions: source.content.recordDefinitions,
+    workflowDefinitions: source.content.workflowDefinitions,
+    roleDefinitions: source.content.roleDefinitions,
+    evidenceRules: source.content.evidenceRules,
+    policyProfiles: source.content.policyProfiles,
+    experienceProfiles: source.content.experienceConfiguration.profiles,
+    intentTraceability: source.content.intentTraceability,
+  };
+  const effectiveBlueprint = { ...body, contentIdentity: contentIdentity(body) };
+  state.effectiveBlueprint = effectiveBlueprint;
+  state.compilationRecords.push({
+    identity: `compilation.${approval.reference.versionId}`,
+    sourceBlueprintReference: approval.reference,
+    sourceBlueprintContentIdentity: approval.contentIdentity,
+    effectiveBlueprintContentIdentity: effectiveBlueprint.contentIdentity,
+    versionSet: VERSION_SET,
+  });
+  return effectiveBlueprint;
 }
 
 function accepted(command, output) {

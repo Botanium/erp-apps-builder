@@ -33,7 +33,22 @@ export function createReferenceSlice({ store = new MemoryStore(createKernelState
       session.humanGateDecisions.push(decision);
       session.lastResult = kernel.submit(makeCommand({ identity: "command.blueprint.approve.v2", action: "blueprint.approve", input: { reference: session.blueprint.reference, contentIdentity: session.blueprint.contentIdentity }, gateDecision: decision }));
     } else if (action.type === "provision.all") {
-      session.lastResult = kernel.submit(makeCommand({ identity: "command.provision.retail", action: "sandbox.provision", targetId: "retail", locationId: "location.retail", generationId: kernel.observe({ type: "target", targetId: "retail" }).generationId }));
+      const approved = kernel.observe().currentApprovedBlueprint;
+      const results = ["retail", "cafe"].map(targetId => {
+        const target = kernel.observe({ type: "target", targetId });
+        return kernel.submit(makeCommand({
+          identity: `command.provision.${targetId}.${target.generationId}`,
+          action: "sandbox.provision",
+          targetId,
+          locationId: target.locationId,
+          generationId: target.generationId,
+          input: { blueprint: approved },
+        }));
+      });
+      session.lastResult = {
+        disposition: results.every(result => result.disposition === "Accepted") ? "Applied" : "Rejected",
+        results,
+      };
     } else {
       throw new Error(`Unsupported ReferenceSlice action ${action.type}.`);
     }
