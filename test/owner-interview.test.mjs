@@ -67,6 +67,7 @@ const completeMinimalInterview = async (
     purposeValue = "Prove shared retail and cafe behavior with fictitious data.",
     acceptanceConditions = [requiredAcceptanceCondition()],
     safetyAnswer = {},
+    omitSafetyIntentState = false,
     businessShapeAnswer = {},
   } = {}
 ) => {
@@ -83,7 +84,7 @@ const completeMinimalInterview = async (
     },
     {
       statementIdentity: "intent-statement.safety-and-jurisdiction",
-      intentState: "Confirmed",
+      ...(omitSafetyIntentState ? {} : { intentState: "Confirmed" }),
       value: "The local proof uses no real or externally processed data.",
       ...safetyAnswer,
     },
@@ -1326,7 +1327,7 @@ test("material statement without exactly one Intent State blocks Draft generatio
   const system = await createInterviewSystem();
 
   const view = await completeMinimalInterview(system, {
-    safetyAnswer: { intentState: undefined },
+    omitSafetyIntentState: true,
   });
 
   assert.deepEqual(view.ownerInterview.draftReview, {
@@ -1505,6 +1506,32 @@ test("Owner Interview rejects undeclared sensitive-data aliases without persisti
       field: "credential",
       summary:
         "Owner Interview accepts only declared structured fields and never persists unknown payload properties.",
+    },
+  ]);
+});
+
+test("Owner Interview rejects an explicitly undefined answer through its public seam", async () => {
+  const system = await createInterviewSystem();
+  const started = await system.referenceSlice.dispatch({
+    type: "reference-slice.start-owner-interview",
+    ownerSourceIdentity: "source.owner.cedar-steam",
+  });
+
+  const rejected = await system.referenceSlice.dispatch({
+    type: "reference-slice.answer-owner-interview",
+    ownerInterviewIdentity: started.ownerInterview.identity,
+    questionIdentity: started.ownerInterview.currentQuestion.identity,
+    answer: undefined,
+  });
+
+  assert.equal(rejected.mode, "OwnerInterviewInputRejected");
+  assert.equal(rejected.ownerInterview.intentBrief, null);
+  assert.deepEqual(rejected.diagnostics, [
+    {
+      code: "INTENT.INPUT.TYPE_MISMATCH",
+      field: "answer",
+      summary:
+        "Owner Interview requires every declared structured field to use its declared value kind.",
     },
   ]);
 });

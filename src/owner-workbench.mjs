@@ -150,7 +150,7 @@ const isNonEmptyString = (value) =>
   typeof value === "string" && value.trim().length > 0;
 
 const findAnswerSchemaViolation = (value, schema, field = "answer") => {
-  if (value === undefined) return null;
+  if (value === undefined) return { kind: "type", field };
   if (schema.kind === "string") {
     return typeof value === "string" ? null : { kind: "type", field };
   }
