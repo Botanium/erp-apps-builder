@@ -1,6 +1,5 @@
 import { canonicalJson, contentIdentity, deepClone } from "./canonical.mjs";
 import {
-  CAFE_FIXTURE,
   createBlueprint,
   createIntentBrief,
   makeCommand,
@@ -233,8 +232,7 @@ function runNegativePaths(context) {
 
   {
     const kernel = kernelFrom(context.afterFirstRun);
-    const target = kernel.observe({ type: "target", targetId: "retail" });
-    const replay = makeCommand({ identity: "command.retail.payment.accept.01.g1", action: "payment.accept", role: "role.retail-cashier", targetId: "retail", locationId: target.locationId, generationId: target.generationId, input: { expectedAppliedBlueprint: target.appliedBlueprint, recordId: RETAIL_FIXTURE.paymentId, saleId: RETAIL_FIXTURE.saleId, amountMinor: RETAIL_FIXTURE.paymentMinor, currency: "USD", method: "cash", receiptReference: RETAIL_FIXTURE.receiptReference } });
+    const replay = context.afterFirstRun.commandBindings["command.retail.payment.accept.01.g1"].command;
     const before = effectsIdentity(kernel, "retail");
     const replayed = submit(kernel, replay);
     const conflict = submit(kernel, changeCommand(replay, { input: { ...replay.input, amountMinor: 4801 } }));
@@ -310,8 +308,7 @@ function runNegativePaths(context) {
   {
     const inert = ["accepted", "preparing", "ready"].every(state => context.afterFirstRun.targets.cafe.records.some(record => record.type === "Kitchen Ticket") && context.afterFirstRun.targets.cafe.movements.length === 4);
     const kernel = kernelFrom(context.afterFirstRun);
-    const target = kernel.observe({ type: "target", targetId: "cafe" });
-    const replay = makeCommand({ identity: "command.cafe.kitchen.fulfill.01.g1", action: "kitchen.fulfill", role: "role.kitchen-operator", targetId: "cafe", locationId: target.locationId, generationId: target.generationId, input: { expectedAppliedBlueprint: target.appliedBlueprint, recordId: CAFE_FIXTURE.kitchenTicketId, saleId: CAFE_FIXTURE.saleId } });
+    const replay = context.afterFirstRun.commandBindings["command.cafe.kitchen.fulfill.01.g1"].command;
     const before = effectsIdentity(kernel, "cafe");
     const result = submit(kernel, replay);
     paths.push(path("kitchen-inertness", inert && result.disposition === "Accepted" && effectsIdentity(kernel, "cafe") === before, [result]));
@@ -439,7 +436,15 @@ function kernelFrom(snapshot) {
 
 function scoped(kernel, { identity, action, role, input, targetId = "retail" }) {
   const target = kernel.observe({ type: "target", targetId });
-  return makeCommand({ identity, action, role, targetId, locationId: target.locationId, generationId: target.generationId, input: { expectedAppliedBlueprint: target.appliedBlueprint, ...input } });
+  const sources = {
+    "role.owner": "participant.owner.fixture",
+    "role.buyer": "participant.buyer.fixture",
+    "role.receiver": "participant.receiver.fixture",
+    "role.retail-cashier": "participant.retail-cashier.fixture",
+    "role.cafe-cashier": "participant.cafe-cashier.fixture",
+    "role.kitchen-operator": "participant.kitchen-operator.fixture",
+  };
+  return makeCommand({ identity, action, role, responsibleSource: sources[role] ?? "participant.owner.fixture", targetId, locationId: target.locationId, generationId: target.generationId, input: { expectedAppliedBlueprint: target.appliedBlueprint, ...input } });
 }
 
 function purchaseInput(recordId) {

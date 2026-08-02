@@ -7,7 +7,12 @@ import { createReferenceSlice } from "../src/reference-slice.mjs";
 
 test("canonical stock, ledger, gate, replay, and Sandbox Export contracts are observable", () => {
   const slice = createReferenceSlice();
-  slice.dispatch({ type: "interview.start" });
+  const started = slice.dispatch({ type: "interview.start" });
+  const assumption = started.intentBrief.assumptions[0];
+  assert.equal(assumption.intentState, "Assumed");
+  for (const field of ["proposition", "proposer", "source", "recordedTime", "rationale", "affectedFactFamilies", "affectedDraftProposals", "consequence", "risk", "resolutionCondition", "expectedEvidence", "responsibleReviewer", "reviewTrigger"]) assert.ok(assumption[field], field);
+  const acceptance = started.intentBrief.acceptanceConditions[0];
+  for (const field of ["outcome", "whyItMatters", "scope", "startingContext", "governedAction", "observableResult", "passCondition", "failureCondition", "evidenceRequired", "responsibleReviewer", "dependencies"]) assert.ok(acceptance[field], field);
   const confirmed = slice.dispatch({ type: "interview.confirm-counter-service" });
   const catalog = confirmed.blueprint.content.capabilitySelections.find(capability => capability.identity === "capability.catalog");
   assert.deepEqual(catalog.settings.menuItems[0], {
@@ -39,6 +44,10 @@ test("canonical stock, ledger, gate, replay, and Sandbox Export contracts are ob
   slice.dispatch({ type: "scenario.retail" });
   slice.dispatch({ type: "scenario.cafe" });
   const snapshot = slice.kernel.observe();
+  assert.equal(snapshot.targets.retail.records.find(record => record.type === "Purchase Order").responsibleSource, "participant.buyer.fixture");
+  assert.equal(snapshot.targets.retail.records.find(record => record.type === "Supplier Receipt").responsibleSource, "participant.receiver.fixture");
+  assert.equal(snapshot.targets.retail.records.find(record => record.type === "Order").responsibleSource, "participant.retail-cashier.fixture");
+  assert.equal(snapshot.targets.cafe.records.find(record => record.type === "Kitchen Ticket").responsibleSource, "participant.kitchen-operator.fixture");
 
   for (const target of Object.values(snapshot.targets)) {
     assert.ok(target.movements.every(movement => Number.isInteger(movement.quantity) && movement.quantity > 0));
@@ -88,5 +97,13 @@ test("canonical stock, ledger, gate, replay, and Sandbox Export contracts are ob
     generationId: "generation.retail.1",
     role: "role.owner",
   }), /scope mismatch/i);
-});
 
+  const reset = slice.dispatch({ type: "reset.all" });
+  assert.equal(reset.lastResult.disposition, "Reset");
+  for (const record of reset.kernel.resetRecords) {
+    const command = reset.kernel.commandBindings[record.commandIdentity].command;
+    assert.equal(record.humanGateDecision.responder, "participant.owner.fixture");
+    assert.equal(command.responsibleSource, "participant.reset-executor.fixture");
+    assert.notEqual(record.humanGateDecision.responder, command.responsibleSource);
+  }
+});

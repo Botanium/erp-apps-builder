@@ -127,12 +127,7 @@ test("idempotency, Tenant, target, Location, generation, Applied Blueprint, and 
   const slice = provisionedSlice();
   slice.dispatch({ type: "scenario.retail" });
   const fixture = RETAIL_FIXTURE;
-  const replay = scopedCommand(slice, {
-    identity: "command.retail.payment.accept.01.g1",
-    action: "payment.accept",
-    role: "role.retail-cashier",
-    input: { recordId: fixture.paymentId, saleId: fixture.saleId, amountMinor: fixture.paymentMinor, currency: fixture.currency, method: "cash", receiptReference: fixture.receiptReference },
-  });
+  const replay = slice.kernel.observe().commandBindings["command.retail.payment.accept.01.g1"].command;
   const beforeReplay = targetEffects(slice);
   const replayResult = slice.kernel.submit(replay);
   assert.equal(replayResult.disposition, "Accepted");

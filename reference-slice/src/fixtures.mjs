@@ -88,8 +88,41 @@ export function createIntentBrief(version, counterServiceState) {
       { category: "fictitious-operational", class: "Internal", rationale: "No real person or production data.", source: "source.owner-standing-direction" },
       { category: "fictitious-financial", class: "Confidential", rationale: "Invented detailed financial fixture values.", source: "source.owner-standing-direction" },
     ],
-    acceptanceConditions: [{ identity: "acceptance.required.reuse-proof", criticality: "Required", intentState: "Confirmed", source: "source.owner-standing-direction", outcome: "One Kernel demonstrates retail and cafe reuse." }],
-    assumptions: counterServiceState === "Assumed" ? [{ identity: "assumption.counter-service", proposition: "Cafe uses counter service only.", rationale: "Continue Draft review within v1 scope.", impact: "Cafe Workflow and exclusions.", risk: "Wrong fulfillment experience.", reviewer: "participant.owner", resolution: "Explicit owner confirmation.", source: "source.system-proposal" }] : [],
+    acceptanceConditions: [{
+      identity: "acceptance.required.reuse-proof",
+      criticality: "Required",
+      intentState: "Confirmed",
+      source: "source.owner-standing-direction",
+      outcome: "One Kernel demonstrates retail and cafe reuse.",
+      whyItMatters: "Avoid rebuilding the common business platform for every client.",
+      scope: { roles: ["role.owner", "role.buyer", "role.receiver", "role.retail-cashier", "role.cafe-cashier", "role.kitchen-operator"], locations: ["location.retail", "location.cafe"], records: ["Purchase Order", "Supplier Receipt", "Order", "Sale", "Payment", "Kitchen Ticket"], workflows: ["workflow.retail-golden", "workflow.cafe-kitchen"] },
+      startingContext: "A clean fictitious Tenant with an owner-reviewed Intent Brief.",
+      governedAction: "Approve one exact Blueprint, provision both targets, and execute their declared scenarios.",
+      observableResult: "Both target-specific experiences reach their fixed business outcomes through one shared Kernel and reset cleanly.",
+      passCondition: "Every Required Reference Slice condition is Satisfied and both targets finish clean and unapplied.",
+      failureCondition: "Any unresolved authority, state, invariant, isolation, replay, or reset result fails closed.",
+      evidenceRequired: "reference-slice.acceptance-report.cedar-steam.01",
+      responsibleReviewer: "participant.owner.fixture",
+      dependencies: { assumptions: counterServiceState === "Assumed" ? ["assumption.counter-service"] : [], sensitiveDataClasses: ["Internal", "Confidential"], constraints: ["sandbox-only", "fictitious-data-only"] },
+    }],
+    assumptions: counterServiceState === "Assumed" ? [{
+      identity: "assumption.counter-service",
+      intentState: "Assumed",
+      proposition: "Cafe uses counter service only.",
+      proposer: "system.reference-slice.fixture",
+      source: "source.system-proposal",
+      recordedTime: "2026-01-15T09:00:00.000Z",
+      rationale: "Continue Draft review within v1 scope.",
+      affectedFactFamilies: ["customer-and-fulfillment", "experience-and-integrations"],
+      affectedDraftProposals: ["workflow.cafe-kitchen", "profile.cafe"],
+      impact: "Cafe Workflow and exclusions remain provisional.",
+      consequence: "The proposed cafe experience would be misleading if table service were required.",
+      risk: "Wrong fulfillment experience.",
+      resolutionCondition: "Explicit owner confirmation of counter service and exclusions.",
+      expectedEvidence: "An attributable owner Intent Brief update.",
+      responsibleReviewer: "participant.owner.fixture",
+      reviewTrigger: "Before Approval Eligibility is recomputed.",
+    }] : [],
   };
 }
 
@@ -189,7 +222,7 @@ export function createBlueprint(versionNumber, intentBrief, counterServiceState)
   return { ...blueprint, contentIdentity: recomputeBlueprintContentIdentity(blueprint) };
 }
 
-export function makeCommand({ identity, action, input = {}, targetId = null, locationId = null, generationId = null, role = "role.owner", gateDecision = null }) {
+export function makeCommand({ identity, action, input = {}, targetId = null, locationId = null, generationId = null, role = "role.owner", gateDecision = null, responsibleSource = "participant.owner.fixture" }) {
   const body = {
     identity,
     tenantId: TENANT_ID,
@@ -201,7 +234,7 @@ export function makeCommand({ identity, action, input = {}, targetId = null, loc
     input,
     role,
     gateDecision,
-    responsibleSource: "participant.owner.fixture",
+    responsibleSource,
     effectiveTime: "2026-01-15T09:00:00.000Z",
     versionSet: VERSION_SET,
   };

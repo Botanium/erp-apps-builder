@@ -117,3 +117,15 @@ test output are the durable ordering evidence.
   content-identified Sandbox Export whose causation, stock, ledger, cash,
   Payment, and isolation invariants independently recompute.
 - Accumulated suite: 12 tests passed.
+
+## Readiness-audit correction: intent and participant attribution
+
+- Red: the audit found that the fixture's Assumption and Acceptance Condition
+  omitted required review fields and every accepted business command used the
+  owner as its responsible source despite distinct Buyer, Receiver, Cashier,
+  Kitchen Operator, and reset-executor duties.
+- Green: both Intent Brief objects now preserve the complete required review
+  envelope; accepted effects retain the responsible fictitious participant for
+  their exact Role; Buyer and Receiver remain distinct; and each reset's owner
+  Human Gate decision is attributable to a source different from its executing
+  Kernel Command.
