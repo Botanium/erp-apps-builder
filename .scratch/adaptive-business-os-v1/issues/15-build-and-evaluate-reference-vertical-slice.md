@@ -21,8 +21,8 @@ standing approval for the remaining Wayfinder tickets.
 The isolated implementation is preserved on branch
 `codex/reference-slice-v1`:
 
-- source and tests: `c0ff59a03eab91b96ff750f3e7fd277794c117bc`;
-- source-bound acceptance evidence: `83c00e1`;
+- source and tests: `95fd4f8d42b06067b7cf200b70e6b939cba3050e`;
+- source-bound acceptance evidence: `cad005c7417665659903194f5076082c759403a7`;
 - one command: `npm run reference-slice`;
 - test command: `npm test`;
 - runtime actually observed: Node.js `v26.5.0` on Darwin arm64; and
@@ -31,9 +31,9 @@ The isolated implementation is preserved on branch
 The final branch test run passed all 12 behavior tests. The committed
 Reference Slice Acceptance Report records `Passed`; all 12 Required conditions
 are `Satisfied`; its SHA-256 Content Identity independently recomputes; and its
-source binding names clean commit `c0ff59a03eab91b96ff750f3e7fd277794c117bc`
+source binding names clean commit `95fd4f8d42b06067b7cf200b70e6b939cba3050e`
 with source-file Content Identity
-`sha256:c833807924c99eddc30c3a685db72944ad27f3e338ac03353703362db69e9cb4`.
+`sha256:faa1a4236b75765cd381fafed355d03f57a31d1e8b9f3e251ed4bfcb9910b828`.
 
 The slice proves, through the four approved public Interfaces:
 
@@ -97,3 +97,14 @@ and independently content-identified retail and cafe Sandbox Exports. Evidence
 commit `83c00e1` supersedes `2237d9e`; all 12 tests and all 12 Required
 conditions pass with expanded causation, effect-scope, stock, ledger, cash,
 Payment, and isolation invariants.
+
+The final audit then found that the fixture's Assumption and Acceptance
+Condition envelopes did not yet preserve every accepted contract field and
+that accepted business commands were all attributed to the owner. Corrected
+source commit `95fd4f8` completes those envelopes, attributes purchasing,
+receiving, retail sales, cafe sales, and kitchen work to their distinct
+fixture participants, and separates the owner who authorizes reset submission
+from the reset executor responsible for the command. Evidence commit
+`cad005c` supersedes `83c00e1`; all 12 tests and all 12 Required conditions
+pass, the acceptance-report Content Identity independently recomputes, and
+both targets finish clean and unapplied in generation 3.
