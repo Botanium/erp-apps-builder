@@ -1096,6 +1096,45 @@ test("Confidential external-AI intent with every class-specific safeguard remain
   });
 });
 
+test("unknown external-AI provider policy creates an unsupported safety Draft Blocker", async () => {
+  const system = await createInterviewSystem();
+
+  const view = await completeMinimalInterview(system, {
+    safetyAnswer: {
+      dataCategories: [
+        {
+          identity: "data-category.unknown-provider-policy",
+          name: "Unknown provider policy sentinel",
+          intentState: "Confirmed",
+          classificationIntentState: "Confirmed",
+          sensitiveDataClass: "Internal",
+          rationale:
+            "An undeclared provider policy cannot establish supported handling.",
+          externalAiHandling: "ExternalProviderRequested",
+          externalAiSafeguards: {
+            providerPolicyIdentity: "provider-policy.unknown",
+            dataMinimization: true,
+            ownerApproval: true,
+          },
+        },
+      ],
+    },
+  });
+
+  assert.deepEqual(view.ownerInterview.draftReview, {
+    disposition: "Blocked",
+    draftBlockers: [
+      {
+        code: "INTENT.DRAFT_BLOCKER.UNSUPPORTED_SAFETY_PROFILE",
+        dataCategoryIdentities: ["data-category.unknown-provider-policy"],
+        summary:
+          "An unsupported safety, jurisdiction, or data-handling profile prevents Draft Blueprint generation.",
+      },
+    ],
+    draftBlueprint: null,
+  });
+});
+
 test("data category without complete classification traceability blocks Draft generation", async () => {
   const system = await createInterviewSystem();
 
@@ -1412,6 +1451,60 @@ test("Owner Interview rejects prohibited fields nested in structured review data
       field: "medicalRecord",
       summary:
         "Owner Interview captures data categories and constraints, never live sensitive or real business data.",
+    },
+  ]);
+});
+
+test("Owner Interview rejects undeclared sensitive-data aliases without persisting them", async () => {
+  const system = await createInterviewSystem();
+  const started = await system.referenceSlice.dispatch({
+    type: "reference-slice.start-owner-interview",
+    ownerSourceIdentity: "source.owner.cedar-steam",
+  });
+  const first = await system.referenceSlice.dispatch({
+    type: "reference-slice.answer-owner-interview",
+    ownerInterviewIdentity: started.ownerInterview.identity,
+    questionIdentity: started.ownerInterview.currentQuestion.identity,
+    answer: {
+      statementIdentity: "intent-statement.purpose-and-scope",
+      intentState: "Confirmed",
+      value: "Use only fictitious sandbox data.",
+    },
+  });
+
+  const rejected = await system.referenceSlice.dispatch({
+    type: "reference-slice.answer-owner-interview",
+    ownerInterviewIdentity: started.ownerInterview.identity,
+    questionIdentity: first.ownerInterview.currentQuestion.identity,
+    answer: {
+      statementIdentity: "intent-statement.safety-and-jurisdiction",
+      intentState: "Confirmed",
+      value: "Capture declared category metadata only.",
+      dataCategories: [
+        {
+          identity: "data-category.undeclared-alias-sentinel",
+          name: "Undeclared alias sentinel",
+          classificationIntentState: "Confirmed",
+          sensitiveDataClass: "Restricted",
+          rationale: "The undeclared payload must be rejected.",
+          externalAiHandling: "Prohibited",
+          credential: "fictitious-undeclared-secret-sentinel",
+        },
+      ],
+    },
+  });
+
+  assert.equal(rejected.mode, "OwnerInterviewInputRejected");
+  assert.equal(
+    rejected.ownerInterview.intentBrief.versionIdentity,
+    first.ownerInterview.intentBrief.versionIdentity
+  );
+  assert.deepEqual(rejected.diagnostics, [
+    {
+      code: "INTENT.INPUT.UNKNOWN_FIELD",
+      field: "credential",
+      summary:
+        "Owner Interview accepts only declared structured fields and never persists unknown payload properties.",
     },
   ]);
 });

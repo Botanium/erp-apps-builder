@@ -34,6 +34,17 @@ const SENSITIVE_DATA_CLASS_RANK = Object.freeze({
   Restricted: 3,
 });
 
+const EXTERNAL_AI_HANDLING_VOCABULARY = new Set([
+  "Prohibited",
+  "ExternalProviderRequested",
+]);
+const SUPPORTED_EXTERNAL_AI_PROVIDER_POLICIES = new Set([
+  "provider-policy.local-review",
+]);
+const SUPPORTED_JURISDICTION_HANDLING_PROFILES = new Set([
+  "jurisdiction-handling.local-fictitious",
+]);
+
 const PROHIBITED_ANSWER_FIELDS = new Set([
   "liveCredential",
   "paymentCardNumber",
@@ -43,22 +54,140 @@ const PROHIBITED_ANSWER_FIELDS = new Set([
   "realCustomerData",
 ]);
 
+const stringField = () => ({ kind: "string" });
+const booleanField = () => ({ kind: "boolean" });
+const nullableStringField = () => ({ kind: "nullable-string" });
+const arrayField = (element) => ({ kind: "array", element });
+const objectField = (fields) => ({ kind: "object", fields });
+
+const STATEMENT_INPUT_SCHEMA = objectField({
+  statementIdentity: stringField(),
+  intentState: stringField(),
+  value: stringField(),
+});
+
+const EXTERNAL_AI_SAFEGUARDS_INPUT_SCHEMA = objectField({
+  providerPolicyIdentity: stringField(),
+  dataMinimization: booleanField(),
+  ownerApproval: booleanField(),
+  jurisdictionHandlingProfileIdentity: stringField(),
+  redaction: booleanField(),
+});
+
+const DATA_CATEGORY_INPUT_SCHEMA = objectField({
+  identity: stringField(),
+  name: stringField(),
+  intentState: stringField(),
+  classificationIntentState: stringField(),
+  sensitiveDataClass: stringField(),
+  componentSensitiveDataClasses: arrayField(stringField()),
+  rationale: stringField(),
+  externalAiHandling: stringField(),
+  externalAiSafeguards: EXTERNAL_AI_SAFEGUARDS_INPUT_SCHEMA,
+});
+
+const ASSUMPTION_INPUT_SCHEMA = objectField({
+  identity: stringField(),
+  intentState: stringField(),
+  proposition: stringField(),
+  proposerIdentity: stringField(),
+  rationale: stringField(),
+  affectedFactFamilies: arrayField(stringField()),
+  affectedDraftBlueprintProposals: arrayField(stringField()),
+  consequenceIfFalse: stringField(),
+  riskIfFalse: stringField(),
+  resolutionCondition: stringField(),
+  expectedEvidence: stringField(),
+  responsibleReviewerIdentity: stringField(),
+  timeSensitive: booleanField(),
+  reviewTrigger: stringField(),
+  expiresAt: nullableStringField(),
+});
+
+const ACCEPTANCE_SCOPE_INPUT_SCHEMA = objectField({
+  roleIdentities: arrayField(stringField()),
+  locationIdentities: arrayField(stringField()),
+  recordIdentities: arrayField(stringField()),
+  workflowIdentities: arrayField(stringField()),
+});
+
+const ACCEPTANCE_DEPENDENCIES_INPUT_SCHEMA = objectField({
+  assumptionIdentities: arrayField(stringField()),
+  constraintIdentities: arrayField(stringField()),
+  sensitiveDataCategoryIdentities: arrayField(stringField()),
+});
+
+const ACCEPTANCE_CONDITION_INPUT_SCHEMA = objectField({
+  identity: stringField(),
+  intentState: stringField(),
+  outcome: stringField(),
+  whyItMatters: stringField(),
+  scope: ACCEPTANCE_SCOPE_INPUT_SCHEMA,
+  startingContext: stringField(),
+  governedBusinessAction: stringField(),
+  observableResult: stringField(),
+  passCondition: stringField(),
+  failureCondition: stringField(),
+  exclusions: arrayField(stringField()),
+  evidenceRequired: arrayField(stringField()),
+  reviewerIdentity: stringField(),
+  criticality: stringField(),
+  dependencies: ACCEPTANCE_DEPENDENCIES_INPUT_SCHEMA,
+});
+
+const ANSWER_INPUT_SCHEMA = objectField({
+  statementIdentity: stringField(),
+  revisesStatementIdentity: stringField(),
+  intentState: stringField(),
+  value: stringField(),
+  additionalStatements: arrayField(STATEMENT_INPUT_SCHEMA),
+  dataCategories: arrayField(DATA_CATEGORY_INPUT_SCHEMA),
+  assumptions: arrayField(ASSUMPTION_INPUT_SCHEMA),
+  acceptanceConditions: arrayField(ACCEPTANCE_CONDITION_INPUT_SCHEMA),
+});
+
 const isNonEmptyString = (value) =>
   typeof value === "string" && value.trim().length > 0;
 
-const findProhibitedAnswerField = (value) => {
-  if (Array.isArray(value)) {
+const findAnswerSchemaViolation = (value, schema, field = "answer") => {
+  if (value === undefined) return null;
+  if (schema.kind === "string") {
+    return typeof value === "string" ? null : { kind: "type", field };
+  }
+  if (schema.kind === "nullable-string") {
+    return value === null || typeof value === "string"
+      ? null
+      : { kind: "type", field };
+  }
+  if (schema.kind === "boolean") {
+    return typeof value === "boolean" ? null : { kind: "type", field };
+  }
+  if (schema.kind === "array") {
+    if (!Array.isArray(value)) return { kind: "type", field };
     for (const item of value) {
-      const prohibitedField = findProhibitedAnswerField(item);
-      if (prohibitedField) return prohibitedField;
+      const violation = findAnswerSchemaViolation(item, schema.element, field);
+      if (violation) return violation;
     }
     return null;
   }
-  if (!value || typeof value !== "object") return null;
-  for (const [field, nestedValue] of Object.entries(value)) {
-    if (PROHIBITED_ANSWER_FIELDS.has(field)) return field;
-    const prohibitedField = findProhibitedAnswerField(nestedValue);
-    if (prohibitedField) return prohibitedField;
+  if (
+    schema.kind !== "object" ||
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value)
+  ) {
+    return { kind: "type", field };
+  }
+  for (const [nestedField, nestedValue] of Object.entries(value)) {
+    if (!Object.hasOwn(schema.fields, nestedField)) {
+      return { kind: "unknown", field: nestedField };
+    }
+    const violation = findAnswerSchemaViolation(
+      nestedValue,
+      schema.fields[nestedField],
+      nestedField
+    );
+    if (violation) return violation;
   }
   return null;
 };
@@ -340,11 +469,35 @@ const draftReviewFor = (interview, intentBrief) => {
     )
     .map((statement) => statement.identity);
   const unsupportedSafetyCategories = (intentBrief.dataCategories ?? [])
-    .filter(
-      (category) =>
+    .filter((category) => {
+      if (
         category.intentState === "Unsupported" ||
         category.classificationIntentState === "Unsupported"
-    )
+      ) {
+        return true;
+      }
+      if (!EXTERNAL_AI_HANDLING_VOCABULARY.has(category.externalAiHandling)) {
+        return true;
+      }
+      if (category.externalAiHandling === "Prohibited") return false;
+      const providerPolicyIdentity =
+        category.externalAiSafeguards?.providerPolicyIdentity;
+      if (
+        isNonEmptyString(providerPolicyIdentity) &&
+        !SUPPORTED_EXTERNAL_AI_PROVIDER_POLICIES.has(providerPolicyIdentity)
+      ) {
+        return true;
+      }
+      const jurisdictionHandlingProfileIdentity =
+        category.externalAiSafeguards?.jurisdictionHandlingProfileIdentity;
+      return (
+        category.sensitiveDataClass === "Confidential" &&
+        isNonEmptyString(jurisdictionHandlingProfileIdentity) &&
+        !SUPPORTED_JURISDICTION_HANDLING_PROFILES.has(
+          jurisdictionHandlingProfileIdentity
+        )
+      );
+    })
     .map((category) => category.identity);
   const incompleteDataCategories = (intentBrief.dataCategories ?? [])
     .filter(
@@ -542,17 +695,30 @@ export class OwnerWorkbench {
     const interview = current.interviews.find(
       (candidate) => candidate.identity === ownerInterviewIdentity
     );
-    const prohibitedField = findProhibitedAnswerField(answer);
-    if (interview && prohibitedField) {
+    const inputViolation = findAnswerSchemaViolation(
+      answer,
+      ANSWER_INPUT_SCHEMA
+    );
+    if (interview && inputViolation) {
+      const containsProhibitedData =
+        inputViolation.kind === "unknown" &&
+        PROHIBITED_ANSWER_FIELDS.has(inputViolation.field);
       return {
         kind: "OwnerInterviewInputRejection",
         ownerInterview: structuredClone(interview),
         diagnostics: [
           {
-            code: "INTENT.INPUT.PROHIBITED_DATA",
-            field: prohibitedField,
-            summary:
-              "Owner Interview captures data categories and constraints, never live sensitive or real business data.",
+            code: containsProhibitedData
+              ? "INTENT.INPUT.PROHIBITED_DATA"
+              : inputViolation.kind === "unknown"
+                ? "INTENT.INPUT.UNKNOWN_FIELD"
+                : "INTENT.INPUT.TYPE_MISMATCH",
+            field: inputViolation.field,
+            summary: containsProhibitedData
+              ? "Owner Interview captures data categories and constraints, never live sensitive or real business data."
+              : inputViolation.kind === "unknown"
+                ? "Owner Interview accepts only declared structured fields and never persists unknown payload properties."
+                : "Owner Interview requires every declared structured field to use its declared value kind.",
           },
         ],
       };
