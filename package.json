@@ -4,9 +4,12 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22.18 <27"
+    "node": ">=24 <27"
   },
   "scripts": {
+    "eve:build": "eve build --skip-sandbox-prewarm",
+    "eve:eval": "eve eval --strict --skip-report",
+    "eve:info": "eve info --json",
     "prepare": "husky",
     "reference-slice": "node src/cli.mjs",
     "test": "node --test"
@@ -15,5 +18,10 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.3.0",
     "prettier": "^3.9.6"
+  },
+  "dependencies": {
+    "ai": "7.0.48",
+    "eve": "0.29.5",
+    "zod": "4.4.3"
   }
 }

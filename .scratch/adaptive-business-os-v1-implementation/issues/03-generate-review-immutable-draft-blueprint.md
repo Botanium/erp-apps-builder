@@ -16,3 +16,7 @@
 - [ ] An active Assumption or other non-Confirmed intent cannot drive approval-eligible configuration; resolving it creates an attributable Intent Brief update and a new Draft rather than mutating the candidate.
 - [ ] Viewing or validating the Draft does not change its Draft Lifecycle State, create Blueprint Approval, compile an authoritative artifact, or provision either Sandbox Experience.
 - [ ] Public-behavior tests prove the complete review path and representative deterministic rejection paths.
+
+## Comments
+
+- 2026-08-02 — ADR 0002 adds Eve only as a removable outer delivery Adapter. Ticket 03 must continue to generate and review Draft Blueprint behavior through `ReferenceSlice.dispatch`; Eve session state, tool approval, and traces cannot become Blueprint content, Blueprint Approval, validation truth, or a new public business-authority seam.

@@ -367,3 +367,7 @@ _Avoid_: Order, invoice, kitchen note
 **Ingredient Consumption**:
 The governed inventory effect of a Kitchen Ticket's first valid transition to fulfilled, consisting of Stock Movements for its frozen normalized ingredient quantities from a Location to the consumption boundary and the linked inventory-cost Posting Set. It is not a recipe, estimate, wastage, adjustment, or Kitchen Ticket state.
 _Avoid_: Recipe, estimated usage, wastage, stock adjustment, Kitchen Ticket state
+
+**Eve Runtime Adapter**:
+A replaceable outer Adapter that uses Eve to run non-authoritative agent sessions, transport human-input requests, expose channels, correlation traces, and integration evals, and invoke only approved public Interfaces. It owns no Blueprint Approval, Human Gate Decision, Business Event, governed state, stock, ledger, authorization, provisioning, reset, or deployment truth.
+_Avoid_: Business Kernel, approval engine, generated backend, business state store, Agent Run authority
