@@ -117,6 +117,7 @@ function dispatch(state, command) {
   if (command.action === "blueprint.create-draft") return createDraft(state, command);
   if (command.action === "blueprint.approve") return approve(state, command);
   if (command.action === "sandbox.provision") return provision(state, command);
+  if (command.action === "sandbox.reset") return resetSandbox(state, command);
   if (command.action === "purchase.confirm") return confirmPurchase(state, command);
   if (command.action === "receipt.accept") return acceptReceipt(state, command);
   if (command.action === "order.accept") return acceptOrder(state, command);
@@ -127,6 +128,41 @@ function dispatch(state, command) {
   if (command.action === "kitchen.ready") return transitionKitchenTicket(state, command, "preparing", "ready");
   if (command.action === "kitchen.fulfill") return fulfillKitchenTicket(state, command);
   reject("ORC.KERNEL.SCHEMA_REJECTED", `Unsupported governed action ${command.action}.`);
+}
+
+function resetSandbox(state, command) {
+  const target = state.targets[command.targetId];
+  if (!target || command.locationId !== target.locationId || command.generationId !== target.generationId) reject("ORC.KERNEL.BASELINE_REJECTED", "Reset target, Location, or generation baseline mismatch.");
+  if (command.role !== "role.owner") reject("ORC.KERNEL.AUTHORIZATION_REJECTED", "Only the declared Owner Role may submit this sandbox Reset.");
+  const expected = command.input.expectedAppliedBlueprint;
+  if (!target.appliedBlueprint || !expected || expected.reference.versionId !== target.appliedBlueprint.reference.versionId || expected.contentIdentity !== target.appliedBlueprint.contentIdentity) reject("ORC.KERNEL.BASELINE_REJECTED", "Reset Applied Blueprint baseline mismatch.");
+  const authorization = command.input.authorization;
+  const requiredScope = ["records", "business-events", "stock-movements", "posting-sets", "payments", "balances", "fixtures"];
+  if (!authorization || authorization.tenantId !== state.tenantId || authorization.targetId !== target.targetId || authorization.generationId !== target.generationId || authorization.appliedBlueprintContentIdentity !== target.appliedBlueprint.contentIdentity || authorization.finalState !== "clean-unapplied" || JSON.stringify(authorization.deletionScope) !== JSON.stringify(requiredScope) || authorization.expiresAt < command.effectiveTime) reject("ORC.KERNEL.AUTHORIZATION_REJECTED", "Exact fresh Reset Authorization is required.");
+  const decision = command.gateDecision;
+  if (!decision || decision.response !== "Authorize Submission" || decision.subjectIdentity !== authorization.identity || decision.subjectContentIdentity !== authorization.contentIdentity) reject("ORC.KERNEL.AUTHORIZATION_REJECTED", "Exact Reset Human Gate Decision is required.");
+
+  const replacement = emptyTarget(target.targetId, target.locationId, target.generationNumber + 1);
+  const resetRecord = {
+    identity: `reset-record.${target.targetId}.${target.generationId}`,
+    tenantId: state.tenantId,
+    targetId: target.targetId,
+    beforeGenerationId: target.generationId,
+    afterGenerationId: replacement.generationId,
+    beforeAppliedBlueprint: deepClone(target.appliedBlueprint),
+    afterAppliedBlueprint: null,
+    authorization: deepClone(authorization),
+    humanGateDecision: deepClone(decision),
+    commandIdentity: command.identity,
+    deletionScope: requiredScope,
+    state: "Reset",
+    invariantResults: { cleanUnapplied: true, governancePreserved: true },
+    effectiveTime: command.effectiveTime,
+    recordedTime: command.effectiveTime,
+  };
+  state.targets[target.targetId] = replacement;
+  state.resetRecords.push(resetRecord);
+  return accepted(command, { resetRecord });
 }
 
 function acceptKitchenTicket(state, command) {

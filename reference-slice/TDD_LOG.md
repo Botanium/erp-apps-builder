@@ -61,3 +61,14 @@ test output are the durable ordering evidence.
   attempts, and partial/excess Payment behavior all preserve the declared
   effects boundary.
 - Accumulated suite: 8 tests passed.
+
+## Tracer 6: Reset and deterministic replay
+
+- Red: `npm test -- --test-name-pattern='generation replacement'` failed
+  because the explicitly authorized reset action did not exist.
+- Green: each target now uses a separate exact Reset Authorization, Human Gate,
+  idempotent Kernel Command, and atomic generation replacement. Governance
+  history survives, stale reset baselines fail without effect, reprovisioning
+  reuses the same compiled artifact, retail and cafe business results replay
+  identically, and a second reset leaves generations 3 clean and unapplied.
+- Accumulated suite: 9 tests passed.

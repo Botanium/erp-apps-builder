@@ -128,7 +128,7 @@ test("idempotency, Tenant, target, Location, generation, Applied Blueprint, and 
   slice.dispatch({ type: "scenario.retail" });
   const fixture = RETAIL_FIXTURE;
   const replay = scopedCommand(slice, {
-    identity: "command.retail.payment.accept.01",
+    identity: "command.retail.payment.accept.01.g1",
     action: "payment.accept",
     role: "role.retail-cashier",
     input: { recordId: fixture.paymentId, saleId: fixture.saleId, amountMinor: fixture.paymentMinor, currency: fixture.currency, method: "cash", receiptReference: fixture.receiptReference },
