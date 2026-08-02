@@ -16,3 +16,7 @@
 - [ ] Interview completion, preview viewing, option selection, and AI-generated wording create no Blueprint Approval or governed execution authority.
 - [ ] The interview captures no live credentials, card numbers, identity documents, medical records, Restricted external-AI payloads, or real customer data.
 - [ ] Public-behavior tests demonstrate both the owner-reviewable happy path and fail-closed blocker paths through the Guided Cockpit.
+
+## Comments
+
+- 2026-08-02 — Claimed for Gate 11 on branch `codex/ticket-02-owner-interview-intent-brief`, stacked from reviewed Ticket 01 head `6afb53d` while draft PR #1 remains unmerged. The TDD public behavior seam must be owner-confirmed before the first failing test; no implementation has begun.
