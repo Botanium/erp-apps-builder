@@ -44,6 +44,23 @@ const PROHIBITED_ANSWER_FIELDS = new Set([
 const isNonEmptyString = (value) =>
   typeof value === "string" && value.length > 0;
 
+const findProhibitedAnswerField = (value) => {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const prohibitedField = findProhibitedAnswerField(item);
+      if (prohibitedField) return prohibitedField;
+    }
+    return null;
+  }
+  if (!value || typeof value !== "object") return null;
+  for (const [field, nestedValue] of Object.entries(value)) {
+    if (PROHIBITED_ANSWER_FIELDS.has(field)) return field;
+    const prohibitedField = findProhibitedAnswerField(nestedValue);
+    if (prohibitedField) return prohibitedField;
+  }
+  return null;
+};
+
 const FIRST_QUESTION = Object.freeze({
   identity: "owner-interview.question.purpose-and-scope",
   factFamily: "purpose-and-scope",
@@ -207,18 +224,30 @@ const attributableAssumption = (assumption, interview, recordedTime) => {
 const attributableDataCategory = (category, interview, recordedTime) => {
   const content = structuredClone(category);
   const componentClasses = content.componentSensitiveDataClasses ?? [];
-  const inheritedClass = [content.sensitiveDataClass, ...componentClasses]
-    .filter((candidate) => candidate in SENSITIVE_DATA_CLASS_RANK)
-    .sort(
+  const primaryClassIsValid =
+    content.sensitiveDataClass in SENSITIVE_DATA_CLASS_RANK;
+  const componentClassesAreValid =
+    Array.isArray(componentClasses) &&
+    componentClasses.every(
+      (candidate) => candidate in SENSITIVE_DATA_CLASS_RANK
+    );
+  if (primaryClassIsValid && componentClassesAreValid) {
+    const inheritedClass = [
+      content.sensitiveDataClass,
+      ...componentClasses,
+    ].sort(
       (left, right) =>
         SENSITIVE_DATA_CLASS_RANK[right] - SENSITIVE_DATA_CLASS_RANK[left]
     )[0];
-  const effectiveClass = UNRESOLVED_INTENT_STATES.has(content.intentState)
-    ? "Restricted"
-    : inheritedClass;
-  if (effectiveClass !== content.sensitiveDataClass) {
-    content.classificationProposal = content.sensitiveDataClass;
-    content.sensitiveDataClass = effectiveClass;
+    const effectiveClass = UNRESOLVED_INTENT_STATES.has(
+      content.classificationIntentState
+    )
+      ? "Restricted"
+      : inheritedClass;
+    if (effectiveClass !== content.sensitiveDataClass) {
+      content.classificationProposal = content.sensitiveDataClass;
+      content.sensitiveDataClass = effectiveClass;
+    }
   }
   return {
     ...content,
@@ -226,14 +255,216 @@ const attributableDataCategory = (category, interview, recordedTime) => {
   };
 };
 
-export class OwnerWorkbench {
-  constructor({ identitySource }) {
-    this.identitySource = identitySource;
-    this.interviews = new Map();
-    this.intentBriefVersions = new Map();
+const blockedDraftReview = (draftBlocker) => ({
+  disposition: "Blocked",
+  draftBlockers: [draftBlocker],
+  draftBlueprint: null,
+});
+
+const draftReviewFor = (interview, intentBrief) => {
+  const missingFactFamilies = interview.factFamilyProgress
+    .filter((family) => family.disposition === "Unanswered")
+    .map((family) => family.identity);
+  if (missingFactFamilies.length > 0) {
+    return blockedDraftReview({
+      code: "INTENT.DRAFT_BLOCKER.REQUIRED_FACT_FAMILY_MISSING",
+      factFamilies: missingFactFamilies,
+      summary:
+        "Every required fact family must be represented before a Draft Blueprint may be proposed.",
+    });
   }
 
-  start({ tenantIdentity, ownerSourceIdentity }) {
+  const hasConfirmedPurpose = intentBrief.statements.some(
+    (candidate) =>
+      candidate.factFamily === "purpose-and-scope" &&
+      candidate.intentState === "Confirmed" &&
+      typeof candidate.value === "string" &&
+      candidate.value.trim().length > 0
+  );
+  const hasConfirmedRequiredAcceptance = (
+    intentBrief.acceptanceConditions ?? []
+  ).some(
+    (condition) =>
+      condition.intentState === "Confirmed" &&
+      condition.criticality === "Required"
+  );
+  const incompleteStatements = intentBrief.statements
+    .filter(
+      (statement) =>
+        !isNonEmptyString(statement.identity) ||
+        !FACT_FAMILIES.includes(statement.factFamily) ||
+        !INTENT_STATES.has(statement.intentState) ||
+        statement.source?.kind !== "Owner" ||
+        !isNonEmptyString(statement.source?.identity) ||
+        !isNonEmptyString(statement.source?.recordedTime)
+    )
+    .map((statement) => statement.identity ?? null);
+  const restrictedExternalAiCategories = (intentBrief.dataCategories ?? [])
+    .filter(
+      (category) =>
+        category.sensitiveDataClass === "Restricted" &&
+        category.externalAiHandling !== "Prohibited"
+    )
+    .map((category) => category.identity);
+  const unsupportedSafetyStatements = intentBrief.statements
+    .filter(
+      (statement) =>
+        statement.factFamily === "safety-and-jurisdiction" &&
+        statement.intentState === "Unsupported"
+    )
+    .map((statement) => statement.identity);
+  const incompleteDataCategories = (intentBrief.dataCategories ?? [])
+    .filter(
+      (category) =>
+        !isNonEmptyString(category.identity) ||
+        !isNonEmptyString(category.name) ||
+        !INTENT_STATES.has(category.intentState) ||
+        !INTENT_STATES.has(category.classificationIntentState) ||
+        !(category.sensitiveDataClass in SENSITIVE_DATA_CLASS_RANK) ||
+        (category.componentSensitiveDataClasses !== undefined &&
+          (!Array.isArray(category.componentSensitiveDataClasses) ||
+            category.componentSensitiveDataClasses.some(
+              (candidate) => !(candidate in SENSITIVE_DATA_CLASS_RANK)
+            ))) ||
+        !isNonEmptyString(category.rationale) ||
+        !isNonEmptyString(category.source?.identity)
+    )
+    .map((category) => category.identity ?? null);
+  const incompleteAssumptions = (intentBrief.assumptions ?? [])
+    .filter(
+      (assumption) =>
+        !isNonEmptyString(assumption.identity) ||
+        assumption.intentState !== "Assumed" ||
+        !isNonEmptyString(assumption.proposition) ||
+        !isNonEmptyString(assumption.proposer?.identity) ||
+        !isNonEmptyString(assumption.source?.identity) ||
+        !isNonEmptyString(assumption.rationale) ||
+        !Array.isArray(assumption.affectedFactFamilies) ||
+        !Array.isArray(assumption.affectedDraftBlueprintProposals) ||
+        assumption.affectedFactFamilies.length +
+          assumption.affectedDraftBlueprintProposals.length ===
+          0 ||
+        !isNonEmptyString(assumption.consequenceIfFalse) ||
+        !isNonEmptyString(assumption.riskIfFalse) ||
+        !isNonEmptyString(assumption.resolutionCondition) ||
+        !isNonEmptyString(assumption.expectedEvidence) ||
+        !isNonEmptyString(assumption.responsibleReviewerIdentity) ||
+        (assumption.timeSensitive === true &&
+          !isNonEmptyString(assumption.reviewTrigger) &&
+          !isNonEmptyString(assumption.expiresAt))
+    )
+    .map((assumption) => assumption.identity ?? null);
+  const incompleteAcceptanceConditions = (
+    intentBrief.acceptanceConditions ?? []
+  )
+    .filter(
+      (condition) =>
+        !isNonEmptyString(condition.identity) ||
+        !isNonEmptyString(condition.intentState) ||
+        !isNonEmptyString(condition.outcome) ||
+        !isNonEmptyString(condition.whyItMatters) ||
+        !condition.scope ||
+        !Array.isArray(condition.scope.roleIdentities) ||
+        !Array.isArray(condition.scope.locationIdentities) ||
+        !Array.isArray(condition.scope.recordIdentities) ||
+        !Array.isArray(condition.scope.workflowIdentities) ||
+        !isNonEmptyString(condition.startingContext) ||
+        !isNonEmptyString(condition.governedBusinessAction) ||
+        !isNonEmptyString(condition.observableResult) ||
+        !isNonEmptyString(condition.passCondition) ||
+        !isNonEmptyString(condition.failureCondition) ||
+        !Array.isArray(condition.exclusions) ||
+        !Array.isArray(condition.evidenceRequired) ||
+        condition.evidenceRequired.length === 0 ||
+        !isNonEmptyString(condition.reviewerIdentity) ||
+        !["Required", "Desired"].includes(condition.criticality) ||
+        !condition.dependencies ||
+        !Array.isArray(condition.dependencies.assumptionIdentities) ||
+        !Array.isArray(condition.dependencies.constraintIdentities) ||
+        !Array.isArray(
+          condition.dependencies.sensitiveDataCategoryIdentities
+        ) ||
+        !isNonEmptyString(condition.source?.identity)
+    )
+    .map((condition) => condition.identity ?? null);
+
+  if (incompleteStatements.length > 0) {
+    return blockedDraftReview({
+      code: "INTENT.DRAFT_BLOCKER.STATEMENT_TRACEABILITY_INCOMPLETE",
+      statementIdentities: incompleteStatements,
+      summary:
+        "Every material statement requires exactly one supported Intent State and an attributable source.",
+    });
+  }
+  if (!hasConfirmedPurpose) {
+    return blockedDraftReview({
+      code: "INTENT.DRAFT_BLOCKER.CONFIRMED_PURPOSE_REQUIRED",
+      summary:
+        "A Confirmed owner purpose is required to anchor a meaningful Draft Blueprint proposal.",
+    });
+  }
+  if (incompleteAcceptanceConditions.length > 0) {
+    return blockedDraftReview({
+      code: "INTENT.DRAFT_BLOCKER.ACCEPTANCE_CONDITION_INCOMPLETE",
+      acceptanceConditionIdentities: incompleteAcceptanceConditions,
+      summary:
+        "Every Acceptance Condition requires an attributable outcome, scope, observable boundary, Evidence path, reviewer, criticality, and dependencies.",
+    });
+  }
+  if (!hasConfirmedRequiredAcceptance) {
+    return blockedDraftReview({
+      code: "INTENT.DRAFT_BLOCKER.CONFIRMED_REQUIRED_ACCEPTANCE_CONDITION_REQUIRED",
+      summary:
+        "A Confirmed Required Acceptance Condition is required to anchor a meaningful Draft Blueprint proposal.",
+    });
+  }
+  if (unsupportedSafetyStatements.length > 0) {
+    return blockedDraftReview({
+      code: "INTENT.DRAFT_BLOCKER.UNSUPPORTED_SAFETY_PROFILE",
+      statementIdentities: unsupportedSafetyStatements,
+      summary:
+        "An unsupported safety, jurisdiction, or data-handling profile prevents Draft Blueprint generation.",
+    });
+  }
+  if (incompleteDataCategories.length > 0) {
+    return blockedDraftReview({
+      code: "INTENT.DRAFT_BLOCKER.SENSITIVE_DATA_CLASSIFICATION_INCOMPLETE",
+      dataCategoryIdentities: incompleteDataCategories,
+      summary:
+        "Every named data category requires one supported Sensitive Data Class, rationale, and attributable source.",
+    });
+  }
+  if (incompleteAssumptions.length > 0) {
+    return blockedDraftReview({
+      code: "INTENT.DRAFT_BLOCKER.ASSUMPTION_INCOMPLETE",
+      assumptionIdentities: incompleteAssumptions,
+      summary:
+        "Every Assumption requires attributable provisional scope, risk, and a complete resolution path.",
+    });
+  }
+  if (restrictedExternalAiCategories.length > 0) {
+    return blockedDraftReview({
+      code: "INTENT.DRAFT_BLOCKER.RESTRICTED_EXTERNAL_AI_FORBIDDEN",
+      dataCategoryIdentities: restrictedExternalAiCategories,
+      summary:
+        "Restricted data must never be sent to an external AI provider in v1.",
+    });
+  }
+  return {
+    disposition: "ReadyForDraftProposal",
+    draftBlockers: [],
+    draftBlueprint: null,
+  };
+};
+
+export class OwnerWorkbench {
+  constructor({ identitySource, store }) {
+    this.identitySource = identitySource;
+    this.store = store;
+  }
+
+  async start({ tenantIdentity, ownerSourceIdentity }) {
+    const current = await this.store.read();
     const interview = {
       identity: this.identitySource.next(),
       tenantIdentity,
@@ -245,16 +476,24 @@ export class OwnerWorkbench {
       currentQuestion: structuredClone(FIRST_QUESTION),
       intentBrief: null,
     };
-    this.interviews.set(interview.identity, interview);
-    this.intentBriefVersions.set(interview.identity, []);
-    return structuredClone(interview);
+    const committed = await this.store.transact(current.revision, (state) => {
+      state.interviews.push(structuredClone(interview));
+      return { state, result: interview };
+    });
+    return committed.result;
   }
 
-  answer({ ownerInterviewIdentity, questionIdentity, answer, recordedTime }) {
-    const interview = this.interviews.get(ownerInterviewIdentity);
-    const prohibitedField = Object.keys(answer).find((field) =>
-      PROHIBITED_ANSWER_FIELDS.has(field)
+  async answer({
+    ownerInterviewIdentity,
+    questionIdentity,
+    answer,
+    recordedTime,
+  }) {
+    const current = await this.store.read();
+    const interview = current.interviews.find(
+      (candidate) => candidate.identity === ownerInterviewIdentity
     );
+    const prohibitedField = findProhibitedAnswerField(answer);
     if (interview && prohibitedField) {
       return {
         kind: "OwnerInterviewInputRejection",
@@ -272,13 +511,22 @@ export class OwnerWorkbench {
     const revisedStatement = interview?.intentBrief?.statements.find(
       (statement) => statement.identity === answer.revisesStatementIdentity
     );
+    const question = QUESTIONS.find(
+      (candidate) => candidate.identity === questionIdentity
+    );
     const isCurrentQuestion =
-      interview?.currentQuestion.identity === questionIdentity;
+      interview?.currentQuestion?.identity === questionIdentity;
     const isKnownCorrection =
-      revisedStatement?.factFamily ===
-      QUESTIONS.find((question) => question.identity === questionIdentity)
-        ?.factFamily;
-    if (!interview || (!isCurrentQuestion && !isKnownCorrection)) {
+      revisedStatement?.factFamily === question?.factFamily;
+    const revisionWasRequested = isNonEmptyString(
+      answer.revisesStatementIdentity
+    );
+    if (
+      !interview ||
+      !question ||
+      (revisionWasRequested && !revisedStatement) ||
+      (!isCurrentQuestion && !isKnownCorrection)
+    ) {
       throw new Error("The Owner Interview question is stale or unknown.");
     }
 
@@ -286,7 +534,7 @@ export class OwnerWorkbench {
     const statement = attributableStatement({
       ...answer,
       factFamily:
-        revisedStatement?.factFamily ?? interview.currentQuestion.factFamily,
+        revisedStatement?.factFamily ?? interview.currentQuestion?.factFamily,
       interview,
       recordedTime,
     });
@@ -294,7 +542,7 @@ export class OwnerWorkbench {
       (additional) =>
         attributableStatement({
           ...additional,
-          factFamily: interview.currentQuestion.factFamily,
+          factFamily: question.factFamily,
           interview,
           recordedTime,
         })
@@ -343,9 +591,6 @@ export class OwnerWorkbench {
       ...(acceptanceConditions.length > 0 ? { acceptanceConditions } : {}),
     };
     interview.intentBrief = intentBrief;
-    this.intentBriefVersions
-      .get(interview.identity)
-      .push(structuredClone(intentBrief));
     if (!revisedStatement) {
       const answeredQuestionIndex = QUESTIONS.findIndex(
         (question) => question.identity === questionIdentity
@@ -355,247 +600,32 @@ export class OwnerWorkbench {
       interview.currentQuestion = QUESTIONS[answeredQuestionIndex + 1]
         ? structuredClone(QUESTIONS[answeredQuestionIndex + 1])
         : null;
-      const missingFactFamilies = interview.factFamilyProgress
-        .filter((family) => family.disposition === "Unanswered")
-        .map((family) => family.identity);
-      if (missingFactFamilies.length > 0) {
-        interview.draftReview = {
-          disposition: "Blocked",
-          draftBlockers: [
-            {
-              code: "INTENT.DRAFT_BLOCKER.REQUIRED_FACT_FAMILY_MISSING",
-              factFamilies: missingFactFamilies,
-              summary:
-                "Every required fact family must be represented before a Draft Blueprint may be proposed.",
-            },
-          ],
-          draftBlueprint: null,
-        };
-      } else {
-        const hasConfirmedPurpose = intentBrief.statements.some(
-          (candidate) =>
-            candidate.factFamily === "purpose-and-scope" &&
-            candidate.intentState === "Confirmed"
-        );
-        const hasConfirmedRequiredAcceptance = (
-          intentBrief.acceptanceConditions ?? []
-        ).some(
-          (condition) =>
-            condition.intentState === "Confirmed" &&
-            condition.criticality === "Required"
-        );
-        const incompleteStatements = intentBrief.statements
-          .filter(
-            (statement) =>
-              !isNonEmptyString(statement.identity) ||
-              !FACT_FAMILIES.includes(statement.factFamily) ||
-              !INTENT_STATES.has(statement.intentState) ||
-              statement.source?.kind !== "Owner" ||
-              !isNonEmptyString(statement.source?.identity) ||
-              !isNonEmptyString(statement.source?.recordedTime)
-          )
-          .map((statement) => statement.identity ?? null);
-        const restrictedExternalAiCategories = (
-          intentBrief.dataCategories ?? []
-        )
-          .filter(
-            (category) =>
-              category.sensitiveDataClass === "Restricted" &&
-              category.externalAiHandling !== "Prohibited"
-          )
-          .map((category) => category.identity);
-        const unsupportedSafetyStatements = intentBrief.statements
-          .filter(
-            (statement) =>
-              statement.factFamily === "safety-and-jurisdiction" &&
-              statement.intentState === "Unsupported"
-          )
-          .map((statement) => statement.identity);
-        const incompleteDataCategories = (intentBrief.dataCategories ?? [])
-          .filter(
-            (category) =>
-              typeof category.identity !== "string" ||
-              typeof category.name !== "string" ||
-              !(category.sensitiveDataClass in SENSITIVE_DATA_CLASS_RANK) ||
-              typeof category.rationale !== "string" ||
-              category.rationale.length === 0 ||
-              typeof category.source?.identity !== "string"
-          )
-          .map((category) => category.identity ?? null);
-        const incompleteAssumptions = (intentBrief.assumptions ?? [])
-          .filter(
-            (assumption) =>
-              !isNonEmptyString(assumption.identity) ||
-              assumption.intentState !== "Assumed" ||
-              !isNonEmptyString(assumption.proposition) ||
-              !isNonEmptyString(assumption.proposer?.identity) ||
-              !isNonEmptyString(assumption.source?.identity) ||
-              !isNonEmptyString(assumption.rationale) ||
-              !Array.isArray(assumption.affectedFactFamilies) ||
-              !Array.isArray(assumption.affectedDraftBlueprintProposals) ||
-              assumption.affectedFactFamilies.length +
-                assumption.affectedDraftBlueprintProposals.length ===
-                0 ||
-              !isNonEmptyString(assumption.consequenceIfFalse) ||
-              !isNonEmptyString(assumption.riskIfFalse) ||
-              !isNonEmptyString(assumption.resolutionCondition) ||
-              !isNonEmptyString(assumption.expectedEvidence) ||
-              !isNonEmptyString(assumption.responsibleReviewerIdentity) ||
-              !isNonEmptyString(assumption.reviewTrigger)
-          )
-          .map((assumption) => assumption.identity ?? null);
-        const incompleteAcceptanceConditions = (
-          intentBrief.acceptanceConditions ?? []
-        )
-          .filter(
-            (condition) =>
-              !isNonEmptyString(condition.identity) ||
-              !isNonEmptyString(condition.intentState) ||
-              !isNonEmptyString(condition.outcome) ||
-              !isNonEmptyString(condition.whyItMatters) ||
-              !condition.scope ||
-              !Array.isArray(condition.scope.roleIdentities) ||
-              !Array.isArray(condition.scope.locationIdentities) ||
-              !Array.isArray(condition.scope.recordIdentities) ||
-              !Array.isArray(condition.scope.workflowIdentities) ||
-              !isNonEmptyString(condition.startingContext) ||
-              !isNonEmptyString(condition.governedBusinessAction) ||
-              !isNonEmptyString(condition.observableResult) ||
-              !isNonEmptyString(condition.passCondition) ||
-              !isNonEmptyString(condition.failureCondition) ||
-              !Array.isArray(condition.exclusions) ||
-              !Array.isArray(condition.evidenceRequired) ||
-              condition.evidenceRequired.length === 0 ||
-              !isNonEmptyString(condition.reviewerIdentity) ||
-              !["Required", "Desired"].includes(condition.criticality) ||
-              !condition.dependencies ||
-              !Array.isArray(condition.dependencies.assumptionIdentities) ||
-              !Array.isArray(condition.dependencies.constraintIdentities) ||
-              !Array.isArray(
-                condition.dependencies.sensitiveDataCategoryIdentities
-              ) ||
-              !isNonEmptyString(condition.source?.identity)
-          )
-          .map((condition) => condition.identity ?? null);
-        if (incompleteStatements.length > 0) {
-          interview.draftReview = {
-            disposition: "Blocked",
-            draftBlockers: [
-              {
-                code: "INTENT.DRAFT_BLOCKER.STATEMENT_TRACEABILITY_INCOMPLETE",
-                statementIdentities: incompleteStatements,
-                summary:
-                  "Every material statement requires exactly one supported Intent State and an attributable source.",
-              },
-            ],
-            draftBlueprint: null,
-          };
-        } else if (!hasConfirmedPurpose) {
-          interview.draftReview = {
-            disposition: "Blocked",
-            draftBlockers: [
-              {
-                code: "INTENT.DRAFT_BLOCKER.CONFIRMED_PURPOSE_REQUIRED",
-                summary:
-                  "A Confirmed owner purpose is required to anchor a meaningful Draft Blueprint proposal.",
-              },
-            ],
-            draftBlueprint: null,
-          };
-        } else if (incompleteAcceptanceConditions.length > 0) {
-          interview.draftReview = {
-            disposition: "Blocked",
-            draftBlockers: [
-              {
-                code: "INTENT.DRAFT_BLOCKER.ACCEPTANCE_CONDITION_INCOMPLETE",
-                acceptanceConditionIdentities: incompleteAcceptanceConditions,
-                summary:
-                  "Every Acceptance Condition requires an attributable outcome, scope, observable boundary, Evidence path, reviewer, criticality, and dependencies.",
-              },
-            ],
-            draftBlueprint: null,
-          };
-        } else if (!hasConfirmedRequiredAcceptance) {
-          interview.draftReview = {
-            disposition: "Blocked",
-            draftBlockers: [
-              {
-                code: "INTENT.DRAFT_BLOCKER.CONFIRMED_REQUIRED_ACCEPTANCE_CONDITION_REQUIRED",
-                summary:
-                  "A Confirmed Required Acceptance Condition is required to anchor a meaningful Draft Blueprint proposal.",
-              },
-            ],
-            draftBlueprint: null,
-          };
-        } else if (unsupportedSafetyStatements.length > 0) {
-          interview.draftReview = {
-            disposition: "Blocked",
-            draftBlockers: [
-              {
-                code: "INTENT.DRAFT_BLOCKER.UNSUPPORTED_SAFETY_PROFILE",
-                statementIdentities: unsupportedSafetyStatements,
-                summary:
-                  "An unsupported safety, jurisdiction, or data-handling profile prevents Draft Blueprint generation.",
-              },
-            ],
-            draftBlueprint: null,
-          };
-        } else if (incompleteDataCategories.length > 0) {
-          interview.draftReview = {
-            disposition: "Blocked",
-            draftBlockers: [
-              {
-                code: "INTENT.DRAFT_BLOCKER.SENSITIVE_DATA_CLASSIFICATION_INCOMPLETE",
-                dataCategoryIdentities: incompleteDataCategories,
-                summary:
-                  "Every named data category requires one supported Sensitive Data Class, rationale, and attributable source.",
-              },
-            ],
-            draftBlueprint: null,
-          };
-        } else if (incompleteAssumptions.length > 0) {
-          interview.draftReview = {
-            disposition: "Blocked",
-            draftBlockers: [
-              {
-                code: "INTENT.DRAFT_BLOCKER.ASSUMPTION_INCOMPLETE",
-                assumptionIdentities: incompleteAssumptions,
-                summary:
-                  "Every Assumption requires attributable provisional scope, risk, and a complete resolution path.",
-              },
-            ],
-            draftBlueprint: null,
-          };
-        } else if (restrictedExternalAiCategories.length > 0) {
-          interview.draftReview = {
-            disposition: "Blocked",
-            draftBlockers: [
-              {
-                code: "INTENT.DRAFT_BLOCKER.RESTRICTED_EXTERNAL_AI_FORBIDDEN",
-                dataCategoryIdentities: restrictedExternalAiCategories,
-                summary:
-                  "Restricted data must never be sent to an external AI provider in v1.",
-              },
-            ],
-            draftBlueprint: null,
-          };
-        } else {
-          interview.draftReview = {
-            disposition: "ReadyForDraftProposal",
-            draftBlockers: [],
-            draftBlueprint: null,
-          };
-        }
-      }
     }
-    return structuredClone(interview);
+    interview.draftReview = draftReviewFor(interview, intentBrief);
+    const committed = await this.store.transact(current.revision, (state) => {
+      const interviewIndex = state.interviews.findIndex(
+        (candidate) => candidate.identity === interview.identity
+      );
+      state.interviews[interviewIndex] = structuredClone(interview);
+      state.intentBriefVersions.push({
+        ownerInterviewIdentity: interview.identity,
+        intentBrief: structuredClone(intentBrief),
+      });
+      return { state, result: interview };
+    });
+    return committed.result;
   }
 
-  review({ ownerInterviewIdentity, versionIdentity }) {
-    const interview = this.interviews.get(ownerInterviewIdentity);
-    const intentBrief = this.intentBriefVersions
-      .get(ownerInterviewIdentity)
-      ?.find((version) => version.versionIdentity === versionIdentity);
+  async review({ ownerInterviewIdentity, versionIdentity }) {
+    const state = await this.store.read();
+    const interview = state.interviews.find(
+      (candidate) => candidate.identity === ownerInterviewIdentity
+    );
+    const intentBrief = state.intentBriefVersions.find(
+      (version) =>
+        version.ownerInterviewIdentity === ownerInterviewIdentity &&
+        version.intentBrief.versionIdentity === versionIdentity
+    )?.intentBrief;
     if (!interview || !intentBrief) {
       throw new Error("The Intent Brief Version is unknown.");
     }

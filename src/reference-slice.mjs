@@ -10,14 +10,20 @@ import {
 } from "./contracts.mjs";
 import { createKernelCommand } from "./kernel-command.mjs";
 import { OwnerWorkbench } from "./owner-workbench.mjs";
+import {
+  AtomicJsonOwnerWorkbenchStore,
+  MemoryOwnerWorkbenchStore,
+} from "./owner-workbench-store.mjs";
 import { AtomicJsonStore, MemoryStore } from "./store.mjs";
 
-/**
- * @typedef {{type: string}} OwnerOrControlAction
- */
+/** @typedef {{type: "reference-slice.start-empty-authority-shell"}} StartEmptyAuthorityShellAction */
+/** @typedef {{type: "reference-slice.start-owner-interview", ownerSourceIdentity: string}} StartOwnerInterviewAction */
+/** @typedef {{type: "reference-slice.answer-owner-interview", ownerInterviewIdentity: string, questionIdentity: string, answer: object}} AnswerOwnerInterviewAction */
+/** @typedef {{type: "reference-slice.review-intent-brief", ownerInterviewIdentity: string, versionIdentity: string}} ReviewIntentBriefAction */
+/** @typedef {StartEmptyAuthorityShellAction | StartOwnerInterviewAction | AnswerOwnerInterviewAction | ReviewIntentBriefAction} OwnerOrControlAction */
 
 /**
- * @typedef {object} ReferenceSliceView
+ * @typedef {object} EmptyAuthoritySliceView
  * @property {"ReferenceSliceView"} kind
  * @property {object} run
  * @property {object} scope
@@ -25,6 +31,33 @@ import { AtomicJsonStore, MemoryStore } from "./store.mjs";
  * @property {object} business
  * @property {object} initialization
  */
+
+/**
+ * @typedef {object} OwnerInterviewSliceView
+ * @property {"ReferenceSliceView"} kind
+ * @property {"OwnerInterview"} mode
+ * @property {object} ownerInterview
+ * @property {object} authority
+ */
+
+/**
+ * @typedef {object} OwnerInterviewInputRejectedSliceView
+ * @property {"ReferenceSliceView"} kind
+ * @property {"OwnerInterviewInputRejected"} mode
+ * @property {object} ownerInterview
+ * @property {object[]} diagnostics
+ * @property {object} authority
+ */
+
+/**
+ * @typedef {object} IntentBriefReviewSliceView
+ * @property {"ReferenceSliceView"} kind
+ * @property {"IntentBriefReview"} mode
+ * @property {object} ownerInterview
+ * @property {object} authority
+ */
+
+/** @typedef {EmptyAuthoritySliceView | OwnerInterviewSliceView | OwnerInterviewInputRejectedSliceView | IntentBriefReviewSliceView} ReferenceSliceView */
 
 export class ReferenceSlice {
   /**
@@ -39,7 +72,7 @@ export class ReferenceSlice {
   }
 
   /**
-   * Execute the one owner-visible Ticket 01 journey through the Kernel seams.
+   * Dispatch a supported owner or local control action through its public seam.
    * @param {OwnerOrControlAction} action
    * @returns {Promise<ReferenceSliceView>}
    */
@@ -48,7 +81,7 @@ export class ReferenceSlice {
       return {
         kind: "ReferenceSliceView",
         mode: "IntentBriefReview",
-        ownerInterview: this.ownerWorkbench.review({
+        ownerInterview: await this.ownerWorkbench.review({
           ownerInterviewIdentity: action.ownerInterviewIdentity,
           versionIdentity: action.versionIdentity,
         }),
@@ -62,7 +95,7 @@ export class ReferenceSlice {
     }
 
     if (action.type === REFERENCE_ACTION.answerOwnerInterview) {
-      const outcome = this.ownerWorkbench.answer({
+      const outcome = await this.ownerWorkbench.answer({
         ownerInterviewIdentity: action.ownerInterviewIdentity,
         questionIdentity: action.questionIdentity,
         answer: action.answer,
@@ -101,7 +134,7 @@ export class ReferenceSlice {
       return {
         kind: "ReferenceSliceView",
         mode: "OwnerInterview",
-        ownerInterview: this.ownerWorkbench.start({
+        ownerInterview: await this.ownerWorkbench.start({
           tenantIdentity: EMPTY_REFERENCE_SCOPE.tenantIdentity,
           ownerSourceIdentity: action.ownerSourceIdentity,
         }),
@@ -156,7 +189,7 @@ export class ReferenceSlice {
 }
 
 /**
- * Compose the four public seams over one selected internal Store Adapter.
+ * Compose the public reference slice over the selected local Store Adapters.
  * @param {object} options
  * @param {{kind: "memory"}|{kind: "atomic-json", stateFile: string}} options.persistence
  * @param {{now: () => string}} options.clock
@@ -168,17 +201,25 @@ export const createLocalReferenceSlice = async ({
   identitySource = { next: () => randomUUID() },
 }) => {
   let store;
+  let ownerWorkbenchStore;
   if (persistence.kind === "memory") {
     store = new MemoryStore();
+    ownerWorkbenchStore = new MemoryOwnerWorkbenchStore();
   } else if (persistence.kind === "atomic-json") {
     store = await AtomicJsonStore.create({
       stateFile: persistence.stateFile,
+    });
+    ownerWorkbenchStore = await AtomicJsonOwnerWorkbenchStore.create({
+      stateFile: `${persistence.stateFile}.owner-workbench.json`,
     });
   } else {
     throw new TypeError("Unsupported local persistence Adapter.");
   }
   const businessKernel = new BusinessKernel({ store });
-  const ownerWorkbench = new OwnerWorkbench({ identitySource });
+  const ownerWorkbench = new OwnerWorkbench({
+    identitySource,
+    store: ownerWorkbenchStore,
+  });
   const acceptanceEvaluator = new AcceptanceEvaluator();
   const referenceSlice = new ReferenceSlice({
     businessKernel,

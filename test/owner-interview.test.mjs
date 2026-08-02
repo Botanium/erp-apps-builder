@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
 import { createLocalReferenceSlice } from "../src/reference-slice.mjs";
@@ -17,6 +20,7 @@ const createInterviewSystem = async () => {
     "intent-brief-version.test-006",
     "intent-brief-version.test-007",
     "intent-brief-version.test-008",
+    "intent-brief-version.test-009",
   ];
   const system = await createLocalReferenceSlice({
     persistence: { kind: "memory" },
@@ -60,6 +64,7 @@ const completeMinimalInterview = async (
   system,
   {
     purposeIntentState = "Confirmed",
+    purposeValue = "Prove shared retail and cafe behavior with fictitious data.",
     acceptanceConditions = [requiredAcceptanceCondition()],
     safetyAnswer = {},
     businessShapeAnswer = {},
@@ -73,7 +78,7 @@ const completeMinimalInterview = async (
     {
       statementIdentity: "intent-statement.purpose-and-scope",
       intentState: purposeIntentState,
-      value: "Prove shared retail and cafe behavior with fictitious data.",
+      value: purposeValue,
       acceptanceConditions,
     },
     {
@@ -336,6 +341,52 @@ test("corrected intent creates a new version without rewriting the prior Intent 
   );
 });
 
+test("completed interview correction creates a new version and recomputes Draft Blockers", async () => {
+  const system = await createInterviewSystem();
+  const completed = await completeMinimalInterview(system);
+
+  const corrected = await system.referenceSlice.dispatch({
+    type: "reference-slice.answer-owner-interview",
+    ownerInterviewIdentity: completed.ownerInterview.identity,
+    questionIdentity: "owner-interview.question.purpose-and-scope",
+    answer: {
+      statementIdentity: "intent-statement.purpose-and-scope",
+      revisesStatementIdentity: "intent-statement.purpose-and-scope",
+      intentState: "Ambiguous",
+      value: "Retail and cafe reuse may require different boundaries.",
+    },
+  });
+
+  assert.deepEqual(
+    {
+      versionIdentity: corrected.ownerInterview.intentBrief.versionIdentity,
+      versionNumber: corrected.ownerInterview.intentBrief.versionNumber,
+      parentVersionIdentity:
+        corrected.ownerInterview.intentBrief.parentVersionIdentity,
+      purposeIntentState: corrected.ownerInterview.intentBrief.statements.find(
+        (statement) => statement.factFamily === "purpose-and-scope"
+      ).intentState,
+    },
+    {
+      versionIdentity: "intent-brief-version.test-009",
+      versionNumber: 9,
+      parentVersionIdentity: "intent-brief-version.test-008",
+      purposeIntentState: "Ambiguous",
+    }
+  );
+  assert.deepEqual(corrected.ownerInterview.draftReview, {
+    disposition: "Blocked",
+    draftBlockers: [
+      {
+        code: "INTENT.DRAFT_BLOCKER.CONFIRMED_PURPOSE_REQUIRED",
+        summary:
+          "A Confirmed owner purpose is required to anchor a meaningful Draft Blueprint proposal.",
+      },
+    ],
+    draftBlueprint: null,
+  });
+});
+
 test("complete supported interview produces all eight fact families and review contracts", async () => {
   const system = await createInterviewSystem();
   let view = await system.referenceSlice.dispatch({
@@ -400,6 +451,7 @@ test("complete supported interview produces all eight fact families and review c
           identity: "data-category.fictitious-business-data",
           name: "Fictitious business setup data",
           intentState: "Confirmed",
+          classificationIntentState: "Confirmed",
           sensitiveDataClass: "Internal",
           rationale:
             "The setup is non-public operating context and contains no real personal, financial, credential, identity, or clinical data.",
@@ -567,6 +619,7 @@ test("complete supported interview produces all eight fact families and review c
       identity: "data-category.fictitious-business-data",
       name: "Fictitious business setup data",
       intentState: "Confirmed",
+      classificationIntentState: "Confirmed",
       sensitiveDataClass: "Internal",
       rationale:
         "The setup is non-public operating context and contains no real personal, financial, credential, identity, or clinical data.",
@@ -711,6 +764,26 @@ test("Ambiguous owner purpose remains visible and blocks Draft Blueprint generat
   });
 });
 
+test("empty Confirmed owner purpose cannot anchor Draft Blueprint generation", async () => {
+  const system = await createInterviewSystem();
+
+  const view = await completeMinimalInterview(system, {
+    purposeValue: "",
+  });
+
+  assert.deepEqual(view.ownerInterview.draftReview, {
+    disposition: "Blocked",
+    draftBlockers: [
+      {
+        code: "INTENT.DRAFT_BLOCKER.CONFIRMED_PURPOSE_REQUIRED",
+        summary:
+          "A Confirmed owner purpose is required to anchor a meaningful Draft Blueprint proposal.",
+      },
+    ],
+    draftBlueprint: null,
+  });
+});
+
 test("absence of a Confirmed Required Acceptance Condition blocks Draft generation", async () => {
   const system = await createInterviewSystem();
 
@@ -740,7 +813,8 @@ test("Ambiguous data classification is handled as Restricted without losing attr
         {
           identity: "data-category.customer-contact",
           name: "Customer contact category",
-          intentState: "Ambiguous",
+          intentState: "Confirmed",
+          classificationIntentState: "Ambiguous",
           sensitiveDataClass: "Internal",
           rationale:
             "The owner has not yet separated personal contact details from operational notes.",
@@ -754,7 +828,8 @@ test("Ambiguous data classification is handled as Restricted without losing attr
     {
       identity: "data-category.customer-contact",
       name: "Customer contact category",
-      intentState: "Ambiguous",
+      intentState: "Confirmed",
+      classificationIntentState: "Ambiguous",
       sensitiveDataClass: "Restricted",
       classificationProposal: "Internal",
       rationale:
@@ -773,6 +848,45 @@ test("Ambiguous data classification is handled as Restricted without losing attr
   );
 });
 
+test("invalid primary Sensitive Data Class is not repaired from a valid component class", async () => {
+  const system = await createInterviewSystem();
+
+  const view = await completeMinimalInterview(system, {
+    safetyAnswer: {
+      dataCategories: [
+        {
+          identity: "data-category.invalid-primary-class",
+          name: "Invalid primary class sentinel",
+          intentState: "Confirmed",
+          classificationIntentState: "Confirmed",
+          sensitiveDataClass: "NotAClass",
+          componentSensitiveDataClasses: ["Confidential"],
+          rationale:
+            "The invalid class must remain visible and fail closed rather than being repaired.",
+          externalAiHandling: "Prohibited",
+        },
+      ],
+    },
+  });
+
+  assert.equal(
+    view.ownerInterview.intentBrief.dataCategories[0].sensitiveDataClass,
+    "NotAClass"
+  );
+  assert.deepEqual(view.ownerInterview.draftReview, {
+    disposition: "Blocked",
+    draftBlockers: [
+      {
+        code: "INTENT.DRAFT_BLOCKER.SENSITIVE_DATA_CLASSIFICATION_INCOMPLETE",
+        dataCategoryIdentities: ["data-category.invalid-primary-class"],
+        summary:
+          "Every named data category requires one supported Sensitive Data Class, rationale, and attributable source.",
+      },
+    ],
+    draftBlueprint: null,
+  });
+});
+
 test("mixed data inherits the most restrictive Sensitive Data Class", async () => {
   const system = await createInterviewSystem();
 
@@ -783,6 +897,7 @@ test("mixed data inherits the most restrictive Sensitive Data Class", async () =
           identity: "data-category.mixed-operations-and-customer",
           name: "Mixed operational and customer data",
           intentState: "Confirmed",
+          classificationIntentState: "Confirmed",
           sensitiveDataClass: "Internal",
           componentSensitiveDataClasses: ["Internal", "Confidential"],
           rationale:
@@ -818,6 +933,7 @@ test("Restricted external-AI intent creates a safety Draft Blocker", async () =>
           identity: "data-category.restricted-sentinel",
           name: "Restricted category sentinel",
           intentState: "Confirmed",
+          classificationIntentState: "Confirmed",
           sensitiveDataClass: "Restricted",
           rationale:
             "This fictitious category represents data that the declared policy forbids from external processing.",
@@ -851,6 +967,7 @@ test("data category without complete classification traceability blocks Draft ge
           identity: "data-category.incomplete-sentinel",
           name: "Incomplete classification sentinel",
           intentState: "Confirmed",
+          classificationIntentState: "Confirmed",
           sensitiveDataClass: "Internal",
           externalAiHandling: "Prohibited",
         },
@@ -864,6 +981,39 @@ test("data category without complete classification traceability blocks Draft ge
       {
         code: "INTENT.DRAFT_BLOCKER.SENSITIVE_DATA_CLASSIFICATION_INCOMPLETE",
         dataCategoryIdentities: ["data-category.incomplete-sentinel"],
+        summary:
+          "Every named data category requires one supported Sensitive Data Class, rationale, and attributable source.",
+      },
+    ],
+    draftBlueprint: null,
+  });
+});
+
+test("data category without its own classification Intent State blocks Draft generation", async () => {
+  const system = await createInterviewSystem();
+
+  const view = await completeMinimalInterview(system, {
+    safetyAnswer: {
+      dataCategories: [
+        {
+          identity: "data-category.missing-classification-state",
+          name: "Missing classification state sentinel",
+          intentState: "Confirmed",
+          sensitiveDataClass: "Internal",
+          rationale:
+            "The category meaning is confirmed but its classification decision is not attributable.",
+          externalAiHandling: "Prohibited",
+        },
+      ],
+    },
+  });
+
+  assert.deepEqual(view.ownerInterview.draftReview, {
+    disposition: "Blocked",
+    draftBlockers: [
+      {
+        code: "INTENT.DRAFT_BLOCKER.SENSITIVE_DATA_CLASSIFICATION_INCOMPLETE",
+        dataCategoryIdentities: ["data-category.missing-classification-state"],
         summary:
           "Every named data category requires one supported Sensitive Data Class, rationale, and attributable source.",
       },
@@ -899,6 +1049,44 @@ test("incomplete Assumption envelope blocks Draft generation", async () => {
           "Every Assumption requires attributable provisional scope, risk, and a complete resolution path.",
       },
     ],
+    draftBlueprint: null,
+  });
+});
+
+test("non-time-sensitive Assumption does not require a review trigger or expiry", async () => {
+  const system = await createInterviewSystem();
+
+  const view = await completeMinimalInterview(system, {
+    businessShapeAnswer: {
+      assumptions: [
+        {
+          identity: "assumption.non-time-sensitive",
+          intentState: "Assumed",
+          proposition:
+            "One illustrative operating-hours profile is sufficient for review.",
+          proposerIdentity: "source.agent.local",
+          rationale:
+            "The exact fictitious hours do not affect governed execution truth.",
+          affectedFactFamilies: ["business-shape"],
+          affectedDraftBlueprintProposals: [
+            "experience.operating-hours-display",
+          ],
+          consequenceIfFalse:
+            "The later Draft may need a different presentation-only schedule.",
+          riskIfFalse: "No governed action or invariant changes.",
+          resolutionCondition:
+            "The owner confirms or rejects the illustrative schedule.",
+          expectedEvidence: "An attributable owner schedule decision.",
+          responsibleReviewerIdentity: "source.owner.cedar-steam",
+          timeSensitive: false,
+        },
+      ],
+    },
+  });
+
+  assert.deepEqual(view.ownerInterview.draftReview, {
+    disposition: "ReadyForDraftProposal",
+    draftBlockers: [],
     draftBlueprint: null,
   });
 });
@@ -1012,6 +1200,60 @@ test("Owner Interview rejects prohibited live or real-data fields without creati
   }
 });
 
+test("Owner Interview rejects prohibited fields nested in structured review data", async () => {
+  const system = await createInterviewSystem();
+  const started = await system.referenceSlice.dispatch({
+    type: "reference-slice.start-owner-interview",
+    ownerSourceIdentity: "source.owner.cedar-steam",
+  });
+  const first = await system.referenceSlice.dispatch({
+    type: "reference-slice.answer-owner-interview",
+    ownerInterviewIdentity: started.ownerInterview.identity,
+    questionIdentity: started.ownerInterview.currentQuestion.identity,
+    answer: {
+      statementIdentity: "intent-statement.purpose-and-scope",
+      intentState: "Confirmed",
+      value: "Use only fictitious sandbox data.",
+    },
+  });
+
+  const rejected = await system.referenceSlice.dispatch({
+    type: "reference-slice.answer-owner-interview",
+    ownerInterviewIdentity: started.ownerInterview.identity,
+    questionIdentity: first.ownerInterview.currentQuestion.identity,
+    answer: {
+      statementIdentity: "intent-statement.safety-and-jurisdiction",
+      intentState: "Confirmed",
+      value: "Capture category names and constraints only.",
+      dataCategories: [
+        {
+          identity: "data-category.nested-prohibited-sentinel",
+          name: "Nested prohibited sentinel",
+          classificationIntentState: "Confirmed",
+          sensitiveDataClass: "Restricted",
+          rationale: "The category is prohibited from capture.",
+          externalAiHandling: "Prohibited",
+          medicalRecord: "fictitious-prohibited-value-sentinel",
+        },
+      ],
+    },
+  });
+
+  assert.equal(rejected.mode, "OwnerInterviewInputRejected");
+  assert.equal(
+    rejected.ownerInterview.intentBrief.versionIdentity,
+    first.ownerInterview.intentBrief.versionIdentity
+  );
+  assert.deepEqual(rejected.diagnostics, [
+    {
+      code: "INTENT.INPUT.PROHIBITED_DATA",
+      field: "medicalRecord",
+      summary:
+        "Owner Interview captures data categories and constraints, never live sensitive or real business data.",
+    },
+  ]);
+});
+
 test("Unsupported safety profile remains visible and blocks Draft generation", async () => {
   const system = await createInterviewSystem();
 
@@ -1039,4 +1281,57 @@ test("Unsupported safety profile remains visible and blocks Draft generation", a
     ],
     draftBlueprint: null,
   });
+});
+
+test("atomic local slice reopens one exact immutable Intent Brief Version through dispatch", async (t) => {
+  const runDirectory = await mkdtemp(join(tmpdir(), "abos-ticket-02-reopen-"));
+  t.after(() => rm(runDirectory, { recursive: true, force: true }));
+  const stateFile = join(runDirectory, "state.json");
+  const identities = [
+    "orchestration-run.owner-interview.persisted",
+    "kernel-command.initialize.owner-interview.persisted",
+    "owner-interview.persisted",
+    "intent-brief.persisted",
+    "intent-brief-version.persisted-001",
+  ];
+  const first = await createLocalReferenceSlice({
+    persistence: { kind: "atomic-json", stateFile },
+    clock: { now: () => "2026-01-15T09:00:00.000Z" },
+    identitySource: { next: () => identities.shift() },
+  });
+  await first.referenceSlice.dispatch({
+    type: "reference-slice.start-empty-authority-shell",
+  });
+  const started = await first.referenceSlice.dispatch({
+    type: "reference-slice.start-owner-interview",
+    ownerSourceIdentity: "source.owner.cedar-steam",
+  });
+  const answered = await first.referenceSlice.dispatch({
+    type: "reference-slice.answer-owner-interview",
+    ownerInterviewIdentity: started.ownerInterview.identity,
+    questionIdentity: started.ownerInterview.currentQuestion.identity,
+    answer: {
+      statementIdentity: "intent-statement.purpose-and-scope",
+      intentState: "Confirmed",
+      value: "Use only fictitious sandbox data.",
+    },
+  });
+
+  const reopened = await createLocalReferenceSlice({
+    persistence: { kind: "atomic-json", stateFile },
+    clock: { now: () => "2026-01-15T09:00:01.000Z" },
+    identitySource: {
+      next: () => "orchestration-run.owner-interview.reopened",
+    },
+  });
+  const reviewed = await reopened.referenceSlice.dispatch({
+    type: "reference-slice.review-intent-brief",
+    ownerInterviewIdentity: started.ownerInterview.identity,
+    versionIdentity: answered.ownerInterview.intentBrief.versionIdentity,
+  });
+
+  assert.deepEqual(
+    reviewed.ownerInterview.intentBrief,
+    answered.ownerInterview.intentBrief
+  );
 });
