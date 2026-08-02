@@ -429,7 +429,10 @@ governed path.
       tests and 12 Satisfied Required conditions.
 - [x] Close the canonical map with no in-scope fog.
 - [x] Synthesize and owner-approve the v1 `1.0.0` specification.
-- [ ] Create and review Gate 9 tracer-bullet implementation tickets.
+- [x] Create and owner-approve Gate 9 tracer-bullet implementation tickets.
+- [x] Establish the Gate 10 npm, Husky, lint-staged, Prettier, and Node test
+      feedback loop.
+- [ ] Confirm Ticket 01's public test seams before beginning Gate 11 TDD.
 
 ## Standing safety boundary
 
