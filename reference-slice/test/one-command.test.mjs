@@ -39,6 +39,15 @@ test("one command writes complete Passed JSON and owner-readable HTML after fina
   assert.equal(report.evidence.final.targets.cafe.appliedBlueprint, null);
   assert.equal(report.evidence.final.targets.retail.generationNumber, 3);
   assert.equal(report.evidence.final.targets.cafe.generationNumber, 3);
+  assert.equal(report.evidence.final.commands.length, report.evidence.final.commandResults.length);
+  for (const phase of [report.evidence.firstRun, report.evidence.replay, report.evidence.final]) {
+    for (const targetId of ["retail", "cafe"]) {
+      const exported = phase.sandboxExports[targetId];
+      const { contentIdentity: exportIdentity, ...exportBody } = exported;
+      assert.equal(exportIdentity, contentIdentity(exportBody));
+      assert.equal(exported.targetId, targetId);
+    }
+  }
   assert.equal(persistedState.targets.retail.records.length, 0);
   assert.equal(persistedState.targets.cafe.records.length, 0);
 
@@ -54,4 +63,3 @@ test("one command writes complete Passed JSON and owner-readable HTML after fina
     "Sandbox-only exclusions",
   ]) assert.match(html, new RegExp(text));
 });
-

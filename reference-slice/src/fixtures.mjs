@@ -133,7 +133,31 @@ export function createBlueprint(versionNumber, intentBrief, counterServiceState)
       tier: "medium",
       exclusions: ["tables", "reservations", "delivery", "tips", "loyalty", "advanced-recipe-costing"],
     },
-    capabilitySelections: CAPABILITIES.map(capability => ({ ...capability })),
+    capabilitySelections: CAPABILITIES.map(capability => capability.identity === "capability.catalog" ? {
+      ...capability,
+      settings: {
+        items: [
+          { identity: "catalog.widget", normalizedUnit: "each" },
+          { identity: "ingredient.beans", normalizedUnit: "g" },
+          { identity: "ingredient.milk", normalizedUnit: "ml" },
+        ],
+        menuItems: [{
+          identity: "menu.cortado",
+          basePriceMinor: 800,
+          currency: "USD",
+          ingredientRequirements: [
+            { itemId: "ingredient.beans", quantity: 18, unit: "g" },
+            { itemId: "ingredient.milk", quantity: 120, unit: "ml" },
+          ],
+        }],
+        modifiers: [{
+          identity: "modifier.extra-shot",
+          priceMinor: 100,
+          currency: "USD",
+          ingredientRequirements: [{ itemId: "ingredient.beans", quantity: 9, unit: "g" }],
+        }],
+      },
+    } : { ...capability }),
     recordDefinitions: ["Purchase Order", "Supplier Receipt", "Order", "Sale", "Payment", "Kitchen Ticket"].map(identity => ({ identity, version: "1.0.0" })),
     workflowDefinitions: [
       { identity: "workflow.retail-golden", version: "1.0.0", states: ["accepted", "fulfilled", "cancelled"] },

@@ -28,11 +28,30 @@ export function createReferenceSlice({ store = new MemoryStore(createKernelState
       session.blueprint = createBlueprint(2, session.intentBrief, "Confirmed");
       session.lastResult = kernel.submit(makeCommand({ identity: "command.blueprint.create.v2", action: "blueprint.create-draft", input: { blueprint: session.blueprint } }));
     } else if (action.type === "approval.authorize") {
-      const gate = { identity: "human-gate.blueprint-approval.v2", type: "Kernel Submission Gate", subjectVersionId: session.blueprint.reference.versionId, subjectContentIdentity: session.blueprint.contentIdentity };
-      const decision = { identity: "human-gate-decision.blueprint-approval.v2", gateId: gate.identity, response: "Authorize Submission", subjectVersionId: gate.subjectVersionId, subjectContentIdentity: gate.subjectContentIdentity, responder: "participant.owner.fixture" };
+      const commandInput = { reference: session.blueprint.reference, contentIdentity: session.blueprint.contentIdentity, approvalBaseline: null };
+      const proposedCommand = makeCommand({ identity: "command.blueprint.approve.v2", action: "blueprint.approve", input: commandInput, gateDecision: null });
+      const gate = {
+        identity: "human-gate.blueprint-approval.v2",
+        type: "Kernel Submission Gate",
+        subjectVersionId: session.blueprint.reference.versionId,
+        subjectContentIdentity: session.blueprint.contentIdentity,
+        subjectCommandIdentity: proposedCommand.identity,
+        subjectCommandContentIdentity: proposedCommand.contentIdentity,
+        nonEffect: "Authorize Submission does not create Blueprint Approval, provisioning, or governed business truth; the Business Kernel may still reject the command.",
+      };
+      const decision = {
+        identity: "human-gate-decision.blueprint-approval.v2",
+        gateId: gate.identity,
+        response: "Authorize Submission",
+        subjectVersionId: gate.subjectVersionId,
+        subjectContentIdentity: gate.subjectContentIdentity,
+        subjectCommandIdentity: gate.subjectCommandIdentity,
+        subjectCommandContentIdentity: gate.subjectCommandContentIdentity,
+        responder: "participant.owner.fixture",
+      };
       session.humanGates.push(gate);
       session.humanGateDecisions.push(decision);
-      session.lastResult = kernel.submit(makeCommand({ identity: "command.blueprint.approve.v2", action: "blueprint.approve", input: { reference: session.blueprint.reference, contentIdentity: session.blueprint.contentIdentity, approvalBaseline: null }, gateDecision: decision }));
+      session.lastResult = kernel.submit(makeCommand({ identity: proposedCommand.identity, action: "blueprint.approve", input: commandInput, gateDecision: decision }));
     } else if (action.type === "provision.all") {
       session.provisionRequestNumber += 1;
       const approved = kernel.observe().currentApprovedBlueprint;
@@ -161,23 +180,7 @@ function resetAll(kernel, session) {
       expiresAt: "2026-01-16T09:00:00.000Z",
     };
     const authorization = { ...authorizationBody, contentIdentity: contentIdentity(authorizationBody) };
-    const gate = {
-      identity: `human-gate.reset.${targetId}.${target.generationId}`,
-      type: "Kernel Submission Gate",
-      subjectIdentity: authorization.identity,
-      subjectContentIdentity: authorization.contentIdentity,
-    };
-    const decision = {
-      identity: `human-gate-decision.reset.${targetId}.${target.generationId}`,
-      gateId: gate.identity,
-      response: "Authorize Submission",
-      subjectIdentity: authorization.identity,
-      subjectContentIdentity: authorization.contentIdentity,
-      responder: "participant.owner.fixture",
-    };
-    session.humanGates.push(gate);
-    session.humanGateDecisions.push(decision);
-    const command = makeCommand({
+    const commandArguments = {
       identity: `command.reset.${targetId}.${target.generationId}`,
       action: "sandbox.reset",
       targetId,
@@ -185,8 +188,30 @@ function resetAll(kernel, session) {
       generationId: target.generationId,
       role: "role.owner",
       input: { expectedAppliedBlueprint: target.appliedBlueprint, authorization },
-      gateDecision: decision,
-    });
+    };
+    const proposedCommand = makeCommand({ ...commandArguments, gateDecision: null });
+    const gate = {
+      identity: `human-gate.reset.${targetId}.${target.generationId}`,
+      type: "Kernel Submission Gate",
+      subjectIdentity: authorization.identity,
+      subjectContentIdentity: authorization.contentIdentity,
+      subjectCommandIdentity: proposedCommand.identity,
+      subjectCommandContentIdentity: proposedCommand.contentIdentity,
+      nonEffect: "Authorize Submission does not reset the Sandbox; the Business Kernel must independently accept the unchanged command.",
+    };
+    const decision = {
+      identity: `human-gate-decision.reset.${targetId}.${target.generationId}`,
+      gateId: gate.identity,
+      response: "Authorize Submission",
+      subjectIdentity: authorization.identity,
+      subjectContentIdentity: authorization.contentIdentity,
+      subjectCommandIdentity: gate.subjectCommandIdentity,
+      subjectCommandContentIdentity: gate.subjectCommandContentIdentity,
+      responder: "participant.owner.fixture",
+    };
+    session.humanGates.push(gate);
+    session.humanGateDecisions.push(decision);
+    const command = makeCommand({ ...commandArguments, gateDecision: decision });
     commands.push(command);
     results.push(kernel.submit(command));
   }

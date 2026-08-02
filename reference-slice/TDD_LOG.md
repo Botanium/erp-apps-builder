@@ -101,3 +101,19 @@ test output are the durable ordering evidence.
   remaining Payment reaches zero, and an excess Payment now returns
   `ORC.KERNEL.INVARIANT_REJECTED` with no Payment, Posting Set, cash, account,
   or other governed effect.
+
+## Readiness-audit correction: canonical effects and exports
+
+- Red: the audit test found that outbound Stock Movements encoded negative
+  quantities, Ledger Entries lacked their own attributable identities and
+  scope, gated decisions did not bind an exact proposed Kernel Command, command
+  replay material was incomplete, and no explicit Sandbox Export artifact was
+  observable.
+- Green: every Stock Movement now carries positive quantity and value plus
+  source and destination; every Ledger Entry is immutable, identified, scoped,
+  and linked through its Posting Set to the causal Business Event; approval and
+  reset gates bind exact proposed commands; durable command bindings make exact
+  replay observable; and each target exposes a scoped, minimized,
+  content-identified Sandbox Export whose causation, stock, ledger, cash,
+  Payment, and isolation invariants independently recompute.
+- Accumulated suite: 12 tests passed.

@@ -163,8 +163,13 @@ function observeNegativeMatrix(evidence) {
 
 function observeInvariants(evidence) {
   const reports = [evidence.firstRun?.retail, evidence.firstRun?.cafe, evidence.replay?.retail, evidence.replay?.cafe];
-  if (reports.some(report => !report)) return undefined;
-  return result(reports.every(report => Object.values(report.invariants ?? {}).every(Boolean) && report.trialBalance?.differenceMinor === 0), ["firstRun", "replay"]);
+  const exports = [evidence.firstRun?.sandboxExports?.retail, evidence.firstRun?.sandboxExports?.cafe, evidence.replay?.sandboxExports?.retail, evidence.replay?.sandboxExports?.cafe];
+  if (reports.some(report => !report) || exports.some(item => !item)) return undefined;
+  const exportsValid = exports.every(item => {
+    const { contentIdentity: recorded, ...body } = item;
+    return recorded === contentIdentity(body) && Object.values(item.derived.invariants).every(Boolean);
+  });
+  return result(reports.every(report => Object.values(report.invariants ?? {}).every(Boolean) && report.trialBalance?.differenceMinor === 0) && exportsValid, ["firstRun", "replay"]);
 }
 
 function observeReplay(evidence) {
@@ -187,8 +192,14 @@ function observeBudget(evidence) {
 
 function observeDataBoundary(evidence) {
   const boundary = evidence.dataBoundary;
-  if (!boundary) return undefined;
-  return result(boundary.fictitiousOnly === true && boundary.externalAi === "absent" && boundary.networkIntegrations === "absent" && boundary.productionAuthority === "absent" && boundary.restrictedDataCategories === 0 && boundary.exclusions?.includes("production-deployment"), ["dataBoundary"]);
+  const exports = evidence.firstRun?.sandboxExports;
+  if (!boundary || !exports) return undefined;
+  const retailText = canonicalJson(exports.retail);
+  const cafeText = canonicalJson(exports.cafe);
+  const isolated = exports.retail.targetId === "retail" && exports.cafe.targetId === "cafe"
+    && !retailText.includes("tenant.isolation-sentinel") && !cafeText.includes("tenant.isolation-sentinel")
+    && !retailText.includes("generation.cafe") && !cafeText.includes("generation.retail");
+  return result(boundary.fictitiousOnly === true && boundary.externalAi === "absent" && boundary.networkIntegrations === "absent" && boundary.productionAuthority === "absent" && boundary.restrictedDataCategories === 0 && boundary.exclusions?.includes("production-deployment") && isolated, ["dataBoundary", "firstRun.sandboxExports"]);
 }
 
 function observeControlCompletion(evidence) {

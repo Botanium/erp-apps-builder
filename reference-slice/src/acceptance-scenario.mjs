@@ -30,6 +30,7 @@ export function executeAcceptanceScenario(store, source) {
   const cafeRun = slice.dispatch({ type: "scenario.cafe" });
   const cafeResult = deepClone(cafeRun.lastResult);
   const cafeSummary = deepClone(cafeRun.business.cafe);
+  const firstSandboxExports = sandboxExports(slice.kernel);
   const afterFirstRun = slice.kernel.observe();
 
   const resetOne = slice.dispatch({ type: "reset.all" });
@@ -48,8 +49,10 @@ export function executeAcceptanceScenario(store, source) {
   const replayRetail = deepClone(replayRetailRun.business.retail);
   const replayCafeRun = slice.dispatch({ type: "scenario.cafe" });
   const replayCafe = deepClone(replayCafeRun.business.cafe);
+  const replaySandboxExports = sandboxExports(slice.kernel);
   const resetTwo = slice.dispatch({ type: "reset.all" });
   const final = slice.kernel.observe();
+  const finalSandboxExports = sandboxExports(slice.kernel);
 
   const firstBusiness = comparableBusiness(retailSummary, cafeSummary);
   const replayBusiness = comparableBusiness(replayRetail, replayCafe);
@@ -153,6 +156,7 @@ export function executeAcceptanceScenario(store, source) {
       retailCheckpoints: retailResult.checkpoints,
       cafe: cafeSummary,
       cafeCheckpoints: cafeResult.checkpoints,
+      sandboxExports: firstSandboxExports,
       businessContentIdentity: contentIdentity(firstBusiness),
     },
     negativePaths: negative.paths,
@@ -165,6 +169,7 @@ export function executeAcceptanceScenario(store, source) {
     replay: {
       retail: replayRetail,
       cafe: replayCafe,
+      sandboxExports: replaySandboxExports,
       businessContentIdentity: contentIdentity(replayBusiness),
       provisioningAttempts: reprovision.kernel.provisioningAttempts.slice(-2),
     },
@@ -180,6 +185,8 @@ export function executeAcceptanceScenario(store, source) {
     },
     final: {
       targets: final.targets,
+      sandboxExports: finalSandboxExports,
+      commands: Object.values(final.commandBindings).map(binding => binding.command),
       commandResults: final.commandResults,
       commandResultCount: final.commandResults.length,
       resetRecords: final.resetRecords,
@@ -378,6 +385,20 @@ function reviewBundle(versionOne, versionTwo) {
 
 function finalGates(slice) {
   return slice.view().humanGates.map((gate, index) => ({ ...gate, decision: slice.view().humanGateDecisions[index] }));
+}
+
+function sandboxExports(kernel) {
+  return Object.fromEntries(["retail", "cafe"].map(targetId => {
+    const target = kernel.observe({ type: "target", targetId });
+    return [targetId, kernel.observe({
+      type: "sandbox-export",
+      tenantId: target.tenantId,
+      targetId,
+      locationId: target.locationId,
+      generationId: target.generationId,
+      role: "role.owner",
+    })];
+  }));
 }
 
 function comparableBusiness(retail, cafe) {

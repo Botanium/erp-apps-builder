@@ -96,7 +96,7 @@ export class BusinessKernel {
       }
       if (result.disposition === "Accepted") Object.assign(candidate, working);
       candidate.commandResults.push(result);
-      candidate.commandBindings[command.identity] = { contentIdentity: command.contentIdentity, result };
+      candidate.commandBindings[command.identity] = { contentIdentity: command.contentIdentity, command: deepClone(command), result };
       return result;
     });
     if (!transaction.committed) return { commandIdentity: command.identity, action: command.action, disposition: "Rejected", code: "BASELINE_CONFLICT", diagnostics: [{ code: "ORC.BASELINE.KERNEL_BASELINE_CHANGED" }] };
@@ -108,6 +108,7 @@ export class BusinessKernel {
     if (query.type === "snapshot") return state;
     if (query.type === "target") return deepClone(state.targets[query.targetId] ?? null);
     if (query.type === "target-summary") return deriveTargetSummary(state.targets[query.targetId] ?? null);
+    if (query.type === "sandbox-export") return createSandboxExport(state, query);
     throw new Error(`Unsupported Kernel query ${query.type}.`);
   }
 }
@@ -140,7 +141,7 @@ function resetSandbox(state, command) {
   const requiredScope = ["records", "business-events", "stock-movements", "posting-sets", "payments", "balances", "fixtures"];
   if (!authorization || authorization.tenantId !== state.tenantId || authorization.targetId !== target.targetId || authorization.generationId !== target.generationId || authorization.appliedBlueprintContentIdentity !== target.appliedBlueprint.contentIdentity || authorization.finalState !== "clean-unapplied" || JSON.stringify(authorization.deletionScope) !== JSON.stringify(requiredScope) || authorization.expiresAt < command.effectiveTime) reject("ORC.KERNEL.AUTHORIZATION_REJECTED", "Exact fresh Reset Authorization is required.");
   const decision = command.gateDecision;
-  if (!decision || decision.response !== "Authorize Submission" || decision.subjectIdentity !== authorization.identity || decision.subjectContentIdentity !== authorization.contentIdentity) reject("ORC.KERNEL.AUTHORIZATION_REJECTED", "Exact Reset Human Gate Decision is required.");
+  if (!decision || decision.response !== "Authorize Submission" || decision.subjectIdentity !== authorization.identity || decision.subjectContentIdentity !== authorization.contentIdentity || decision.subjectCommandIdentity !== command.identity || decision.subjectCommandContentIdentity !== proposedCommandContentIdentity(command)) reject("ORC.KERNEL.AUTHORIZATION_REJECTED", "Exact Reset Human Gate Decision is required.");
 
   const replacement = emptyTarget(target.targetId, target.locationId, target.generationNumber + 1);
   const resetRecord = {
@@ -205,7 +206,7 @@ function fulfillKitchenTicket(state, command) {
   });
   const costMinor = costs.reduce((sum, line) => sum + line.costMinor, 0);
   const eventId = `business-event.${command.identity}`;
-  const movements = costs.map((line, index) => movementFrom(command, eventId, `${saleId}.${index + 1}`, line.itemId, line.unit, -line.quantity, -line.costMinor, target.locationId, "boundary.consumption"));
+  const movements = costs.map((line, index) => movementFrom(command, eventId, `${saleId}.${index + 1}`, line.itemId, line.unit, line.quantity, line.costMinor, target.locationId, "boundary.consumption"));
   const commercial = postingSetFrom(command, eventId, `posting-set.${saleId}.commercial`, order.currency, [
     debit("Accounts Receivable", order.totalMinor),
     credit("Sales Revenue", order.totalMinor),
@@ -218,7 +219,7 @@ function fulfillKitchenTicket(state, command) {
   ticket.stateHistory.push("fulfilled");
   order.state = "fulfilled";
   const sale = recordFrom(command, "Sale", saleId, "fulfilled", { orderId: order.identity, kitchenTicketId: ticket.identity, currency: order.currency, totalMinor: order.totalMinor, costMinor });
-  const event = eventFrom(command, "kitchen-ticket-fulfilled", [ticket.identity, order.identity, sale.identity, ...movements.map(item => item.identity), commercial.identity, inventory.identity]);
+  const event = eventFrom(command, "kitchen-ticket-fulfilled", [ticket.identity, order.identity, sale.identity, ...movements.map(item => item.identity), commercial.identity, ...commercial.entries.map(item => item.identity), inventory.identity, ...inventory.entries.map(item => item.identity)]);
   target.records.push(sale);
   target.events.push(event);
   target.movements.push(...movements);
@@ -253,7 +254,7 @@ function acceptReceipt(state, command) {
     credit("Accounts Payable", totalMinor),
   ]);
   const record = recordFrom(command, "Supplier Receipt", recordId, "accepted", { purchaseOrderId, lines, currency });
-  const event = eventFrom(command, "supplier-receipt-accepted", [recordId, ...movements.map(item => item.identity), postingSet.identity]);
+  const event = eventFrom(command, "supplier-receipt-accepted", [recordId, ...movements.map(item => item.identity), postingSet.identity, ...postingSet.entries.map(item => item.identity)]);
   target.records.push(record);
   target.events.push(event);
   target.movements.push(...movements);
@@ -289,7 +290,7 @@ function fulfillSale(state, command) {
   });
   const costMinor = costs.reduce((sum, line) => sum + line.costMinor, 0);
   const eventId = `business-event.${command.identity}`;
-  const movements = costs.map((line, index) => movementFrom(command, eventId, `${recordId}.${index + 1}`, line.itemId, line.unit, -line.quantity, -line.costMinor, target.locationId, "boundary.customer"));
+  const movements = costs.map((line, index) => movementFrom(command, eventId, `${recordId}.${index + 1}`, line.itemId, line.unit, line.quantity, line.costMinor, target.locationId, "boundary.customer"));
   const commercial = postingSetFrom(command, eventId, `posting-set.${recordId}.commercial`, order.currency, [
     debit("Accounts Receivable", order.totalMinor),
     credit("Sales Revenue", order.totalMinor),
@@ -300,7 +301,7 @@ function fulfillSale(state, command) {
   ]);
   order.state = "fulfilled";
   const record = recordFrom(command, "Sale", recordId, "fulfilled", { orderId, currency: order.currency, totalMinor: order.totalMinor, costMinor });
-  const event = eventFrom(command, "sale-fulfilled", [recordId, orderId, ...movements.map(item => item.identity), commercial.identity, inventory.identity]);
+  const event = eventFrom(command, "sale-fulfilled", [recordId, orderId, ...movements.map(item => item.identity), commercial.identity, ...commercial.entries.map(item => item.identity), inventory.identity, ...inventory.entries.map(item => item.identity)]);
   target.records.push(record);
   target.events.push(event);
   target.movements.push(...movements);
@@ -339,7 +340,7 @@ function acceptPayment(state, command) {
     receiptReference,
     businessEventId: eventId,
   };
-  const event = eventFrom(command, "payment-accepted", [payment.identity, postingSet.identity]);
+  const event = eventFrom(command, "payment-accepted", [payment.identity, postingSet.identity, ...postingSet.entries.map(item => item.identity)]);
   target.records.push(payment);
   target.payments.push(payment);
   target.events.push(event);
@@ -394,15 +395,16 @@ function effectMeta(command) {
 }
 
 function recordFrom(command, type, identity, state, fields) {
-  return { ...effectMeta(command), identity, type, state, ...deepClone(fields) };
+  return { ...effectMeta(command), identity, type, state, businessEventId: `business-event.${command.identity}`, ...deepClone(fields) };
 }
 
 function eventFrom(command, eventType, effectReferences) {
   return { ...effectMeta(command), identity: `business-event.${command.identity}`, type: "Business Event", eventType, causation: command.identity, effectReferences };
 }
 
-function movementFrom(command, eventId, suffix, itemId, unit, signedQuantity, signedValueMinor, source, destination) {
-  return { ...effectMeta(command), identity: `stock-movement.${suffix}`, type: "Stock Movement", itemId, unit, signedQuantity, signedValueMinor, source, destination, businessEventId: eventId };
+function movementFrom(command, eventId, suffix, itemId, unit, quantity, valueMinor, source, destination) {
+  if (!Number.isInteger(quantity) || quantity <= 0 || !Number.isInteger(valueMinor) || valueMinor <= 0 || source === destination) reject("ORC.KERNEL.INVARIANT_REJECTED", "Stock Movement must transfer positive quantity and value between distinct boundaries.");
+  return { ...effectMeta(command), identity: `stock-movement.${suffix}`, type: "Stock Movement", itemId, unit, quantity, valueMinor, source, destination, businessEventId: eventId };
 }
 
 function debit(account, amountMinor) {
@@ -417,7 +419,16 @@ function postingSetFrom(command, eventId, identity, currency, entries) {
   const debits = entries.filter(entry => entry.side === "debit").reduce((sum, entry) => sum + entry.amountMinor, 0);
   const credits = entries.filter(entry => entry.side === "credit").reduce((sum, entry) => sum + entry.amountMinor, 0);
   if (currency !== "USD" || entries.some(entry => !Number.isInteger(entry.amountMinor) || entry.amountMinor <= 0) || debits !== credits) reject("ORC.KERNEL.INVARIANT_REJECTED", "Posting Set must contain positive balanced entries in one supported currency.");
-  return { ...effectMeta(command), identity, type: "Posting Set", currency, businessEventId: eventId, entries };
+  const ledgerEntries = entries.map((entry, index) => ({
+    ...effectMeta(command),
+    identity: `ledger-entry.${identity}.${index + 1}`,
+    type: "Ledger Entry",
+    postingSetId: identity,
+    businessEventId: eventId,
+    currency,
+    ...entry,
+  }));
+  return { ...effectMeta(command), identity, type: "Posting Set", currency, businessEventId: eventId, entries: ledgerEntries };
 }
 
 function deriveStock(target) {
@@ -425,8 +436,10 @@ function deriveStock(target) {
   for (const movement of target?.movements ?? []) {
     const current = stock[movement.itemId] ?? { quantity: 0, unit: movement.unit, valueMinor: 0 };
     if (current.unit !== movement.unit) return { ...stock, [movement.itemId]: { ...current, unitMismatch: true } };
-    current.quantity += movement.signedQuantity;
-    current.valueMinor += movement.signedValueMinor;
+    const direction = movement.destination === target.locationId ? 1 : movement.source === target.locationId ? -1 : 0;
+    if (direction === 0) return { ...stock, [movement.itemId]: { ...current, boundaryMismatch: true } };
+    current.quantity += direction * movement.quantity;
+    current.valueMinor += direction * movement.valueMinor;
     stock[movement.itemId] = current;
   }
   return stock;
@@ -448,6 +461,21 @@ function deriveTargetSummary(target) {
   const cashPaymentsMinor = target.payments.filter(payment => payment.method === "cash").reduce((sum, payment) => sum + payment.amountMinor, 0);
   const debitsMinor = Object.values(accounts).filter(balance => balance > 0).reduce((sum, balance) => sum + balance, 0);
   const creditsMinor = -Object.values(accounts).filter(balance => balance < 0).reduce((sum, balance) => sum + balance, 0);
+  const scopedEffects = [...target.records, ...target.events, ...target.movements, ...target.postingSets, ...target.payments];
+  const effectScopeValid = scopedEffects.every(effect => effect.tenantId === target.tenantId && effect.targetId === target.targetId && effect.locationId === target.locationId && effect.generationId === target.generationId && effect.appliedBlueprintContentIdentity === target.appliedBlueprint?.contentIdentity);
+  const ledgerEntriesScoped = target.postingSets.every(postingSet => postingSet.entries.every(entry => entry.tenantId === target.tenantId && entry.targetId === target.targetId && entry.locationId === target.locationId && entry.generationId === target.generationId && entry.businessEventId === postingSet.businessEventId && entry.currency === postingSet.currency));
+  const ledgerEntries = target.postingSets.flatMap(postingSet => postingSet.entries);
+  const effectIdentities = new Set([...target.records, ...target.movements, ...target.postingSets, ...ledgerEntries, ...target.payments].map(effect => effect.identity));
+  const causationComplete = target.events.every(event => event.causation === event.commandIdentity && event.effectReferences.every(reference => effectIdentities.has(reference)))
+    && target.movements.every(effect => target.events.some(event => event.identity === effect.businessEventId && event.effectReferences.includes(effect.identity)))
+    && target.postingSets.every(effect => target.events.some(event => event.identity === effect.businessEventId && event.effectReferences.includes(effect.identity)))
+    && ledgerEntries.every(effect => target.events.some(event => event.identity === effect.businessEventId && event.effectReferences.includes(effect.identity)))
+    && target.payments.every(effect => target.events.some(event => event.identity === effect.businessEventId && event.effectReferences.includes(effect.identity)));
+  const paymentReconciliationValid = target.payments.every((payment, index) => {
+    const sale = target.records.find(record => record.identity === payment.saleId && record.type === "Sale");
+    const allocatedThroughPayment = target.payments.slice(0, index + 1).filter(candidate => candidate.saleId === payment.saleId).reduce((sum, candidate) => sum + candidate.allocatedMinor, 0);
+    return sale && payment.allocatedMinor === payment.amountMinor && payment.unallocatedMinor === 0 && payment.residualMinor === sale.totalMinor - allocatedThroughPayment;
+  });
   return {
     targetId: target.targetId,
     generationId: target.generationId,
@@ -462,11 +490,58 @@ function deriveTargetSummary(target) {
     trialBalance: { debitsMinor, creditsMinor, differenceMinor: debitsMinor - creditsMinor },
     invariants: {
       balancedPostingSets,
-      stockMatchesMovements: Object.values(stock).every(position => !position.unitMismatch && position.quantity >= 0 && position.valueMinor >= 0),
+      positiveStockMovements: target.movements.every(movement => Number.isInteger(movement.quantity) && movement.quantity > 0 && Number.isInteger(movement.valueMinor) && movement.valueMinor > 0 && movement.source !== movement.destination),
+      stockMatchesMovements: Object.values(stock).every(position => !position.unitMismatch && !position.boundaryMismatch && position.quantity >= 0 && position.valueMinor >= 0),
       inventoryControlMatchesStock: accounts.Inventory === stockValueMinor,
       cashMatchesPayments: accounts.Cash === cashPaymentsMinor,
+      effectScopeValid,
+      ledgerEntriesScoped,
+      causationComplete,
+      paymentReconciliationValid,
     },
   };
+}
+
+function createSandboxExport(state, query) {
+  const target = state.targets[query.targetId];
+  if (!target || query.tenantId !== state.tenantId || query.locationId !== target.locationId || query.generationId !== target.generationId) throw new Error("Sandbox Export scope mismatch.");
+  const role = state.effectiveBlueprint?.roleDefinitions.find(candidate => candidate.identity === query.role);
+  if (!role || !role.locations.includes(target.locationId)) throw new Error("Sandbox Export Role scope mismatch.");
+  const summary = deriveTargetSummary(target);
+  const commandResults = Object.values(state.commandBindings)
+    .filter(binding => binding.command?.targetId === target.targetId && binding.command?.generationId === target.generationId)
+    .map(binding => ({ commandIdentity: binding.command.identity, commandContentIdentity: binding.command.contentIdentity, disposition: binding.result.disposition, code: binding.result.code ?? null }));
+  const body = {
+    identity: `sandbox-export.${target.targetId}.${target.generationId}`,
+    version: "1.0.0",
+    tenantId: target.tenantId,
+    targetId: target.targetId,
+    locationId: target.locationId,
+    generationId: target.generationId,
+    appliedBlueprint: deepClone(target.appliedBlueprint),
+    fixture: VERSION_SET.fixture,
+    versionSet: VERSION_SET,
+    records: summary.records,
+    businessEvents: summary.events,
+    stockMovements: summary.movements,
+    postingSets: summary.postingSets,
+    payments: summary.payments,
+    derived: {
+      stock: summary.stock,
+      accounts: summary.accounts,
+      trialBalance: summary.trialBalance,
+      invariants: summary.invariants,
+    },
+    commandResults,
+    exclusions: ["credentials", "secrets", "agent-reasoning", "other-target-state", "prior-generation-state", "production-authority"],
+  };
+  return { ...body, contentIdentity: contentIdentity(body) };
+}
+
+function proposedCommandContentIdentity(command) {
+  const { contentIdentity: _actualIdentity, ...body } = command;
+  body.gateDecision = null;
+  return contentIdentity(body);
 }
 
 function createDraft(state, command) {
@@ -494,7 +569,7 @@ function approve(state, command) {
   } : null;
   if (JSON.stringify(approvalBaseline) !== JSON.stringify(actualBaseline)) reject("ORC.BASELINE.KERNEL_BASELINE_CHANGED", "Approval Baseline is stale.");
   const decision = command.gateDecision;
-  if (!decision || decision.response !== "Authorize Submission" || decision.subjectContentIdentity !== blueprintContentIdentity || decision.subjectVersionId !== reference.versionId) reject("ORC.KERNEL.AUTHORIZATION_REJECTED", "Exact Human Gate Decision is required.");
+  if (!decision || decision.response !== "Authorize Submission" || decision.subjectContentIdentity !== blueprintContentIdentity || decision.subjectVersionId !== reference.versionId || decision.subjectCommandIdentity !== command.identity || decision.subjectCommandContentIdentity !== proposedCommandContentIdentity(command)) reject("ORC.KERNEL.AUTHORIZATION_REJECTED", "Exact Human Gate Decision is required.");
   if (state.currentApprovedBlueprint) state.lifecycle[state.currentApprovedBlueprint.reference.versionId] = "Superseded";
   state.lifecycle[reference.versionId] = "Approved";
   const approval = { identity: "blueprint-approval.cedar-steam.v2", reference, contentIdentity: blueprintContentIdentity, humanGateDecisionId: decision.identity, effectiveTime: command.effectiveTime };
