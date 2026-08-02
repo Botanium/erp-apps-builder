@@ -1,5 +1,5 @@
 import { deepClone } from "./canonical.mjs";
-import { createBlueprint, createIntentBrief, makeCommand, RETAIL_FIXTURE } from "./fixtures.mjs";
+import { CAFE_FIXTURE, createBlueprint, createIntentBrief, makeCommand, RETAIL_FIXTURE } from "./fixtures.mjs";
 import { BusinessKernel, createKernelState } from "./kernel.mjs";
 import { MemoryStore } from "./store.mjs";
 
@@ -51,6 +51,8 @@ export function createReferenceSlice({ store = new MemoryStore(createKernelState
       };
     } else if (action.type === "scenario.retail") {
       session.lastResult = runRetailScenario(kernel);
+    } else if (action.type === "scenario.cafe") {
+      session.lastResult = runCafeScenario(kernel);
     } else {
       throw new Error(`Unsupported ReferenceSlice action ${action.type}.`);
     }
@@ -97,4 +99,36 @@ function runRetailScenario(kernel) {
   ];
   const results = commands.map(command => kernel.submit(command));
   return { disposition: results.every(result => result.disposition === "Accepted") ? "Completed" : "Rejected", results };
+}
+
+function runCafeScenario(kernel) {
+  const fixture = CAFE_FIXTURE;
+  const target = kernel.observe({ type: "target", targetId: fixture.targetId });
+  const baseline = target.appliedBlueprint;
+  const common = {
+    targetId: fixture.targetId,
+    locationId: fixture.locationId,
+    generationId: target.generationId,
+  };
+  const commands = {
+    purchase: makeCommand({ ...common, identity: "command.cafe.purchase.confirm.01", action: "purchase.confirm", role: "role.buyer", input: { expectedAppliedBlueprint: baseline, recordId: fixture.purchaseOrderId, supplierId: "party.supplier.cafe", currency: fixture.currency, lines: fixture.purchaseLines } }),
+    receipt: makeCommand({ ...common, identity: "command.cafe.receipt.accept.01", action: "receipt.accept", role: "role.receiver", input: { expectedAppliedBlueprint: baseline, recordId: fixture.receiptId, purchaseOrderId: fixture.purchaseOrderId, currency: fixture.currency, lines: fixture.purchaseLines } }),
+    order: makeCommand({ ...common, identity: "command.cafe.order.accept.01", action: "order.accept", role: "role.cafe-cashier", input: { expectedAppliedBlueprint: baseline, recordId: fixture.orderId, customerId: "party.customer.cafe", currency: fixture.currency, lines: [{ itemId: fixture.menuItemId, modifierIds: [fixture.modifierId], unit: "each", quantity: 1, unitPriceMinor: fixture.priceMinor, ingredientRequirements: fixture.ingredientRequirements }] } }),
+    accepted: makeCommand({ ...common, identity: "command.cafe.kitchen.accept.01", action: "kitchen.accept", role: "role.kitchen-operator", input: { expectedAppliedBlueprint: baseline, recordId: fixture.kitchenTicketId, orderId: fixture.orderId } }),
+    preparing: makeCommand({ ...common, identity: "command.cafe.kitchen.prepare.01", action: "kitchen.prepare", role: "role.kitchen-operator", input: { expectedAppliedBlueprint: baseline, recordId: fixture.kitchenTicketId } }),
+    ready: makeCommand({ ...common, identity: "command.cafe.kitchen.ready.01", action: "kitchen.ready", role: "role.kitchen-operator", input: { expectedAppliedBlueprint: baseline, recordId: fixture.kitchenTicketId } }),
+    fulfilled: makeCommand({ ...common, identity: "command.cafe.kitchen.fulfill.01", action: "kitchen.fulfill", role: "role.kitchen-operator", input: { expectedAppliedBlueprint: baseline, recordId: fixture.kitchenTicketId, saleId: fixture.saleId } }),
+    payment: makeCommand({ ...common, identity: "command.cafe.payment.accept.01", action: "payment.accept", role: "role.cafe-cashier", input: { expectedAppliedBlueprint: baseline, recordId: fixture.paymentId, saleId: fixture.saleId, amountMinor: fixture.paymentMinor, currency: fixture.currency, method: "cash", receiptReference: fixture.receiptReference } }),
+  };
+  const results = [];
+  const checkpoints = {};
+  for (const step of ["purchase", "receipt", "order", "accepted", "preparing", "ready", "fulfilled", "payment"]) {
+    results.push(kernel.submit(commands[step]));
+    if (["accepted", "preparing", "ready", "fulfilled"].includes(step)) checkpoints[step] = kernel.observe({ type: "target-summary", targetId: fixture.targetId });
+  }
+  return {
+    disposition: results.every(result => result.disposition === "Accepted") ? "Completed" : "Rejected",
+    results,
+    checkpoints,
+  };
 }

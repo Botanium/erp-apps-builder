@@ -122,7 +122,72 @@ function dispatch(state, command) {
   if (command.action === "order.accept") return acceptOrder(state, command);
   if (command.action === "sale.fulfill") return fulfillSale(state, command);
   if (command.action === "payment.accept") return acceptPayment(state, command);
+  if (command.action === "kitchen.accept") return acceptKitchenTicket(state, command);
+  if (command.action === "kitchen.prepare") return transitionKitchenTicket(state, command, "accepted", "preparing");
+  if (command.action === "kitchen.ready") return transitionKitchenTicket(state, command, "preparing", "ready");
+  if (command.action === "kitchen.fulfill") return fulfillKitchenTicket(state, command);
   reject("ORC.KERNEL.SCHEMA_REJECTED", `Unsupported governed action ${command.action}.`);
+}
+
+function acceptKitchenTicket(state, command) {
+  const target = validateBusinessCommand(state, command);
+  const { recordId, orderId } = command.input;
+  validateNewRecord(target, recordId);
+  requireRecord(target, orderId, "Order", "accepted");
+  const record = recordFrom(command, "Kitchen Ticket", recordId, "accepted", { orderId, stateHistory: ["accepted"] });
+  const event = eventFrom(command, "kitchen-ticket-accepted", [recordId]);
+  target.records.push(record);
+  target.events.push(event);
+  return accepted(command, { record, businessEvent: event });
+}
+
+function transitionKitchenTicket(state, command, expectedState, resultingState) {
+  const target = validateBusinessCommand(state, command);
+  const ticket = requireRecord(target, command.input.recordId, "Kitchen Ticket", expectedState);
+  ticket.state = resultingState;
+  ticket.stateHistory.push(resultingState);
+  const event = eventFrom(command, `kitchen-ticket-${resultingState}`, [ticket.identity]);
+  target.events.push(event);
+  return accepted(command, { record: deepClone(ticket), businessEvent: event });
+}
+
+function fulfillKitchenTicket(state, command) {
+  const target = validateBusinessCommand(state, command);
+  const { recordId, saleId } = command.input;
+  validateNewRecord(target, saleId);
+  const ticket = requireRecord(target, recordId, "Kitchen Ticket", "ready");
+  const order = requireRecord(target, ticket.orderId, "Order", "accepted");
+  const requirements = order.lines.flatMap(line => line.ingredientRequirements ?? []);
+  if (requirements.length === 0) reject("ORC.KERNEL.INVARIANT_REJECTED", "Kitchen fulfillment requires frozen ingredient requirements.");
+  const costs = requirements.map(requirement => {
+    const position = deriveStock(target)[requirement.itemId];
+    if (!position || position.unit !== requirement.unit) reject("ORC.KERNEL.INVARIANT_REJECTED", "Ingredient normalized unit mismatch.");
+    if (position.quantity < requirement.quantity) reject("ORC.KERNEL.INVARIANT_REJECTED", "Kitchen fulfillment would over-consume stock.");
+    const unitCostMinor = position.valueMinor / position.quantity;
+    if (!Number.isInteger(unitCostMinor)) reject("ORC.KERNEL.INVARIANT_REJECTED", "Ingredient cost cannot be represented exactly.");
+    return { ...requirement, costMinor: unitCostMinor * requirement.quantity };
+  });
+  const costMinor = costs.reduce((sum, line) => sum + line.costMinor, 0);
+  const eventId = `business-event.${command.identity}`;
+  const movements = costs.map((line, index) => movementFrom(command, eventId, `${saleId}.${index + 1}`, line.itemId, line.unit, -line.quantity, -line.costMinor, target.locationId, "boundary.consumption"));
+  const commercial = postingSetFrom(command, eventId, `posting-set.${saleId}.commercial`, order.currency, [
+    debit("Accounts Receivable", order.totalMinor),
+    credit("Sales Revenue", order.totalMinor),
+  ]);
+  const inventory = postingSetFrom(command, eventId, `posting-set.${saleId}.inventory`, order.currency, [
+    debit("Cost of Goods Sold", costMinor),
+    credit("Inventory", costMinor),
+  ]);
+  ticket.state = "fulfilled";
+  ticket.stateHistory.push("fulfilled");
+  order.state = "fulfilled";
+  const sale = recordFrom(command, "Sale", saleId, "fulfilled", { orderId: order.identity, kitchenTicketId: ticket.identity, currency: order.currency, totalMinor: order.totalMinor, costMinor });
+  const event = eventFrom(command, "kitchen-ticket-fulfilled", [ticket.identity, order.identity, sale.identity, ...movements.map(item => item.identity), commercial.identity, inventory.identity]);
+  target.records.push(sale);
+  target.events.push(event);
+  target.movements.push(...movements);
+  target.postingSets.push(commercial, inventory);
+  return accepted(command, { record: deepClone(ticket), sale, businessEvent: event, movements, postingSets: [commercial, inventory] });
 }
 
 function confirmPurchase(state, command) {

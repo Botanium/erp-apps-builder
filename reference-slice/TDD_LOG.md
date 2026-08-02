@@ -35,3 +35,14 @@ test output are the durable ordering evidence.
   balances now reach the exact retail literals without using implementation
   arithmetic to construct expected test values.
 - Accumulated suite: 3 tests passed.
+
+## Tracer 4: Cafe order-to-kitchen reuse
+
+- Red: `npm test -- --test-name-pattern='cafe kitchen'` failed because the cafe
+  scenario action did not exist.
+- Green: the ordinary shared Purchasing and Receiving actions admit beans and
+  milk; the Kitchen Ticket advances accepted, preparing, ready, and fulfilled;
+  the first three states create no ingredient or financial effect; fulfillment
+  consumes exactly 27 g beans and 120 ml milk and posts USD 1.74 cost; the cash
+  Payment closes the USD 9.00 receivable.
+- Accumulated suite: 4 tests passed.

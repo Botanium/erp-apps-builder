@@ -38,6 +38,31 @@ export const RETAIL_FIXTURE = Object.freeze({
   currency: "USD",
 });
 
+export const CAFE_FIXTURE = Object.freeze({
+  targetId: "cafe",
+  locationId: "location.cafe",
+  purchaseOrderId: "purchase-order.cafe.01",
+  receiptId: "supplier-receipt.cafe.01",
+  orderId: "order.cafe.01",
+  saleId: "sale.cafe.01",
+  kitchenTicketId: "kitchen-ticket.cafe.01",
+  paymentId: "payment.cafe.01",
+  receiptReference: "receipt.cafe.01",
+  menuItemId: "menu.cortado",
+  modifierId: "modifier.extra-shot",
+  priceMinor: 900,
+  paymentMinor: 900,
+  currency: "USD",
+  purchaseLines: [
+    { itemId: "ingredient.beans", unit: "g", quantity: 1000, unitCostMinor: 2 },
+    { itemId: "ingredient.milk", unit: "ml", quantity: 2000, unitCostMinor: 1 },
+  ],
+  ingredientRequirements: [
+    { itemId: "ingredient.beans", unit: "g", quantity: 27 },
+    { itemId: "ingredient.milk", unit: "ml", quantity: 120 },
+  ],
+});
+
 const roles = [
   ["role.owner", ["blueprint.approve", "sandbox.provision", "sandbox.reset"]],
   ["role.buyer", ["purchase.confirm"]],
