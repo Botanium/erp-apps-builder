@@ -1,0 +1,18 @@
+{
+  "name": "adaptive-business-os",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18 <27"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.3.0",
+    "prettier": "^3.9.6"
+  }
+}

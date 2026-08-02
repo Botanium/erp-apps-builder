@@ -1,6 +1,6 @@
 # Adaptive Business OS — Matt Pocock Skill Journey
 
-**Status:** Gates 0–8 completed; Gate 9 implementation-ticket creation has not started
+**Status:** Gates 0–10 completed; Gate 11 implementation has not started
 **Destination:** Produce an owner-approved, implementation-ready v1
 specification and validated executable Reference Vertical Slice proving that an
 Owner Interview can create a Draft Blueprint, explicit Blueprint Approval can
@@ -356,59 +356,59 @@ governed path.
 
 ### Critical path — 14
 
-| Skill | Project use |
-|---|---|
-| `setup-matt-pocock-skills` | One-time repository configuration |
-| `wayfinder` | Canonical decision-map orchestrator |
-| `grilling` | One-question-at-a-time owner decisions |
-| `domain-modeling` | Living domain glossary and selective ADR discipline |
-| `grill-with-docs` | Repository-aware wrapper around grilling and domain modeling |
-| `research` | Primary-source evidence for research tickets |
-| `prototype` | Throwaway logic or UI evidence for uncertain decisions |
-| `handoff` | Context continuity across sessions without replacing canonical files |
-| `codebase-design` | Deep modules, interfaces, adapters, and public seams |
-| `to-spec` | Closed decision map to approved v1 specification |
-| `to-tickets` | Specification to vertical tracer-bullet tickets |
-| `implement` | Execute one approved ticket |
-| `tdd` | Red → green behavior development at approved seams |
-| `code-review` | Separate standards and specification reviews before PR |
+| Skill                      | Project use                                                          |
+| -------------------------- | -------------------------------------------------------------------- |
+| `setup-matt-pocock-skills` | One-time repository configuration                                    |
+| `wayfinder`                | Canonical decision-map orchestrator                                  |
+| `grilling`                 | One-question-at-a-time owner decisions                               |
+| `domain-modeling`          | Living domain glossary and selective ADR discipline                  |
+| `grill-with-docs`          | Repository-aware wrapper around grilling and domain modeling         |
+| `research`                 | Primary-source evidence for research tickets                         |
+| `prototype`                | Throwaway logic or UI evidence for uncertain decisions               |
+| `handoff`                  | Context continuity across sessions without replacing canonical files |
+| `codebase-design`          | Deep modules, interfaces, adapters, and public seams                 |
+| `to-spec`                  | Closed decision map to approved v1 specification                     |
+| `to-tickets`               | Specification to vertical tracer-bullet tickets                      |
+| `implement`                | Execute one approved ticket                                          |
+| `tdd`                      | Red → green behavior development at approved seams                   |
+| `code-review`              | Separate standards and specification reviews before PR               |
 
 ### Conditional support — 10
 
-| Skill | Use only when |
-|---|---|
-| `ask-matt` | The correct collection workflow is unclear; it is a router, not a project stage |
-| `diagnosing-bugs` | Behavior is observably broken, failing, or slow |
-| `improve-codebase-architecture` | Working code reveals real architectural hot spots |
-| `resolving-merge-conflicts` | A merge or rebase conflict is active |
-| `triage` | Incoming issues or external PRs become a real request surface |
-| `setup-pre-commit` | A compatible JS/TS repository and real project checks exist |
-| `setup-ts-deep-modules` | TypeScript is selected and its in-progress maturity is accepted |
-| `to-questionnaire` | A restaurant, clinic, accounting, legal, or travel expert must answer a decision set asynchronously |
-| `wizard` | A confirmed provider, deployment, or migration procedure needs a human-guided setup tool |
-| `writing-great-skills` | The platform begins creating or maintaining its own reusable agent skills |
+| Skill                           | Use only when                                                                                       |
+| ------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `ask-matt`                      | The correct collection workflow is unclear; it is a router, not a project stage                     |
+| `diagnosing-bugs`               | Behavior is observably broken, failing, or slow                                                     |
+| `improve-codebase-architecture` | Working code reveals real architectural hot spots                                                   |
+| `resolving-merge-conflicts`     | A merge or rebase conflict is active                                                                |
+| `triage`                        | Incoming issues or external PRs become a real request surface                                       |
+| `setup-pre-commit`              | A compatible JS/TS repository and real project checks exist                                         |
+| `setup-ts-deep-modules`         | TypeScript is selected and its in-progress maturity is accepted                                     |
+| `to-questionnaire`              | A restaurant, clinic, accounting, legal, or travel expert must answer a decision set asynchronously |
+| `wizard`                        | A confirmed provider, deployment, or migration procedure needs a human-guided setup tool            |
+| `writing-great-skills`          | The platform begins creating or maintaining its own reusable agent skills                           |
 
 ### Installed but excluded from the primary project path — 17
 
-| Skill | Reason |
-|---|---|
-| `grill-me` | Duplicates the interview without maintaining repository domain docs; prefer `grill-with-docs` |
-| `teach` | Teaching workflow, not product delivery |
-| `batch-grill-me` | In progress and conflicts with one-question-at-a-time owner discovery |
-| `claude-handoff` | In progress and Claude-specific; use stable `handoff` in Codex |
-| `loop-me` | In progress and focused on personal workflow loops |
-| `writing-beats` | In-progress article-writing workflow |
-| `writing-fragments` | In-progress article-writing workflow |
-| `writing-shape` | In-progress article-writing workflow |
-| `git-guardrails-claude-code` | Claude Code-specific rather than Codex governance |
-| `migrate-to-shoehorn` | Narrow test-fixture migration, not a current project stage |
-| `scaffold-exercises` | Course-authoring workflow |
-| `edit-article` | Article editing |
-| `obsidian-vault` | Matt-specific Obsidian workflow and path assumptions |
-| `design-an-interface` | Deprecated; replaced by `codebase-design` and its design-twice method |
-| `qa` | Deprecated; use `triage`, `diagnosing-bugs`, and `code-review` |
-| `request-refactor-plan` | Deprecated; use architecture improvement → grilling → spec → tickets |
-| `ubiquitous-language` | Deprecated; use `domain-modeling` and `CONTEXT.md` |
+| Skill                        | Reason                                                                                        |
+| ---------------------------- | --------------------------------------------------------------------------------------------- |
+| `grill-me`                   | Duplicates the interview without maintaining repository domain docs; prefer `grill-with-docs` |
+| `teach`                      | Teaching workflow, not product delivery                                                       |
+| `batch-grill-me`             | In progress and conflicts with one-question-at-a-time owner discovery                         |
+| `claude-handoff`             | In progress and Claude-specific; use stable `handoff` in Codex                                |
+| `loop-me`                    | In progress and focused on personal workflow loops                                            |
+| `writing-beats`              | In-progress article-writing workflow                                                          |
+| `writing-fragments`          | In-progress article-writing workflow                                                          |
+| `writing-shape`              | In-progress article-writing workflow                                                          |
+| `git-guardrails-claude-code` | Claude Code-specific rather than Codex governance                                             |
+| `migrate-to-shoehorn`        | Narrow test-fixture migration, not a current project stage                                    |
+| `scaffold-exercises`         | Course-authoring workflow                                                                     |
+| `edit-article`               | Article editing                                                                               |
+| `obsidian-vault`             | Matt-specific Obsidian workflow and path assumptions                                          |
+| `design-an-interface`        | Deprecated; replaced by `codebase-design` and its design-twice method                         |
+| `qa`                         | Deprecated; use `triage`, `diagnosing-bugs`, and `code-review`                                |
+| `request-refactor-plan`      | Deprecated; use architecture improvement → grilling → spec → tickets                          |
+| `ubiquitous-language`        | Deprecated; use `domain-modeling` and `CONTEXT.md`                                            |
 
 ## Progress ledger
 
@@ -418,15 +418,15 @@ governed path.
 - [x] Select a local Markdown tracker.
 - [x] Install and verify all 41 Matt Pocock skill packages.
 - [x] Approve the default triage label vocabulary (`needs-triage`,
-  `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`).
+      `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`).
 - [x] Select `AGENTS.md` as the repository instruction file.
 - [x] Write and verify the one-time repository skill configuration.
 - [x] Run destination and non-goal grilling.
 - [x] Chart the canonical Wayfinder map and initial frontier.
 - [x] Resolve all 16 Wayfinder decision, research, prototype, architecture,
-  acceptance, and readiness tickets.
+      acceptance, and readiness tickets.
 - [x] Validate the isolated Reference Vertical Slice with 12 passing behavior
-  tests and 12 Satisfied Required conditions.
+      tests and 12 Satisfied Required conditions.
 - [x] Close the canonical map with no in-scope fog.
 - [x] Synthesize and owner-approve the v1 `1.0.0` specification.
 - [ ] Create and review Gate 9 tracer-bullet implementation tickets.
