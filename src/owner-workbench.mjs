@@ -1,0 +1,604 @@
+const FACT_FAMILIES = Object.freeze([
+  "purpose-and-scope",
+  "safety-and-jurisdiction",
+  "business-shape",
+  "customer-and-fulfillment-journey",
+  "supply-stock-and-capacity",
+  "people-and-governance",
+  "money-and-accounting",
+  "experience-and-integrations",
+]);
+
+const UNRESOLVED_INTENT_STATES = new Set([
+  "Unknown",
+  "Ambiguous",
+  "Conflicting",
+]);
+
+const INTENT_STATES = new Set([
+  "Confirmed",
+  "Unknown",
+  "Ambiguous",
+  "Conflicting",
+  "Assumed",
+  "Not Applicable",
+  "Unsupported",
+]);
+
+const SENSITIVE_DATA_CLASS_RANK = Object.freeze({
+  Public: 0,
+  Internal: 1,
+  Confidential: 2,
+  Restricted: 3,
+});
+
+const PROHIBITED_ANSWER_FIELDS = new Set([
+  "liveCredential",
+  "paymentCardNumber",
+  "identityDocumentContent",
+  "medicalRecord",
+  "restrictedExternalAiPayload",
+  "realCustomerData",
+]);
+
+const isNonEmptyString = (value) =>
+  typeof value === "string" && value.length > 0;
+
+const FIRST_QUESTION = Object.freeze({
+  identity: "owner-interview.question.purpose-and-scope",
+  factFamily: "purpose-and-scope",
+  prompt:
+    "What outcome should this business system make demonstrable, and what is explicitly excluded?",
+  recommendedAnswer: Object.freeze({
+    value:
+      "Prove retail and cafe reuse from one shared Business Kernel using only fictitious sandbox data.",
+    authority: "ProposalOnly",
+  }),
+  alternatives: Object.freeze([
+    "Start with one retail workflow and defer cafe.",
+    "Start with one cafe workflow and defer retail.",
+  ]),
+});
+
+const SECOND_QUESTION = Object.freeze({
+  identity: "owner-interview.question.safety-and-jurisdiction",
+  factFamily: "safety-and-jurisdiction",
+  prompt:
+    "Which countries, data categories, retention rules, and external-AI restrictions govern this business?",
+  recommendedAnswer: Object.freeze({
+    value:
+      "Keep the local proof fictitious, classify every named data category, and prohibit Restricted data from external AI.",
+    authority: "ProposalOnly",
+  }),
+  alternatives: Object.freeze([
+    "Prohibit all external AI for the local proof.",
+    "Defer external integrations while retaining explicit data classifications.",
+  ]),
+});
+
+const QUESTIONS = Object.freeze([
+  FIRST_QUESTION,
+  SECOND_QUESTION,
+  Object.freeze({
+    identity: "owner-interview.question.business-shape",
+    factFamily: "business-shape",
+    prompt:
+      "What goods or services, Locations, hours, languages, currencies, units, taxes, and existing tools shape the business?",
+    recommendedAnswer: Object.freeze({
+      value:
+        "Describe the shared retail and cafe Tenant, its two Locations, IQD, Arabic and English, normalized units, and no import source.",
+      authority: "ProposalOnly",
+    }),
+    alternatives: Object.freeze([
+      "Describe the retail Location first.",
+      "Describe the cafe Location first.",
+    ]),
+  }),
+  Object.freeze({
+    identity: "owner-interview.question.customer-and-fulfillment-journey",
+    factFamily: "customer-and-fulfillment-journey",
+    prompt:
+      "How does a customer request move through Order, Payment, collection or fulfillment, cancellation, and exceptions?",
+    recommendedAnswer: Object.freeze({
+      value:
+        "Retail fulfills at sale while cafe fulfills through the declared Kitchen Ticket states.",
+      authority: "ProposalOnly",
+    }),
+    alternatives: Object.freeze([
+      "Describe retail fulfillment first.",
+      "Describe cafe preparation first.",
+    ]),
+  }),
+  Object.freeze({
+    identity: "owner-interview.question.supply-stock-and-capacity",
+    factFamily: "supply-stock-and-capacity",
+    prompt:
+      "How should suppliers, purchasing, receiving, stock, ingredients, units, capacity, and costing be represented?",
+    recommendedAnswer: Object.freeze({
+      value:
+        "Use fictitious suppliers, normalized units, governed receiving, stock, and ingredient consumption.",
+      authority: "ProposalOnly",
+    }),
+    alternatives: Object.freeze([
+      "Defer purchasing and prove stock only.",
+      "Defer ingredient consumption and prove receiving only.",
+    ]),
+  }),
+  Object.freeze({
+    identity: "owner-interview.question.people-and-governance",
+    factFamily: "people-and-governance",
+    prompt:
+      "Which participants, Roles, responsibilities, governed actions, approvals, separation duties, and Evidence duties are required?",
+    recommendedAnswer: Object.freeze({
+      value:
+        "Separate owner, receiver, cashier, and kitchen responsibilities through declared Roles and Evidence duties.",
+      authority: "ProposalOnly",
+    }),
+    alternatives: Object.freeze([
+      "Use one owner Role for the first review.",
+      "Defer separation of duty while keeping authority explicit.",
+    ]),
+  }),
+  Object.freeze({
+    identity: "owner-interview.question.money-and-accounting",
+    factFamily: "money-and-accounting",
+    prompt:
+      "Which cash, bank, credit, refund, accounting, fiscal, tax, balance, and export needs apply?",
+    recommendedAnswer: Object.freeze({
+      value:
+        "Use fictitious IQD cash Payments and the simple balanced-ledger proof without production balances.",
+      authority: "ProposalOnly",
+    }),
+    alternatives: Object.freeze([
+      "Prove balanced Ledger effects without Cash.",
+      "Defer refunds while preserving the correction boundary.",
+    ]),
+  }),
+  Object.freeze({
+    identity: "owner-interview.question.experience-and-integrations",
+    factFamily: "experience-and-integrations",
+    prompt:
+      "Which devices, offline behavior, Role-specific interfaces, reports, languages, branding, and external systems apply?",
+    recommendedAnswer: Object.freeze({
+      value:
+        "Use the local Guided Cockpit and evidence views with no external integration or production authority.",
+      authority: "ProposalOnly",
+    }),
+    alternatives: Object.freeze([
+      "Use terminal and canonical JSON only.",
+      "Add a local static review surface while keeping execution offline.",
+    ]),
+  }),
+]);
+
+const ownerSource = (interview, recordedTime) => ({
+  kind: "Owner",
+  identity: interview.ownerSourceIdentity,
+  recordedTime,
+});
+
+const attributableStatement = ({
+  statementIdentity,
+  intentState,
+  value,
+  factFamily,
+  interview,
+  recordedTime,
+}) => ({
+  identity: statementIdentity,
+  factFamily,
+  intentState,
+  value,
+  source: ownerSource(interview, recordedTime),
+});
+
+const attributableAssumption = (assumption, interview, recordedTime) => {
+  const { proposerIdentity, ...content } = assumption;
+  return {
+    ...structuredClone(content),
+    proposer: {
+      kind: "AgentProposal",
+      identity: proposerIdentity,
+    },
+    source: ownerSource(interview, recordedTime),
+  };
+};
+
+const attributableDataCategory = (category, interview, recordedTime) => {
+  const content = structuredClone(category);
+  const componentClasses = content.componentSensitiveDataClasses ?? [];
+  const inheritedClass = [content.sensitiveDataClass, ...componentClasses]
+    .filter((candidate) => candidate in SENSITIVE_DATA_CLASS_RANK)
+    .sort(
+      (left, right) =>
+        SENSITIVE_DATA_CLASS_RANK[right] - SENSITIVE_DATA_CLASS_RANK[left]
+    )[0];
+  const effectiveClass = UNRESOLVED_INTENT_STATES.has(content.intentState)
+    ? "Restricted"
+    : inheritedClass;
+  if (effectiveClass !== content.sensitiveDataClass) {
+    content.classificationProposal = content.sensitiveDataClass;
+    content.sensitiveDataClass = effectiveClass;
+  }
+  return {
+    ...content,
+    source: ownerSource(interview, recordedTime),
+  };
+};
+
+export class OwnerWorkbench {
+  constructor({ identitySource }) {
+    this.identitySource = identitySource;
+    this.interviews = new Map();
+    this.intentBriefVersions = new Map();
+  }
+
+  start({ tenantIdentity, ownerSourceIdentity }) {
+    const interview = {
+      identity: this.identitySource.next(),
+      tenantIdentity,
+      ownerSourceIdentity,
+      factFamilyProgress: FACT_FAMILIES.map((identity) => ({
+        identity,
+        disposition: "Unanswered",
+      })),
+      currentQuestion: structuredClone(FIRST_QUESTION),
+      intentBrief: null,
+    };
+    this.interviews.set(interview.identity, interview);
+    this.intentBriefVersions.set(interview.identity, []);
+    return structuredClone(interview);
+  }
+
+  answer({ ownerInterviewIdentity, questionIdentity, answer, recordedTime }) {
+    const interview = this.interviews.get(ownerInterviewIdentity);
+    const prohibitedField = Object.keys(answer).find((field) =>
+      PROHIBITED_ANSWER_FIELDS.has(field)
+    );
+    if (interview && prohibitedField) {
+      return {
+        kind: "OwnerInterviewInputRejection",
+        ownerInterview: structuredClone(interview),
+        diagnostics: [
+          {
+            code: "INTENT.INPUT.PROHIBITED_DATA",
+            field: prohibitedField,
+            summary:
+              "Owner Interview captures data categories and constraints, never live sensitive or real business data.",
+          },
+        ],
+      };
+    }
+    const revisedStatement = interview?.intentBrief?.statements.find(
+      (statement) => statement.identity === answer.revisesStatementIdentity
+    );
+    const isCurrentQuestion =
+      interview?.currentQuestion.identity === questionIdentity;
+    const isKnownCorrection =
+      revisedStatement?.factFamily ===
+      QUESTIONS.find((question) => question.identity === questionIdentity)
+        ?.factFamily;
+    if (!interview || (!isCurrentQuestion && !isKnownCorrection)) {
+      throw new Error("The Owner Interview question is stale or unknown.");
+    }
+
+    const previousIntentBrief = interview.intentBrief;
+    const statement = attributableStatement({
+      ...answer,
+      factFamily:
+        revisedStatement?.factFamily ?? interview.currentQuestion.factFamily,
+      interview,
+      recordedTime,
+    });
+    const additionalStatements = (answer.additionalStatements ?? []).map(
+      (additional) =>
+        attributableStatement({
+          ...additional,
+          factFamily: interview.currentQuestion.factFamily,
+          interview,
+          recordedTime,
+        })
+    );
+    const statements = revisedStatement
+      ? previousIntentBrief.statements.map((existing) =>
+          existing.identity === answer.revisesStatementIdentity
+            ? statement
+            : existing
+        )
+      : [
+          ...(previousIntentBrief?.statements ?? []),
+          statement,
+          ...additionalStatements,
+        ];
+    const dataCategories = [
+      ...(previousIntentBrief?.dataCategories ?? []),
+      ...(answer.dataCategories ?? []).map((category) =>
+        attributableDataCategory(category, interview, recordedTime)
+      ),
+    ];
+    const assumptions = [
+      ...(previousIntentBrief?.assumptions ?? []),
+      ...(answer.assumptions ?? []).map((assumption) =>
+        attributableAssumption(assumption, interview, recordedTime)
+      ),
+    ];
+    const acceptanceConditions = [
+      ...(previousIntentBrief?.acceptanceConditions ?? []),
+      ...(answer.acceptanceConditions ?? []).map((condition) => ({
+        ...structuredClone(condition),
+        source: ownerSource(interview, recordedTime),
+      })),
+    ];
+    const intentBrief = {
+      identity: previousIntentBrief?.identity ?? this.identitySource.next(),
+      versionIdentity: this.identitySource.next(),
+      versionNumber: (previousIntentBrief?.versionNumber ?? 0) + 1,
+      parentVersionIdentity: previousIntentBrief?.versionIdentity ?? null,
+      tenantIdentity: interview.tenantIdentity,
+      ownerInterviewIdentity: interview.identity,
+      recordedTime,
+      statements,
+      ...(dataCategories.length > 0 ? { dataCategories } : {}),
+      ...(assumptions.length > 0 ? { assumptions } : {}),
+      ...(acceptanceConditions.length > 0 ? { acceptanceConditions } : {}),
+    };
+    interview.intentBrief = intentBrief;
+    this.intentBriefVersions
+      .get(interview.identity)
+      .push(structuredClone(intentBrief));
+    if (!revisedStatement) {
+      const answeredQuestionIndex = QUESTIONS.findIndex(
+        (question) => question.identity === questionIdentity
+      );
+      interview.factFamilyProgress[answeredQuestionIndex].disposition =
+        answer.intentState === "Not Applicable" ? "NotApplicable" : "Answered";
+      interview.currentQuestion = QUESTIONS[answeredQuestionIndex + 1]
+        ? structuredClone(QUESTIONS[answeredQuestionIndex + 1])
+        : null;
+      const missingFactFamilies = interview.factFamilyProgress
+        .filter((family) => family.disposition === "Unanswered")
+        .map((family) => family.identity);
+      if (missingFactFamilies.length > 0) {
+        interview.draftReview = {
+          disposition: "Blocked",
+          draftBlockers: [
+            {
+              code: "INTENT.DRAFT_BLOCKER.REQUIRED_FACT_FAMILY_MISSING",
+              factFamilies: missingFactFamilies,
+              summary:
+                "Every required fact family must be represented before a Draft Blueprint may be proposed.",
+            },
+          ],
+          draftBlueprint: null,
+        };
+      } else {
+        const hasConfirmedPurpose = intentBrief.statements.some(
+          (candidate) =>
+            candidate.factFamily === "purpose-and-scope" &&
+            candidate.intentState === "Confirmed"
+        );
+        const hasConfirmedRequiredAcceptance = (
+          intentBrief.acceptanceConditions ?? []
+        ).some(
+          (condition) =>
+            condition.intentState === "Confirmed" &&
+            condition.criticality === "Required"
+        );
+        const incompleteStatements = intentBrief.statements
+          .filter(
+            (statement) =>
+              !isNonEmptyString(statement.identity) ||
+              !FACT_FAMILIES.includes(statement.factFamily) ||
+              !INTENT_STATES.has(statement.intentState) ||
+              statement.source?.kind !== "Owner" ||
+              !isNonEmptyString(statement.source?.identity) ||
+              !isNonEmptyString(statement.source?.recordedTime)
+          )
+          .map((statement) => statement.identity ?? null);
+        const restrictedExternalAiCategories = (
+          intentBrief.dataCategories ?? []
+        )
+          .filter(
+            (category) =>
+              category.sensitiveDataClass === "Restricted" &&
+              category.externalAiHandling !== "Prohibited"
+          )
+          .map((category) => category.identity);
+        const unsupportedSafetyStatements = intentBrief.statements
+          .filter(
+            (statement) =>
+              statement.factFamily === "safety-and-jurisdiction" &&
+              statement.intentState === "Unsupported"
+          )
+          .map((statement) => statement.identity);
+        const incompleteDataCategories = (intentBrief.dataCategories ?? [])
+          .filter(
+            (category) =>
+              typeof category.identity !== "string" ||
+              typeof category.name !== "string" ||
+              !(category.sensitiveDataClass in SENSITIVE_DATA_CLASS_RANK) ||
+              typeof category.rationale !== "string" ||
+              category.rationale.length === 0 ||
+              typeof category.source?.identity !== "string"
+          )
+          .map((category) => category.identity ?? null);
+        const incompleteAssumptions = (intentBrief.assumptions ?? [])
+          .filter(
+            (assumption) =>
+              !isNonEmptyString(assumption.identity) ||
+              assumption.intentState !== "Assumed" ||
+              !isNonEmptyString(assumption.proposition) ||
+              !isNonEmptyString(assumption.proposer?.identity) ||
+              !isNonEmptyString(assumption.source?.identity) ||
+              !isNonEmptyString(assumption.rationale) ||
+              !Array.isArray(assumption.affectedFactFamilies) ||
+              !Array.isArray(assumption.affectedDraftBlueprintProposals) ||
+              assumption.affectedFactFamilies.length +
+                assumption.affectedDraftBlueprintProposals.length ===
+                0 ||
+              !isNonEmptyString(assumption.consequenceIfFalse) ||
+              !isNonEmptyString(assumption.riskIfFalse) ||
+              !isNonEmptyString(assumption.resolutionCondition) ||
+              !isNonEmptyString(assumption.expectedEvidence) ||
+              !isNonEmptyString(assumption.responsibleReviewerIdentity) ||
+              !isNonEmptyString(assumption.reviewTrigger)
+          )
+          .map((assumption) => assumption.identity ?? null);
+        const incompleteAcceptanceConditions = (
+          intentBrief.acceptanceConditions ?? []
+        )
+          .filter(
+            (condition) =>
+              !isNonEmptyString(condition.identity) ||
+              !isNonEmptyString(condition.intentState) ||
+              !isNonEmptyString(condition.outcome) ||
+              !isNonEmptyString(condition.whyItMatters) ||
+              !condition.scope ||
+              !Array.isArray(condition.scope.roleIdentities) ||
+              !Array.isArray(condition.scope.locationIdentities) ||
+              !Array.isArray(condition.scope.recordIdentities) ||
+              !Array.isArray(condition.scope.workflowIdentities) ||
+              !isNonEmptyString(condition.startingContext) ||
+              !isNonEmptyString(condition.governedBusinessAction) ||
+              !isNonEmptyString(condition.observableResult) ||
+              !isNonEmptyString(condition.passCondition) ||
+              !isNonEmptyString(condition.failureCondition) ||
+              !Array.isArray(condition.exclusions) ||
+              !Array.isArray(condition.evidenceRequired) ||
+              condition.evidenceRequired.length === 0 ||
+              !isNonEmptyString(condition.reviewerIdentity) ||
+              !["Required", "Desired"].includes(condition.criticality) ||
+              !condition.dependencies ||
+              !Array.isArray(condition.dependencies.assumptionIdentities) ||
+              !Array.isArray(condition.dependencies.constraintIdentities) ||
+              !Array.isArray(
+                condition.dependencies.sensitiveDataCategoryIdentities
+              ) ||
+              !isNonEmptyString(condition.source?.identity)
+          )
+          .map((condition) => condition.identity ?? null);
+        if (incompleteStatements.length > 0) {
+          interview.draftReview = {
+            disposition: "Blocked",
+            draftBlockers: [
+              {
+                code: "INTENT.DRAFT_BLOCKER.STATEMENT_TRACEABILITY_INCOMPLETE",
+                statementIdentities: incompleteStatements,
+                summary:
+                  "Every material statement requires exactly one supported Intent State and an attributable source.",
+              },
+            ],
+            draftBlueprint: null,
+          };
+        } else if (!hasConfirmedPurpose) {
+          interview.draftReview = {
+            disposition: "Blocked",
+            draftBlockers: [
+              {
+                code: "INTENT.DRAFT_BLOCKER.CONFIRMED_PURPOSE_REQUIRED",
+                summary:
+                  "A Confirmed owner purpose is required to anchor a meaningful Draft Blueprint proposal.",
+              },
+            ],
+            draftBlueprint: null,
+          };
+        } else if (incompleteAcceptanceConditions.length > 0) {
+          interview.draftReview = {
+            disposition: "Blocked",
+            draftBlockers: [
+              {
+                code: "INTENT.DRAFT_BLOCKER.ACCEPTANCE_CONDITION_INCOMPLETE",
+                acceptanceConditionIdentities: incompleteAcceptanceConditions,
+                summary:
+                  "Every Acceptance Condition requires an attributable outcome, scope, observable boundary, Evidence path, reviewer, criticality, and dependencies.",
+              },
+            ],
+            draftBlueprint: null,
+          };
+        } else if (!hasConfirmedRequiredAcceptance) {
+          interview.draftReview = {
+            disposition: "Blocked",
+            draftBlockers: [
+              {
+                code: "INTENT.DRAFT_BLOCKER.CONFIRMED_REQUIRED_ACCEPTANCE_CONDITION_REQUIRED",
+                summary:
+                  "A Confirmed Required Acceptance Condition is required to anchor a meaningful Draft Blueprint proposal.",
+              },
+            ],
+            draftBlueprint: null,
+          };
+        } else if (unsupportedSafetyStatements.length > 0) {
+          interview.draftReview = {
+            disposition: "Blocked",
+            draftBlockers: [
+              {
+                code: "INTENT.DRAFT_BLOCKER.UNSUPPORTED_SAFETY_PROFILE",
+                statementIdentities: unsupportedSafetyStatements,
+                summary:
+                  "An unsupported safety, jurisdiction, or data-handling profile prevents Draft Blueprint generation.",
+              },
+            ],
+            draftBlueprint: null,
+          };
+        } else if (incompleteDataCategories.length > 0) {
+          interview.draftReview = {
+            disposition: "Blocked",
+            draftBlockers: [
+              {
+                code: "INTENT.DRAFT_BLOCKER.SENSITIVE_DATA_CLASSIFICATION_INCOMPLETE",
+                dataCategoryIdentities: incompleteDataCategories,
+                summary:
+                  "Every named data category requires one supported Sensitive Data Class, rationale, and attributable source.",
+              },
+            ],
+            draftBlueprint: null,
+          };
+        } else if (incompleteAssumptions.length > 0) {
+          interview.draftReview = {
+            disposition: "Blocked",
+            draftBlockers: [
+              {
+                code: "INTENT.DRAFT_BLOCKER.ASSUMPTION_INCOMPLETE",
+                assumptionIdentities: incompleteAssumptions,
+                summary:
+                  "Every Assumption requires attributable provisional scope, risk, and a complete resolution path.",
+              },
+            ],
+            draftBlueprint: null,
+          };
+        } else if (restrictedExternalAiCategories.length > 0) {
+          interview.draftReview = {
+            disposition: "Blocked",
+            draftBlockers: [
+              {
+                code: "INTENT.DRAFT_BLOCKER.RESTRICTED_EXTERNAL_AI_FORBIDDEN",
+                dataCategoryIdentities: restrictedExternalAiCategories,
+                summary:
+                  "Restricted data must never be sent to an external AI provider in v1.",
+              },
+            ],
+            draftBlueprint: null,
+          };
+        } else {
+          interview.draftReview = {
+            disposition: "ReadyForDraftProposal",
+            draftBlockers: [],
+            draftBlueprint: null,
+          };
+        }
+      }
+    }
+    return structuredClone(interview);
+  }
+
+  review({ ownerInterviewIdentity, versionIdentity }) {
+    const interview = this.interviews.get(ownerInterviewIdentity);
+    const intentBrief = this.intentBriefVersions
+      .get(ownerInterviewIdentity)
+      ?.find((version) => version.versionIdentity === versionIdentity);
+    if (!interview || !intentBrief) {
+      throw new Error("The Intent Brief Version is unknown.");
+    }
+    return structuredClone({ ...interview, intentBrief });
+  }
+}

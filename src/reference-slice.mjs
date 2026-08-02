@@ -9,6 +9,7 @@ import {
   REFERENCE_ACTION,
 } from "./contracts.mjs";
 import { createKernelCommand } from "./kernel-command.mjs";
+import { OwnerWorkbench } from "./owner-workbench.mjs";
 import { AtomicJsonStore, MemoryStore } from "./store.mjs";
 
 /**
@@ -27,10 +28,11 @@ import { AtomicJsonStore, MemoryStore } from "./store.mjs";
 
 export class ReferenceSlice {
   /**
-   * @param {{businessKernel: BusinessKernel, clock: {now: () => string}, identitySource: {next: () => string}}} dependencies
+   * @param {{businessKernel: BusinessKernel, ownerWorkbench: OwnerWorkbench, clock: {now: () => string}, identitySource: {next: () => string}}} dependencies
    */
-  constructor({ businessKernel, clock, identitySource }) {
+  constructor({ businessKernel, ownerWorkbench, clock, identitySource }) {
     this.businessKernel = businessKernel;
+    this.ownerWorkbench = ownerWorkbench;
     this.clock = clock;
     this.identitySource = identitySource;
     this.orchestrationRunIdentity = identitySource.next();
@@ -42,6 +44,77 @@ export class ReferenceSlice {
    * @returns {Promise<ReferenceSliceView>}
    */
   async dispatch(action) {
+    if (action.type === REFERENCE_ACTION.reviewIntentBrief) {
+      return {
+        kind: "ReferenceSliceView",
+        mode: "IntentBriefReview",
+        ownerInterview: this.ownerWorkbench.review({
+          ownerInterviewIdentity: action.ownerInterviewIdentity,
+          versionIdentity: action.versionIdentity,
+        }),
+        authority: {
+          blueprintApproval: false,
+          appliedBlueprint: false,
+          businessTruth: false,
+          previewConfirmsIntent: false,
+        },
+      };
+    }
+
+    if (action.type === REFERENCE_ACTION.answerOwnerInterview) {
+      const outcome = this.ownerWorkbench.answer({
+        ownerInterviewIdentity: action.ownerInterviewIdentity,
+        questionIdentity: action.questionIdentity,
+        answer: action.answer,
+        recordedTime: this.clock.now(),
+      });
+      if (outcome.kind === "OwnerInterviewInputRejection") {
+        return {
+          kind: "ReferenceSliceView",
+          mode: "OwnerInterviewInputRejected",
+          ownerInterview: outcome.ownerInterview,
+          diagnostics: outcome.diagnostics,
+          authority: {
+            blueprintApproval: false,
+            appliedBlueprint: false,
+            businessTruth: false,
+            recommendationConfirmsIntent: false,
+            optionSelectionConfirmsIntent: false,
+          },
+        };
+      }
+      return {
+        kind: "ReferenceSliceView",
+        mode: "OwnerInterview",
+        ownerInterview: outcome,
+        authority: {
+          blueprintApproval: false,
+          appliedBlueprint: false,
+          businessTruth: false,
+          recommendationConfirmsIntent: false,
+          optionSelectionConfirmsIntent: false,
+        },
+      };
+    }
+
+    if (action.type === REFERENCE_ACTION.startOwnerInterview) {
+      return {
+        kind: "ReferenceSliceView",
+        mode: "OwnerInterview",
+        ownerInterview: this.ownerWorkbench.start({
+          tenantIdentity: EMPTY_REFERENCE_SCOPE.tenantIdentity,
+          ownerSourceIdentity: action.ownerSourceIdentity,
+        }),
+        authority: {
+          blueprintApproval: false,
+          appliedBlueprint: false,
+          businessTruth: false,
+          recommendationConfirmsIntent: false,
+          optionSelectionConfirmsIntent: false,
+        },
+      };
+    }
+
     if (action.type !== REFERENCE_ACTION.startEmptyAuthorityShell) {
       throw new Error("Unsupported owner or control action.");
     }
@@ -105,9 +178,11 @@ export const createLocalReferenceSlice = async ({
     throw new TypeError("Unsupported local persistence Adapter.");
   }
   const businessKernel = new BusinessKernel({ store });
+  const ownerWorkbench = new OwnerWorkbench({ identitySource });
   const acceptanceEvaluator = new AcceptanceEvaluator();
   const referenceSlice = new ReferenceSlice({
     businessKernel,
+    ownerWorkbench,
     clock,
     identitySource,
   });

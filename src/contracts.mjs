@@ -21,7 +21,10 @@ export const VERSION_SET = Object.freeze([
 ]);
 
 export const REFERENCE_ACTION = Object.freeze({
+  answerOwnerInterview: "reference-slice.answer-owner-interview",
+  reviewIntentBrief: "reference-slice.review-intent-brief",
   startEmptyAuthorityShell: "reference-slice.start-empty-authority-shell",
+  startOwnerInterview: "reference-slice.start-owner-interview",
 });
 
 export const KERNEL_ACTION = Object.freeze({
