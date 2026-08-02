@@ -33,8 +33,9 @@ monolith with deep domain modules and replaceable boundary adapters.
 
 ### Local stack profile
 
-- Node.js `22.23.1` is the validated local runtime baseline; the slice pins the
-  supported Node 22 range and records the actual runtime in evidence.
+- Node.js `v26.5.0` on Darwin arm64 is the runtime actually validated by the
+  accepted slice evidence. The dependency-light package declares the supported
+  local range `>=22.18 <27` and records the exact runtime in every report.
 - Use ECMAScript modules and JSDoc type contracts so the slice runs directly
   without a transpiler. Production-grade TypeScript compilation remains a
   later implementation decision, not a prerequisite for this proof.
