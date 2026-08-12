@@ -2,3 +2,7 @@ node_modules/
 npm-debug.log*
 .eve/
 .output/
+
+# Independent generated progress site and rendered map
+/.scratch/adaptive-business-os-v1/progress-site/
+/.scratch/adaptive-business-os-v1/progress-map.html

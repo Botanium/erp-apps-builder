@@ -1,5 +1,9 @@
 import { canonicalJson, sha256ContentIdentity } from "./canonical-json.mjs";
 import {
+  createDraftBlueprintRecord,
+  createDraftBlueprintValidationCandidateReview,
+} from "./blueprint-engine.mjs";
+import {
   CONTRACT_VERSION,
   DIAGNOSTIC_CODE,
   KERNEL_ACTION,
@@ -46,6 +50,28 @@ const isIdentity = (value) =>
 const isTimestamp = (value) =>
   typeof value === "string" && !Number.isNaN(Date.parse(value));
 const isEmptyArray = (value) => Array.isArray(value) && value.length === 0;
+
+const isBlueprintSource = (value, command) => {
+  if (value === null) return true;
+  if (
+    !hasExactKeys(value, ["blueprintContentIdentity", "blueprintReference"]) ||
+    !/^sha256:[0-9a-f]{64}$/.test(value.blueprintContentIdentity) ||
+    !hasExactKeys(value.blueprintReference, [
+      "blueprintIdentity",
+      "tenantIdentity",
+      "versionIdentity",
+    ])
+  ) {
+    return false;
+  }
+  return (
+    value.blueprintReference.tenantIdentity === command.tenantIdentity &&
+    value.blueprintReference.blueprintIdentity ===
+      command.input.blueprintIdentity &&
+    isIdentity(value.blueprintReference.blueprintIdentity) &&
+    isIdentity(value.blueprintReference.versionIdentity)
+  );
+};
 
 const isScope = (value, tenantIdentity) => {
   if (
@@ -124,15 +150,31 @@ const isCommandEnvelope = (command) =>
 
 const commandHasValidInput = (command) => {
   if (
-    command.governedActionIdentity !==
+    command.governedActionIdentity ===
     KERNEL_ACTION.initializeEmptyAuthorityShell
   ) {
-    return hasExactKeys(command.input, []);
+    return (
+      hasExactKeys(command.input, ["scope"]) &&
+      isScope(command.input.scope, command.tenantIdentity)
+    );
   }
-  return (
-    hasExactKeys(command.input, ["scope"]) &&
-    isScope(command.input.scope, command.tenantIdentity)
-  );
+  if (command.governedActionIdentity === KERNEL_ACTION.createDraftBlueprint) {
+    return (
+      hasExactKeys(command.input, [
+        "blueprintIdentity",
+        "intentBriefVersionIdentity",
+        "ownerInterviewIdentity",
+        "sourceBlueprint",
+        "versionIdentity",
+      ]) &&
+      isIdentity(command.input.blueprintIdentity) &&
+      isIdentity(command.input.intentBriefVersionIdentity) &&
+      isIdentity(command.input.ownerInterviewIdentity) &&
+      isIdentity(command.input.versionIdentity) &&
+      isBlueprintSource(command.input.sourceBlueprint, command)
+    );
+  }
+  return hasExactKeys(command.input, []);
 };
 
 const diagnostic = (code, summary) => ({
@@ -256,6 +298,7 @@ export class BusinessKernel {
 
     let result;
     let acceptedScope = null;
+    let acceptedDraftBlueprint = null;
     if (!isCommandEnvelope(command) || !commandHasValidInput(command)) {
       result = resultFor(command, "Rejected", [
         diagnostic(
@@ -310,24 +353,45 @@ export class BusinessKernel {
           ),
         ]);
       } else if (
-        command.governedActionIdentity !==
+        command.governedActionIdentity ===
         KERNEL_ACTION.initializeEmptyAuthorityShell
       ) {
+        acceptedScope = command.input.scope;
+        result = resultFor(command, "Accepted", []);
+      } else if (
+        command.governedActionIdentity === KERNEL_ACTION.createDraftBlueprint
+      ) {
+        acceptedDraftBlueprint = createDraftBlueprintRecord({
+          state: current,
+          command,
+        });
+        if (acceptedDraftBlueprint) {
+          result = resultFor(command, "Accepted", []);
+        } else {
+          result = resultFor(command, "Rejected", [
+            diagnostic(
+              DIAGNOSTIC_CODE.blueprintSourceNotReady,
+              "The exact Intent Brief Version is unavailable, unsafe, or not ready for a Draft proposal."
+            ),
+          ]);
+        }
+      } else {
         result = resultFor(command, "Rejected", [
           diagnostic(
             DIAGNOSTIC_CODE.commandUnsupportedAction,
             "The governed action is not supported by this Business Kernel version."
           ),
         ]);
-      } else {
-        acceptedScope = command.input.scope;
-        result = resultFor(command, "Accepted", []);
       }
     }
 
     const committed = await this.store.transact(current.revision, (state) => {
       if (acceptedScope) {
         state.scope = clone(acceptedScope);
+      }
+      if (acceptedDraftBlueprint) {
+        state.blueprintVersions.push(clone(acceptedDraftBlueprint));
+        state.provisioningAttempts ??= [];
       }
       state.kernelCommandResults.push(result);
       return { state, result };
@@ -341,7 +405,14 @@ export class BusinessKernel {
    * @returns {Promise<object>}
    */
   async observe(query) {
-    if (query.type !== KERNEL_QUERY.emptyAuthorityState) {
+    if (
+      ![
+        KERNEL_QUERY.draftBlueprintControlState,
+        KERNEL_QUERY.draftBlueprintReview,
+        KERNEL_QUERY.draftBlueprintValidationCandidateReview,
+        KERNEL_QUERY.emptyAuthorityState,
+      ].includes(query.type)
+    ) {
       throw new Error("Unsupported Kernel query.");
     }
 
@@ -360,14 +431,72 @@ export class BusinessKernel {
       };
     }
 
+    if (query.type === KERNEL_QUERY.draftBlueprintControlState) {
+      return {
+        kind: "KernelObservation",
+        disposition: "Accepted",
+        tenantIdentity: query.tenantIdentity,
+        stateRevision: state.revision,
+      };
+    }
+
+    if (query.type === KERNEL_QUERY.draftBlueprintReview) {
+      const blueprintVersion = state.blueprintVersions.find(
+        (candidate) =>
+          canonicalJson(candidate.draftBlueprint.blueprintReference) ===
+          canonicalJson(query.blueprintReference)
+      );
+      if (!blueprintVersion) {
+        return {
+          kind: "KernelObservation",
+          disposition: "Rejected",
+          tenantIdentity: query.tenantIdentity,
+          diagnostics: [
+            diagnostic(
+              DIAGNOSTIC_CODE.observationBlueprintUnknown,
+              "The exact Blueprint Reference is unknown in this Tenant scope."
+            ),
+          ],
+        };
+      }
+      return {
+        kind: "KernelObservation",
+        disposition: "Accepted",
+        tenantIdentity: query.tenantIdentity,
+        draftBlueprint: clone(blueprintVersion.draftBlueprint),
+        blueprintLifecycle: clone(blueprintVersion.blueprintLifecycle),
+        reviewBundle: clone(blueprintVersion.reviewBundle),
+      };
+    }
+
+    if (query.type === KERNEL_QUERY.draftBlueprintValidationCandidateReview) {
+      const validationCandidateReview =
+        createDraftBlueprintValidationCandidateReview({ state, query });
+      if (!validationCandidateReview) {
+        throw new TypeError(
+          "The Draft Blueprint validation candidate observation does not conform to its closed schema or exact source baseline."
+        );
+      }
+      return {
+        kind: "KernelObservation",
+        disposition: "Accepted",
+        tenantIdentity: query.tenantIdentity,
+        ...clone(validationCandidateReview),
+      };
+    }
+
+    const authority = {
+      blueprintVersions: state.blueprintVersions.length,
+      blueprintApprovals: state.blueprintApprovals.length,
+      appliedBlueprints: state.appliedBlueprints.length,
+    };
+    if (Array.isArray(state.provisioningAttempts)) {
+      authority.provisioningAttempts = state.provisioningAttempts.length;
+    }
     return {
       kind: "KernelObservation",
       scope: state.scope,
-      authority: {
-        blueprintVersions: state.blueprintVersions.length,
-        blueprintApprovals: state.blueprintApprovals.length,
-        appliedBlueprints: state.appliedBlueprints.length,
-      },
+      authority,
       business: countGovernedTruth(state),
       operational: {
         kernelCommandResults: state.kernelCommandResults.length,

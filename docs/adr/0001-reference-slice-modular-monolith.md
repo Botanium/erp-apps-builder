@@ -76,9 +76,10 @@ The named Modules are behavioral boundaries, not directory names or business
 Capabilities:
 
 1. **OwnerWorkbench Module** owns the eight-family Owner Interview projection,
-   attributable Intent Brief updates, one-question interaction model, Draft
-   review bundle, Semantic Diff presentation, and explicit Human Gate subject.
-   It proposes; it never creates approval or business truth.
+   attributable Intent Brief updates, one-question interaction model,
+   owner-facing Intent Brief review, and explicit Human Gate subject. It
+   proposes; it never derives Blueprint validation truth, creates approval, or
+   creates business truth.
 2. **OrchestrationControl Module** owns Orchestration Run state, Control Phase,
    Wait Reason, Human Gates, Run Budget, immutable task and failure references,
    command correlation, resume checks, and Completion Conditions. It submits
@@ -89,9 +90,11 @@ Capabilities:
    stock and ledger algorithms, target provisioning, Applied Blueprint state,
    and Sandbox Reset.
 4. **BlueprintEngine** is an internal pure Module behind BusinessKernel. It
-   validates closed configuration, canonicalizes content, derives Semantic
-   Diffs, and compiles exactly one target-neutral Effective Blueprint. It is not
-   independently callable by UI or orchestration.
+   derives normalized Blueprint content and Content Identity, validates closed
+   configuration, produces immutable Draft Review Material including
+   traceability, coverage, and Semantic Diffs, and compiles exactly one
+   target-neutral Effective Blueprint when a later authorized path requires
+   compilation. It is not independently callable by UI or orchestration.
 5. **GovernanceEngine** and **FinancialInventoryEngine** are internal deep
    Modules selected by governed-action identity. They hide state-transition,
    causation, authorization, posting, stock, reconciliation, and reversal
@@ -100,7 +103,31 @@ Capabilities:
    evaluates the later Ticket 14 conditions. It creates Observation and slice
    evidence only; it cannot mutate Kernel state.
 7. **ReferenceSlice composition Module** wires Modules and Adapters, exposes the
-   one-command scenario runner, and owns no business rule.
+   one-command scenario runner, composes owner-facing Draft review views from
+   read-only BusinessKernel observations, and owns no business rule.
+
+### Draft review material ownership clarification
+
+On 2026-08-10, the decision owner clarified the Ticket 03 ownership split
+without adding a public Interface:
+
+- BlueprintEngine privately derives one immutable Draft Blueprint and its
+  normalized Blueprint, Content Identity, Configuration Validation Report,
+  Intent Traceability, Acceptance Condition coverage, data-exposure and intent
+  disposition summaries, and schema-aware Semantic Diff.
+- BusinessKernel remains the sole mutation authority. Its accepted Draft
+  creation transaction stores the exact immutable Draft and derived Draft
+  Review Material together, and `BusinessKernel.observe` may return a defensive
+  read-only projection of that exact stored pair.
+- ReferenceSlice composes the owner-facing `DraftBlueprintReview` view from the
+  read-only observation. Presentation does not recalculate validation, diffing,
+  traceability, Content Identity, approval, or execution truth.
+- OwnerWorkbench continues to own Owner Interview and Intent Brief review. It
+  does not store, validate, canonicalize, or authorize a Business Blueprint.
+
+This clarification keeps Blueprint behavior behind the existing deep private
+Module and preserves `ReferenceSlice.dispatch` and `BusinessKernel.observe` as
+the accepted Ticket 03 public test seams.
 
 ### Public Interfaces and seams
 

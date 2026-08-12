@@ -22,18 +22,27 @@ export const VERSION_SET = Object.freeze([
 
 export const REFERENCE_ACTION = Object.freeze({
   answerOwnerInterview: "reference-slice.answer-owner-interview",
+  generateDraftBlueprint: "reference-slice.generate-draft-blueprint",
+  reviewDraftBlueprint: "reference-slice.review-draft-blueprint",
+  reviewDraftBlueprintValidationCandidate:
+    "reference-slice.review-draft-blueprint-validation-candidate",
   reviewIntentBrief: "reference-slice.review-intent-brief",
   startEmptyAuthorityShell: "reference-slice.start-empty-authority-shell",
   startOwnerInterview: "reference-slice.start-owner-interview",
 });
 
 export const KERNEL_ACTION = Object.freeze({
+  createDraftBlueprint: "kernel.blueprint.create-draft",
   initializeEmptyAuthorityShell:
     "kernel.foundation.initialize-empty-authority-shell",
   unsupportedFixture: "kernel.action.unsupported",
 });
 
 export const KERNEL_QUERY = Object.freeze({
+  draftBlueprintControlState: "kernel.observe.draft-blueprint-control-state",
+  draftBlueprintReview: "kernel.observe.draft-blueprint-review",
+  draftBlueprintValidationCandidateReview:
+    "kernel.observe.draft-blueprint-validation-candidate-review",
   emptyAuthorityState: "kernel.observe.empty-authority-state",
 });
 
@@ -44,8 +53,11 @@ export const DIAGNOSTIC_CODE = Object.freeze({
   commandBaselineMismatch: "KERNEL.COMMAND.BASELINE_MISMATCH",
   commandTenantScopeMismatch: "KERNEL.COMMAND.TENANT_SCOPE_MISMATCH",
   commandUnsupportedAction: "KERNEL.COMMAND.UNSUPPORTED_ACTION",
+  blueprintSourceNotReady: "KERNEL.BLUEPRINT.SOURCE_NOT_READY",
+  observationBlueprintUnknown: "KERNEL.OBSERVATION.BLUEPRINT_UNKNOWN",
   observationTenantScopeMismatch: "KERNEL.OBSERVATION.TENANT_SCOPE_MISMATCH",
   completionNotEstablished: "REFERENCE_SLICE.COMPLETION.NOT_ESTABLISHED",
+  referenceSliceInputUnknownField: "REFERENCE_SLICE.INPUT.UNKNOWN_FIELD",
 });
 
 export const EMPTY_REFERENCE_SCOPE = Object.freeze({

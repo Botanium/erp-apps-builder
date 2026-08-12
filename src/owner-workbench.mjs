@@ -104,6 +104,12 @@ const ASSUMPTION_INPUT_SCHEMA = objectField({
   expiresAt: nullableStringField(),
 });
 
+const ASSUMPTION_RESOLUTION_INPUT_SCHEMA = objectField({
+  assumptionIdentity: stringField(),
+  disposition: stringField(),
+  resultingStatementIdentity: stringField(),
+});
+
 const ACCEPTANCE_SCOPE_INPUT_SCHEMA = objectField({
   roleIdentities: arrayField(stringField()),
   locationIdentities: arrayField(stringField()),
@@ -143,6 +149,7 @@ const ANSWER_INPUT_SCHEMA = objectField({
   additionalStatements: arrayField(STATEMENT_INPUT_SCHEMA),
   dataCategories: arrayField(DATA_CATEGORY_INPUT_SCHEMA),
   assumptions: arrayField(ASSUMPTION_INPUT_SCHEMA),
+  assumptionResolutions: arrayField(ASSUMPTION_RESOLUTION_INPUT_SCHEMA),
   acceptanceConditions: arrayField(ACCEPTANCE_CONDITION_INPUT_SCHEMA),
 });
 
@@ -351,6 +358,15 @@ const attributableAssumption = (assumption, interview, recordedTime) => {
     source: ownerSource(interview, recordedTime),
   };
 };
+
+const attributableAssumptionResolution = (
+  resolution,
+  interview,
+  recordedTime
+) => ({
+  ...structuredClone(resolution),
+  source: ownerSource(interview, recordedTime),
+});
 
 const attributableDataCategory = (category, interview, recordedTime) => {
   const content = structuredClone(category);
@@ -779,12 +795,25 @@ export class OwnerWorkbench {
         attributableDataCategory(category, interview, recordedTime)
       ),
     ];
+    const assumptionResolutions = [
+      ...(previousIntentBrief?.assumptionResolutions ?? []),
+      ...(answer.assumptionResolutions ?? []).map((resolution) =>
+        attributableAssumptionResolution(resolution, interview, recordedTime)
+      ),
+    ];
+    const resolvedAssumptionIdentities = new Set(
+      (answer.assumptionResolutions ?? []).map(
+        (resolution) => resolution.assumptionIdentity
+      )
+    );
     const assumptions = [
       ...(previousIntentBrief?.assumptions ?? []),
       ...(answer.assumptions ?? []).map((assumption) =>
         attributableAssumption(assumption, interview, recordedTime)
       ),
-    ];
+    ].filter(
+      (assumption) => !resolvedAssumptionIdentities.has(assumption.identity)
+    );
     const acceptanceConditions = [
       ...(previousIntentBrief?.acceptanceConditions ?? []),
       ...(answer.acceptanceConditions ?? []).map((condition) => ({
@@ -803,6 +832,7 @@ export class OwnerWorkbench {
       statements,
       ...(dataCategories.length > 0 ? { dataCategories } : {}),
       ...(assumptions.length > 0 ? { assumptions } : {}),
+      ...(assumptionResolutions.length > 0 ? { assumptionResolutions } : {}),
       ...(acceptanceConditions.length > 0 ? { acceptanceConditions } : {}),
     };
     interview.intentBrief = intentBrief;
