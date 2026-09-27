@@ -693,6 +693,7 @@ test("complete supported interview produces all eight fact families and review c
     blueprintVersions: 0,
     blueprintApprovals: 0,
     appliedBlueprints: 0,
+    provisioningAttempts: 0,
   });
   assert.deepEqual(kernelObservation.business, {
     records: 0,

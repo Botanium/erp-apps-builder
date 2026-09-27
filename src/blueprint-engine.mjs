@@ -1519,8 +1519,119 @@ export const createDraftBlueprintValidationCandidateReview = ({
     return null;
   }
 
+  const sourceBinding =
+    sourceBlueprintVersion.reviewBundle.configurationValidationReportBinding;
+  if (
+    !sourceBinding ||
+    sha256ContentIdentity(sourceBinding.validationVersionSet) !==
+      sourceBinding.validationVersionSetContentIdentity
+  ) {
+    return null;
+  }
+
+  const canonicalCandidate = clone(query.candidate.normalizedBlueprint);
+  if (!Array.isArray(canonicalCandidate.capabilitySelections)) {
+    return null;
+  }
+  canonicalCandidate.capabilitySelections = [
+    ...canonicalCandidate.capabilitySelections,
+  ].sort((left, right) =>
+    left.capabilityIdentity.localeCompare(right.capabilityIdentity)
+  );
+  const sourceNormalizedBlueprint =
+    sourceBlueprintVersion.reviewBundle.normalizedBlueprint;
+  if (
+    canonicalJson(canonicalCandidate) === canonicalJson(sourceNormalizedBlueprint)
+  ) {
+    const sourceBlueprint = clone(query.sourceBlueprint);
+    const receivedCandidateFingerprint =
+      query.candidate.receivedCandidateFingerprint;
+    const candidateBlueprintContentIdentity =
+      sha256ContentIdentity(canonicalCandidate);
+    const candidateCanonicalization = {
+      kind: "BlueprintCandidateCanonicalization",
+      sourceBlueprint: clone(sourceBlueprint),
+      receivedCandidateFingerprint,
+      configurationSchemaIdentity:
+        canonicalCandidate.configurationSchemaIdentity,
+      configurationSchemaVersion:
+        canonicalCandidate.configurationSchemaVersion,
+      canonicalizationRules: {
+        machineIdentity: CANONICALIZATION_RULES_IDENTITY,
+        version: CANONICALIZATION_RULES_VERSION,
+      },
+      comparisonBaseline: clone(sourceBlueprint),
+      comparisonDisposition: "ComparableUnderSameSchema",
+      normalizedBlueprint: clone(canonicalCandidate),
+      candidateBlueprintContentIdentity,
+      normalizationResults: [
+        {
+          schemaPath: "/",
+          ruleIdentity: "canonicalization-rule.object-key-order",
+          disposition: "Normalized",
+        },
+        {
+          schemaPath: "/capabilitySelections",
+          ruleIdentity:
+            "canonicalization-rule.unordered-stable-identity-order",
+          stableIdentityField: "capabilityIdentity",
+          disposition: "Normalized",
+        },
+      ],
+    };
+    const configurationValidationReport = {
+      kind: "ConfigurationValidationReport",
+      sourceBlueprint: clone(sourceBlueprint),
+      receivedCandidateFingerprint,
+      approvalEligibleBlueprintContentIdentity:
+        candidateBlueprintContentIdentity,
+      contentIdentityDisposition: "AvailableAfterCanonicalization",
+      verdict: "Valid",
+      diagnostics: [],
+    };
+    const configurationValidationReportBinding = {
+      kind: "ConfigurationValidationReportBinding",
+      sourceBlueprint: clone(sourceBlueprint),
+      receivedCandidateFingerprint,
+      configurationValidationReportContentIdentity: sha256ContentIdentity(
+        configurationValidationReport
+      ),
+      validationVersionSet: clone(sourceBinding.validationVersionSet),
+      validationVersionSetContentIdentity:
+        sourceBinding.validationVersionSetContentIdentity,
+      validationTime: sourceBinding.validationTime,
+      responsibleKernelSource: clone(sourceBinding.responsibleKernelSource),
+    };
+    const semanticDiff = {
+      kind: "SemanticDiff",
+      sourceBlueprint: clone(sourceBlueprint),
+      receivedCandidateFingerprint,
+      candidateBlueprintContentIdentity,
+      configurationSchemaIdentity:
+        canonicalCandidate.configurationSchemaIdentity,
+      configurationSchemaVersion:
+        canonicalCandidate.configurationSchemaVersion,
+      comparisonBaseline: clone(sourceBlueprint),
+      comparisonDisposition: "ComparableUnderSameSchema",
+      comparisonMapping: null,
+      sectionGroups: BLUEPRINT_SECTION_IDENTITIES.map((sectionIdentity) => ({
+        sectionIdentity,
+        changes: [],
+      })),
+    };
+
+    return {
+      sourceBlueprint,
+      receivedCandidateFingerprint,
+      candidateCanonicalization,
+      configurationValidationReport,
+      configurationValidationReportBinding,
+      semanticDiff,
+    };
+  }
+
   const expectedCandidate = clone(
-    sourceBlueprintVersion.reviewBundle.normalizedBlueprint
+    sourceNormalizedBlueprint
   );
   const cashCapability = expectedCandidate.capabilitySelections.find(
     (selection) => selection.capabilityIdentity === "capability.cash"
@@ -1536,15 +1647,6 @@ export const createDraftBlueprintValidationCandidateReview = ({
     return null;
   }
 
-  const sourceBinding =
-    sourceBlueprintVersion.reviewBundle.configurationValidationReportBinding;
-  if (
-    !sourceBinding ||
-    sha256ContentIdentity(sourceBinding.validationVersionSet) !==
-      sourceBinding.validationVersionSetContentIdentity
-  ) {
-    return null;
-  }
   const diagnostic = createUnsupportedCashCapabilityVersionDiagnostic({
     normalizedBlueprint: query.candidate.normalizedBlueprint,
     validationVersionSet: sourceBinding.validationVersionSet,
@@ -1639,6 +1741,176 @@ const createInitialSemanticDiff = ({
           ),
         },
       ],
+    })),
+  };
+};
+
+const indexByStableIdentity = (values, identityFor) => {
+  if (!Array.isArray(values)) return null;
+
+  const indexed = new Map();
+  for (const value of values) {
+    const identity = identityFor(value);
+    if (typeof identity !== "string" || indexed.has(identity)) return null;
+    indexed.set(identity, value);
+  }
+  return indexed;
+};
+
+const compareStableIdentityCollection = ({
+  previousValues,
+  candidateValues,
+  identityFor,
+  pathPrefix,
+}) => {
+  const previousByIdentity = indexByStableIdentity(previousValues, identityFor);
+  const candidateByIdentity = indexByStableIdentity(
+    candidateValues,
+    identityFor
+  );
+  if (!previousByIdentity || !candidateByIdentity) return null;
+
+  return [
+    ...new Set([...previousByIdentity.keys(), ...candidateByIdentity.keys()]),
+  ]
+    .sort()
+    .flatMap((identity) => {
+      const previousValue = previousByIdentity.get(identity);
+      const candidateValue = candidateByIdentity.get(identity);
+      if (previousValue === undefined) {
+        return [
+          {
+            kind: "Added",
+            path: `${pathPrefix}/${identity}`,
+            oldValue: null,
+            newValue: clone(candidateValue),
+          },
+        ];
+      }
+      if (candidateValue === undefined) {
+        return [
+          {
+            kind: "Removed",
+            path: `${pathPrefix}/${identity}`,
+            oldValue: clone(previousValue),
+            newValue: null,
+          },
+        ];
+      }
+      if (canonicalJson(previousValue) === canonicalJson(candidateValue)) {
+        return [];
+      }
+      return [
+        {
+          kind: "Changed",
+          path: `${pathPrefix}/${identity}`,
+          oldValue: clone(previousValue),
+          newValue: clone(candidateValue),
+        },
+      ];
+    });
+};
+
+const intentTraceIdentity = (trace) => {
+  if (typeof trace?.assumptionIdentity === "string") {
+    return trace.assumptionIdentity;
+  }
+  if (typeof trace?.configuredItemIdentity === "string") {
+    return trace.configuredItemIdentity;
+  }
+  if (typeof trace?.acceptanceConditionIdentity === "string") {
+    return trace.acceptanceConditionIdentity;
+  }
+  if (typeof trace?.statementIdentity === "string") {
+    return trace.statementIdentity;
+  }
+  return null;
+};
+
+const createReplacementSemanticDiff = ({
+  normalizedBlueprint,
+  blueprintReference,
+  blueprintContentIdentity,
+  configurationValidationReport,
+  parentBlueprintVersion,
+}) => {
+  const previousDraft = parentBlueprintVersion?.draftBlueprint;
+  const previousReviewBundle = parentBlueprintVersion?.reviewBundle;
+  const previousNormalizedBlueprint = previousReviewBundle?.normalizedBlueprint;
+  const previousValidationReport =
+    previousReviewBundle?.configurationValidationReport;
+  if (
+    configurationValidationReport.verdict !== "Valid" ||
+    configurationValidationReport.blueprintContentIdentity !==
+      blueprintContentIdentity ||
+    !previousDraft ||
+    !previousNormalizedBlueprint ||
+    previousValidationReport?.verdict !== "Valid" ||
+    previousValidationReport.blueprintContentIdentity !==
+      previousDraft.blueprintContentIdentity ||
+    sha256ContentIdentity(previousNormalizedBlueprint) !==
+      previousDraft.blueprintContentIdentity ||
+    previousNormalizedBlueprint.configurationSchemaIdentity !==
+      normalizedBlueprint.configurationSchemaIdentity ||
+    previousNormalizedBlueprint.configurationSchemaVersion !==
+      normalizedBlueprint.configurationSchemaVersion
+  ) {
+    return null;
+  }
+
+  const envelopeChanges = compareStableIdentityCollection({
+    previousValues:
+      previousNormalizedBlueprint.sourceIntentBriefVersionReferences,
+    candidateValues: normalizedBlueprint.sourceIntentBriefVersionReferences,
+    identityFor: (reference) => reference?.intentBriefIdentity,
+    pathPrefix: "/envelope/sourceIntentBriefVersionReferences",
+  });
+  const intentTraceabilityChanges = compareStableIdentityCollection({
+    previousValues: previousNormalizedBlueprint.intentTraceability,
+    candidateValues: normalizedBlueprint.intentTraceability,
+    identityFor: intentTraceIdentity,
+    pathPrefix: "/intentTraceability",
+  });
+  if (!envelopeChanges || !intentTraceabilityChanges) return null;
+
+  const unchangedSectionIdentities = BLUEPRINT_SECTION_IDENTITIES.filter(
+    (sectionIdentity) =>
+      sectionIdentity !== "envelope" && sectionIdentity !== "intentTraceability"
+  );
+  if (
+    unchangedSectionIdentities.some(
+      (sectionIdentity) =>
+        canonicalJson(previousNormalizedBlueprint[sectionIdentity]) !==
+        canonicalJson(normalizedBlueprint[sectionIdentity])
+    )
+  ) {
+    return null;
+  }
+
+  const comparisonBaseline = {
+    blueprintReference: clone(previousDraft.blueprintReference),
+    blueprintContentIdentity: previousDraft.blueprintContentIdentity,
+  };
+
+  return {
+    kind: "SemanticDiff",
+    blueprintReference: clone(blueprintReference),
+    blueprintContentIdentity,
+    configurationSchemaIdentity:
+      normalizedBlueprint.configurationSchemaIdentity,
+    configurationSchemaVersion: normalizedBlueprint.configurationSchemaVersion,
+    approvalBaseline: null,
+    comparisonBaseline,
+    comparisonDisposition: "ComparableUnderSameSchema",
+    comparisonMapping: null,
+    sectionGroups: BLUEPRINT_SECTION_IDENTITIES.map((sectionIdentity) => ({
+      sectionIdentity,
+      changes:
+        sectionIdentity === "envelope"
+          ? envelopeChanges
+          : sectionIdentity === "intentTraceability"
+            ? intentTraceabilityChanges
+            : [],
     })),
   };
 };
@@ -1786,12 +2058,20 @@ export const createDraftBlueprintRecord = ({ state, command }) => {
       configurationValidationReport,
       validationTime: command.creationTime,
     });
-  const semanticDiff = createInitialSemanticDiff({
-    normalizedBlueprint,
-    blueprintReference,
-    blueprintContentIdentity,
-    configurationValidationReport,
-  });
+  const semanticDiff = parentBlueprintVersion
+    ? createReplacementSemanticDiff({
+        normalizedBlueprint,
+        blueprintReference,
+        blueprintContentIdentity,
+        configurationValidationReport,
+        parentBlueprintVersion,
+      })
+    : createInitialSemanticDiff({
+        normalizedBlueprint,
+        blueprintReference,
+        blueprintContentIdentity,
+        configurationValidationReport,
+      });
   if (!semanticDiff) {
     return null;
   }

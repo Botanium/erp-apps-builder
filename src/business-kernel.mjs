@@ -391,7 +391,6 @@ export class BusinessKernel {
       }
       if (acceptedDraftBlueprint) {
         state.blueprintVersions.push(clone(acceptedDraftBlueprint));
-        state.provisioningAttempts ??= [];
       }
       state.kernelCommandResults.push(result);
       return { state, result };
@@ -489,14 +488,15 @@ export class BusinessKernel {
       blueprintVersions: state.blueprintVersions.length,
       blueprintApprovals: state.blueprintApprovals.length,
       appliedBlueprints: state.appliedBlueprints.length,
+      provisioningAttempts: state.provisioningAttempts.length,
     };
-    if (Array.isArray(state.provisioningAttempts)) {
-      authority.provisioningAttempts = state.provisioningAttempts.length;
-    }
     return {
       kind: "KernelObservation",
       scope: state.scope,
       authority,
+      derivedMaterial: {
+        effectiveBlueprints: state.effectiveBlueprints.length,
+      },
       business: countGovernedTruth(state),
       operational: {
         kernelCommandResults: state.kernelCommandResults.length,

@@ -24,8 +24,10 @@ const commitTransaction = async ({
  * @property {number} revision
  * @property {object|null} scope
  * @property {Array<object>} blueprintVersions
+ * @property {Array<object>} effectiveBlueprints
  * @property {Array<object>} blueprintApprovals
  * @property {Array<object>} appliedBlueprints
+ * @property {Array<object>} provisioningAttempts
  * @property {Array<object>} records
  * @property {Array<object>} businessEvents
  * @property {Array<object>} evidence
@@ -50,8 +52,10 @@ export const createEmptyKernelState = () => ({
   revision: 0,
   scope: null,
   blueprintVersions: [],
+  effectiveBlueprints: [],
   blueprintApprovals: [],
   appliedBlueprints: [],
+  provisioningAttempts: [],
   records: [],
   businessEvents: [],
   evidence: [],

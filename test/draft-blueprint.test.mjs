@@ -1038,6 +1038,7 @@ test("blocked Intent Brief generation returns an exact owner-reviewable Draft Bl
         blueprintVersions: 0,
         blueprintApprovals: 0,
         appliedBlueprints: 0,
+        provisioningAttempts: 0,
       },
       business: {
         records: 0,
@@ -4538,4 +4539,1051 @@ test("Draft candidate canonicalization produces one comparable canonical tree fr
       },
     }
   );
+});
+
+test("Draft candidate Semantic Diff reports no semantic change after schema-declared representation normalization without authority", async () => {
+  const system = await createTicket03System();
+  const ownerInterview = await completeSafeIntentBrief(system, {
+    statementValues: configuredReuseStatementValues,
+  });
+  const intentBrief = ownerInterview.intentBrief;
+
+  const generated = await system.referenceSlice.dispatch({
+    type: "reference-slice.generate-draft-blueprint",
+    ownerInterviewIdentity: ownerInterview.identity,
+    intentBriefVersionIdentity: intentBrief.versionIdentity,
+  });
+  const blueprintReference = generated.draftBlueprint.blueprintReference;
+  const blueprintContentIdentity =
+    generated.draftBlueprint.blueprintContentIdentity;
+  const reviewed = await system.referenceSlice.dispatch({
+    type: "reference-slice.review-draft-blueprint",
+    blueprintReference,
+  });
+  const originalDraft = structuredClone(generated.draftBlueprint);
+  const originalReviewBundle = structuredClone(reviewed.reviewBundle);
+  const sourceBlueprint = {
+    blueprintReference,
+    blueprintContentIdentity,
+  };
+  const candidateNormalizedBlueprint = reverseSerializationOrder(
+    structuredClone(reviewed.reviewBundle.normalizedBlueprint)
+  );
+  candidateNormalizedBlueprint.capabilitySelections = [
+    ...candidateNormalizedBlueprint.capabilitySelections,
+  ].reverse();
+  const receivedCandidateFingerprint = independentlyRecomputedContentIdentity(
+    candidateNormalizedBlueprint
+  );
+  const candidateWithStableCapabilityOrder = structuredClone(
+    candidateNormalizedBlueprint
+  );
+  candidateWithStableCapabilityOrder.capabilitySelections = [
+    ...candidateWithStableCapabilityOrder.capabilitySelections,
+  ].sort((left, right) =>
+    left.capabilityIdentity.localeCompare(right.capabilityIdentity)
+  );
+  const validationCandidateAction = {
+    type: "reference-slice.review-draft-blueprint-validation-candidate",
+    sourceBlueprint,
+    candidate: {
+      normalizedBlueprint: candidateNormalizedBlueprint,
+      receivedCandidateFingerprint,
+    },
+  };
+
+  const candidateReview = await system.referenceSlice.dispatch(
+    structuredClone(validationCandidateAction)
+  );
+  const repeatedCandidateReview = await system.referenceSlice.dispatch(
+    structuredClone(validationCandidateAction)
+  );
+  const draftObservation = await system.businessKernel.observe({
+    type: "kernel.observe.draft-blueprint-review",
+    tenantIdentity: "tenant.cedar-steam",
+    blueprintReference,
+  });
+  const stateObservation = await system.businessKernel.observe({
+    type: "kernel.observe.empty-authority-state",
+    tenantIdentity: "tenant.cedar-steam",
+  });
+
+  const validationVersionSet =
+    originalReviewBundle.configurationValidationReportBinding
+      .validationVersionSet;
+  const validationVersionSetContentIdentity =
+    originalReviewBundle.configurationValidationReportBinding
+      .validationVersionSetContentIdentity;
+  const expectedCandidateCanonicalization = {
+    kind: "BlueprintCandidateCanonicalization",
+    sourceBlueprint,
+    receivedCandidateFingerprint,
+    configurationSchemaIdentity: "schema.business-blueprint",
+    configurationSchemaVersion: "1.0.0",
+    canonicalizationRules: {
+      machineIdentity: "canonicalization.blueprint-content",
+      version: "1.0.0",
+    },
+    comparisonBaseline: sourceBlueprint,
+    comparisonDisposition: "ComparableUnderSameSchema",
+    normalizedBlueprint: originalReviewBundle.normalizedBlueprint,
+    candidateBlueprintContentIdentity: blueprintContentIdentity,
+    normalizationResults: [
+      {
+        schemaPath: "/",
+        ruleIdentity: "canonicalization-rule.object-key-order",
+        disposition: "Normalized",
+      },
+      {
+        schemaPath: "/capabilitySelections",
+        ruleIdentity:
+          "canonicalization-rule.unordered-stable-identity-order",
+        stableIdentityField: "capabilityIdentity",
+        disposition: "Normalized",
+      },
+    ],
+  };
+  const expectedConfigurationValidationReport = {
+    kind: "ConfigurationValidationReport",
+    sourceBlueprint,
+    receivedCandidateFingerprint,
+    approvalEligibleBlueprintContentIdentity: blueprintContentIdentity,
+    contentIdentityDisposition: "AvailableAfterCanonicalization",
+    verdict: "Valid",
+    diagnostics: [],
+  };
+  const expectedConfigurationValidationReportBinding = {
+    kind: "ConfigurationValidationReportBinding",
+    sourceBlueprint,
+    receivedCandidateFingerprint,
+    configurationValidationReportContentIdentity:
+      independentlyRecomputedContentIdentity(
+        expectedConfigurationValidationReport
+      ),
+    validationVersionSet,
+    validationVersionSetContentIdentity,
+    validationTime: "2026-01-15T09:00:00.000Z",
+    responsibleKernelSource: {
+      machineIdentity: "kernel.business",
+      version: "1.0.0",
+      contentIdentity:
+        "sha256:930c1c3c96ff0551a58b6a132fdf352a1be16d4a60b5b5f99386f31ccc47ffac",
+    },
+  };
+  const semanticDiff = candidateReview.semanticDiff ?? null;
+
+  assert.ok(
+    semanticDiff,
+    "The schema-canonicalized candidate review must contain one Semantic Diff."
+  );
+
+  const expectedSemanticDiff = {
+    kind: "SemanticDiff",
+    sourceBlueprint,
+    receivedCandidateFingerprint,
+    candidateBlueprintContentIdentity: blueprintContentIdentity,
+    configurationSchemaIdentity: "schema.business-blueprint",
+    configurationSchemaVersion: "1.0.0",
+    comparisonBaseline: sourceBlueprint,
+    comparisonDisposition: "ComparableUnderSameSchema",
+    comparisonMapping: null,
+    sectionGroups: blueprintSectionNames.map((sectionIdentity) => ({
+      sectionIdentity,
+      changes: [],
+    })),
+  };
+  const effectiveBlueprintMaterialExposed = [
+    generated,
+    reviewed,
+    candidateReview,
+    repeatedCandidateReview,
+    draftObservation,
+    generated.reviewBundle,
+    reviewed.reviewBundle,
+    draftObservation.reviewBundle,
+  ].some(
+    (material) =>
+      Object.hasOwn(material ?? {}, "effectiveBlueprint") ||
+      Object.hasOwn(material ?? {}, "effectiveBlueprints")
+  );
+
+  assert.deepEqual(
+    {
+      candidateReview,
+      repeatedCandidateReview,
+      receivedCandidateFingerprintRecomputes:
+        receivedCandidateFingerprint ===
+        independentlyRecomputedContentIdentity(candidateNormalizedBlueprint),
+      receivedFingerprintDiffersFromCanonicalContent:
+        receivedCandidateFingerprint !== blueprintContentIdentity,
+      representationOnlyCandidate:
+        JSON.stringify(
+          canonicalizeIndependently(candidateWithStableCapabilityOrder)
+        ) ===
+        JSON.stringify(
+          canonicalizeIndependently(originalReviewBundle.normalizedBlueprint)
+        ),
+      canonicalContentIdentityRecomputes:
+        candidateReview.candidateCanonicalization
+          ?.candidateBlueprintContentIdentity ===
+        independentlyRecomputedContentIdentity(
+          candidateReview.candidateCanonicalization?.normalizedBlueprint ??
+            null
+        ),
+      semanticDiffCandidateIdentityRecomputes:
+        semanticDiff.candidateBlueprintContentIdentity ===
+        independentlyRecomputedContentIdentity(
+          candidateReview.candidateCanonicalization.normalizedBlueprint
+        ),
+      semanticDiffChangePropertyNames: semanticDiff.sectionGroups.flatMap(
+        (sectionGroup) =>
+          sectionGroup.changes.flatMap((change) => Object.keys(change).sort())
+      ),
+      storedInitialSemanticDiff: originalReviewBundle.semanticDiff.sectionGroups.map(
+        (sectionGroup) => ({
+          sectionIdentity: sectionGroup.sectionIdentity,
+          changeKinds: sectionGroup.changes.map((change) => change.kind),
+        })
+      ),
+      candidateExposesDraftMaterial:
+        Object.hasOwn(candidateReview, "draftBlueprint") ||
+        Object.hasOwn(candidateReview, "blueprintLifecycle"),
+      storedDraft: draftObservation.draftBlueprint,
+      storedReviewBundle: draftObservation.reviewBundle,
+      observedAuthority: {
+        blueprintVersions: stateObservation.authority.blueprintVersions,
+        blueprintApprovals: stateObservation.authority.blueprintApprovals,
+        appliedBlueprints: stateObservation.authority.appliedBlueprints,
+        provisioningAttempts:
+          stateObservation.authority.provisioningAttempts ?? 0,
+      },
+      effectiveBlueprintMaterialExposed,
+      business: stateObservation.business,
+    },
+    {
+      candidateReview: {
+        kind: "ReferenceSliceView",
+        mode: "DraftBlueprintValidationCandidateReview",
+        sourceBlueprint,
+        receivedCandidateFingerprint,
+        candidateCanonicalization: expectedCandidateCanonicalization,
+        configurationValidationReport: expectedConfigurationValidationReport,
+        configurationValidationReportBinding:
+          expectedConfigurationValidationReportBinding,
+        semanticDiff: expectedSemanticDiff,
+        authority: {
+          blueprintApproval: false,
+          appliedBlueprint: false,
+          provisioning: false,
+          businessTruth: false,
+          reviewApprovesBlueprint: false,
+        },
+      },
+      repeatedCandidateReview: candidateReview,
+      receivedCandidateFingerprintRecomputes: true,
+      receivedFingerprintDiffersFromCanonicalContent: true,
+      representationOnlyCandidate: true,
+      canonicalContentIdentityRecomputes: true,
+      semanticDiffCandidateIdentityRecomputes: true,
+      semanticDiffChangePropertyNames: [],
+      storedInitialSemanticDiff: blueprintSectionNames.map(
+        (sectionIdentity) => ({
+          sectionIdentity,
+          changeKinds: ["Added"],
+        })
+      ),
+      candidateExposesDraftMaterial: false,
+      storedDraft: originalDraft,
+      storedReviewBundle: originalReviewBundle,
+      observedAuthority: {
+        blueprintVersions: 1,
+        blueprintApprovals: 0,
+        appliedBlueprints: 0,
+        provisioningAttempts: 0,
+      },
+      effectiveBlueprintMaterialExposed: false,
+      business: {
+        records: 0,
+        businessEvents: 0,
+        evidence: 0,
+        stockMovements: 0,
+        postingSets: 0,
+        ledgerEntries: 0,
+        payments: 0,
+      },
+    }
+  );
+});
+
+test("Replacement Draft review compares validated canonical snapshots by stable identity without authority", async () => {
+  const system = await createTicket03System();
+  const assumedInterview = await completeSafeIntentBrief(system, {
+    statementValues: configuredReuseStatementValues,
+    businessShapeAssumptions: [
+      {
+        identity: "assumption.local-operating-hours",
+        intentState: "Assumed",
+        proposition:
+          "One illustrative operating-hours profile is sufficient for owner review.",
+        proposerIdentity: "source.agent.local",
+        rationale:
+          "The exact fictitious opening hours are not needed to assess shared behavior.",
+        affectedFactFamilies: ["business-shape"],
+        affectedDraftBlueprintProposals: ["experience.operating-hours-display"],
+        consequenceIfFalse:
+          "The later Draft may need a different presentation-only schedule.",
+        riskIfFalse: "No governed action or invariant changes.",
+        resolutionCondition:
+          "The owner confirms an illustrative schedule before Blueprint Approval.",
+        expectedEvidence: "An attributable owner schedule decision.",
+        responsibleReviewerIdentity: "source.owner.cedar-steam",
+        timeSensitive: true,
+        reviewTrigger: "Before Blueprint Approval",
+        expiresAt: null,
+      },
+    ],
+  });
+  const priorIntentBrief = structuredClone(assumedInterview.intentBrief);
+
+  const firstGenerated = await system.referenceSlice.dispatch({
+    type: "reference-slice.generate-draft-blueprint",
+    ownerInterviewIdentity: assumedInterview.identity,
+    intentBriefVersionIdentity: priorIntentBrief.versionIdentity,
+  });
+  const firstReviewed = await system.referenceSlice.dispatch({
+    type: "reference-slice.review-draft-blueprint",
+    blueprintReference: firstGenerated.draftBlueprint.blueprintReference,
+  });
+  const priorDraft = structuredClone(firstReviewed.draftBlueprint);
+  const priorReviewBundle = structuredClone(firstReviewed.reviewBundle);
+  const sourceBlueprint = {
+    blueprintReference: priorDraft.blueprintReference,
+    blueprintContentIdentity: priorDraft.blueprintContentIdentity,
+  };
+
+  const corrected = await system.referenceSlice.dispatch({
+    type: "reference-slice.answer-owner-interview",
+    ownerInterviewIdentity: assumedInterview.identity,
+    questionIdentity: "owner-interview.question.business-shape",
+    answer: {
+      statementIdentity: "intent-statement.business-shape",
+      revisesStatementIdentity: "intent-statement.business-shape",
+      intentState: "Confirmed",
+      value:
+        "One fictitious Tenant operates retail and cafe Locations in Iraq using Asia/Baghdad, Arabic and English, IQD, and normalized each, gram, and millilitre units at the small-to-medium tier; owner-confirmed illustrative operating hours are 08:00–17:00.",
+      assumptionResolutions: [
+        {
+          assumptionIdentity: "assumption.local-operating-hours",
+          disposition: "Confirmed",
+          resultingStatementIdentity: "intent-statement.business-shape",
+        },
+      ],
+    },
+  });
+  const resolvedIntentBrief = corrected.ownerInterview.intentBrief;
+  const historicalIntentReview = await system.referenceSlice.dispatch({
+    type: "reference-slice.review-intent-brief",
+    ownerInterviewIdentity: assumedInterview.identity,
+    versionIdentity: priorIntentBrief.versionIdentity,
+  });
+
+  const replacementGenerated = await system.referenceSlice.dispatch({
+    type: "reference-slice.generate-draft-blueprint",
+    ownerInterviewIdentity: assumedInterview.identity,
+    intentBriefVersionIdentity: resolvedIntentBrief.versionIdentity,
+    sourceBlueprint,
+  });
+  const replacementReviewed = await system.referenceSlice.dispatch({
+    type: "reference-slice.review-draft-blueprint",
+    blueprintReference: replacementGenerated.draftBlueprint.blueprintReference,
+  });
+  const replacementReviewedAgain = await system.referenceSlice.dispatch({
+    type: "reference-slice.review-draft-blueprint",
+    blueprintReference: replacementGenerated.draftBlueprint.blueprintReference,
+  });
+  const historicalDraftReview = await system.referenceSlice.dispatch({
+    type: "reference-slice.review-draft-blueprint",
+    blueprintReference: priorDraft.blueprintReference,
+  });
+  const priorDraftObservation = await system.businessKernel.observe({
+    type: "kernel.observe.draft-blueprint-review",
+    tenantIdentity: "tenant.cedar-steam",
+    blueprintReference: priorDraft.blueprintReference,
+  });
+  const replacementDraftObservation = await system.businessKernel.observe({
+    type: "kernel.observe.draft-blueprint-review",
+    tenantIdentity: "tenant.cedar-steam",
+    blueprintReference: replacementGenerated.draftBlueprint.blueprintReference,
+  });
+  const stateObservation = await system.businessKernel.observe({
+    type: "kernel.observe.empty-authority-state",
+    tenantIdentity: "tenant.cedar-steam",
+  });
+
+  const replacementDraft = replacementReviewed.draftBlueprint;
+  const replacementReviewBundle = replacementReviewed.reviewBundle;
+  const replacementSemanticDiff = replacementReviewBundle.semanticDiff;
+
+  assert.deepEqual(
+    replacementSemanticDiff.comparisonBaseline,
+    sourceBlueprint,
+    "The replacement Draft Semantic Diff must bind the exact prior Draft as its comparison baseline."
+  );
+
+  const expectedAssumptionTrace = {
+    assumptionIdentity: "assumption.local-operating-hours",
+    intentState: "Assumed",
+    proposition:
+      "One illustrative operating-hours profile is sufficient for owner review.",
+    rationale:
+      "The exact fictitious opening hours are not needed to assess shared behavior.",
+    affectedFactFamilies: ["business-shape"],
+    affectedDraftBlueprintProposals: ["experience.operating-hours-display"],
+    consequenceIfFalse:
+      "The later Draft may need a different presentation-only schedule.",
+    riskIfFalse: "No governed action or invariant changes.",
+    resolutionCondition:
+      "The owner confirms an illustrative schedule before Blueprint Approval.",
+    expectedEvidence: "An attributable owner schedule decision.",
+    responsibleReviewerIdentity: "source.owner.cedar-steam",
+    timeSensitive: true,
+    reviewTrigger: "Before Blueprint Approval",
+    expiresAt: null,
+    proposer: {
+      kind: "AgentProposal",
+      identity: "source.agent.local",
+    },
+    source: {
+      kind: "Owner",
+      identity: "source.owner.cedar-steam",
+      recordedTime: "2026-01-15T09:00:00.000Z",
+    },
+  };
+  const expectedReplacementSemanticDiff = {
+    kind: "SemanticDiff",
+    blueprintReference: replacementDraft.blueprintReference,
+    blueprintContentIdentity: replacementDraft.blueprintContentIdentity,
+    configurationSchemaIdentity: "schema.business-blueprint",
+    configurationSchemaVersion: "1.0.0",
+    approvalBaseline: null,
+    comparisonBaseline: sourceBlueprint,
+    comparisonDisposition: "ComparableUnderSameSchema",
+    comparisonMapping: null,
+    sectionGroups: blueprintSectionNames.map((sectionIdentity) => {
+      if (sectionIdentity === "envelope") {
+        return {
+          sectionIdentity,
+          changes: [
+            {
+              kind: "Changed",
+              path: `/envelope/sourceIntentBriefVersionReferences/${priorIntentBrief.identity}`,
+              oldValue: {
+                intentBriefIdentity: priorIntentBrief.identity,
+                versionIdentity: priorIntentBrief.versionIdentity,
+              },
+              newValue: {
+                intentBriefIdentity: resolvedIntentBrief.identity,
+                versionIdentity: resolvedIntentBrief.versionIdentity,
+              },
+            },
+          ],
+        };
+      }
+      if (sectionIdentity === "intentTraceability") {
+        return {
+          sectionIdentity,
+          changes: [
+            {
+              kind: "Removed",
+              path: "/intentTraceability/assumption.local-operating-hours",
+              oldValue: expectedAssumptionTrace,
+              newValue: null,
+            },
+          ],
+        };
+      }
+      return {
+        sectionIdentity,
+        changes: [],
+      };
+    }),
+  };
+  const activeGovernedConfiguration = (normalizedBlueprint) => ({
+    businessScope: normalizedBlueprint.businessScope,
+    capabilitySelections: normalizedBlueprint.capabilitySelections,
+    recordDefinitions: normalizedBlueprint.recordDefinitions,
+    workflowDefinitions: normalizedBlueprint.workflowDefinitions,
+    roleDefinitions: normalizedBlueprint.roleDefinitions,
+    evidenceRules: normalizedBlueprint.evidenceRules,
+    policyProfiles: normalizedBlueprint.policyProfiles,
+    experienceConfiguration: normalizedBlueprint.experienceConfiguration,
+    integrationConfiguration: normalizedBlueprint.integrationConfiguration,
+  });
+  const semanticChanges = replacementSemanticDiff.sectionGroups.flatMap(
+    (sectionGroup) => sectionGroup.changes
+  );
+  const hasArrayPositionPath = semanticChanges.some((change) =>
+    /\/(?:0|[1-9][0-9]*)(?:\/|$)/.test(change.path)
+  );
+  const effectiveBlueprintMaterialExposed = [
+    firstGenerated,
+    firstReviewed,
+    replacementGenerated,
+    replacementReviewed,
+    replacementReviewedAgain,
+    historicalDraftReview,
+    priorDraftObservation,
+    replacementDraftObservation,
+    stateObservation,
+    firstGenerated.reviewBundle,
+    firstReviewed.reviewBundle,
+    replacementGenerated.reviewBundle,
+    replacementReviewed.reviewBundle,
+    replacementDraftObservation.reviewBundle,
+  ].some(
+    (material) =>
+      Object.hasOwn(material ?? {}, "effectiveBlueprint") ||
+      Object.hasOwn(material ?? {}, "effectiveBlueprints")
+  );
+
+  assert.deepEqual(replacementSemanticDiff, expectedReplacementSemanticDiff);
+  assert.deepEqual(
+    {
+      intentVersioning: {
+        intentBriefIdentity: resolvedIntentBrief.identity,
+        versionChanged:
+          resolvedIntentBrief.versionIdentity !==
+          priorIntentBrief.versionIdentity,
+        versionNumber: resolvedIntentBrief.versionNumber,
+        parentVersionIdentity: resolvedIntentBrief.parentVersionIdentity,
+        activeAssumptions: resolvedIntentBrief.assumptions ?? [],
+        assumptionResolutions: resolvedIntentBrief.assumptionResolutions,
+        historicalIntentBrief:
+          historicalIntentReview.ownerInterview.intentBrief,
+      },
+      replacementLineage: {
+        tenantIdentity: replacementDraft.blueprintReference.tenantIdentity,
+        blueprintIdentity:
+          replacementDraft.blueprintReference.blueprintIdentity,
+        versionChanged:
+          replacementDraft.blueprintReference.versionIdentity !==
+          priorDraft.blueprintReference.versionIdentity,
+        versionNumber: replacementDraft.version.envelope.versionNumber,
+        parentVersionReference:
+          replacementDraft.version.envelope.parentVersionReference,
+        sourceIntentBriefVersionReferences:
+          replacementDraft.version.envelope.sourceIntentBriefVersionReferences,
+        contentIdentityChanged:
+          replacementDraft.blueprintContentIdentity !==
+          priorDraft.blueprintContentIdentity,
+        priorContentIdentityRecomputes:
+          priorDraft.blueprintContentIdentity ===
+          independentlyRecomputedContentIdentity(
+            priorReviewBundle.normalizedBlueprint
+          ),
+        replacementContentIdentityRecomputes:
+          replacementDraft.blueprintContentIdentity ===
+          independentlyRecomputedContentIdentity(
+            replacementReviewBundle.normalizedBlueprint
+          ),
+      },
+      activeGovernedConfiguration: activeGovernedConfiguration(
+        replacementReviewBundle.normalizedBlueprint
+      ),
+      semanticComparison: {
+        semanticDiff: replacementSemanticDiff,
+        totalChanges: semanticChanges.length,
+        changeKinds: semanticChanges.map((change) => change.kind),
+        hasArrayPositionPath,
+      },
+      priorInitialSemanticDiff:
+        priorReviewBundle.semanticDiff.sectionGroups.map((sectionGroup) => ({
+          sectionIdentity: sectionGroup.sectionIdentity,
+          changeKinds: sectionGroup.changes.map((change) => change.kind),
+        })),
+      repeatedReplacementReview: replacementReviewedAgain,
+      historicalDraft: historicalDraftReview.draftBlueprint,
+      historicalReviewBundle: historicalDraftReview.reviewBundle,
+      priorKernelDraft: priorDraftObservation.draftBlueprint,
+      priorKernelReviewBundle: priorDraftObservation.reviewBundle,
+      replacementKernelDraft: replacementDraftObservation.draftBlueprint,
+      replacementKernelReviewBundle: replacementDraftObservation.reviewBundle,
+      generatedAuthority: {
+        first: firstGenerated.authority,
+        replacement: replacementGenerated.authority,
+      },
+      observedAuthority: {
+        blueprintVersions: stateObservation.authority.blueprintVersions,
+        blueprintApprovals: stateObservation.authority.blueprintApprovals,
+        appliedBlueprints: stateObservation.authority.appliedBlueprints,
+        provisioningAttempts:
+          stateObservation.authority.provisioningAttempts ?? 0,
+      },
+      effectiveBlueprintMaterialExposed,
+      business: stateObservation.business,
+    },
+    {
+      intentVersioning: {
+        intentBriefIdentity: priorIntentBrief.identity,
+        versionChanged: true,
+        versionNumber: priorIntentBrief.versionNumber + 1,
+        parentVersionIdentity: priorIntentBrief.versionIdentity,
+        activeAssumptions: [],
+        assumptionResolutions: [
+          {
+            assumptionIdentity: "assumption.local-operating-hours",
+            disposition: "Confirmed",
+            resultingStatementIdentity: "intent-statement.business-shape",
+            source: {
+              kind: "Owner",
+              identity: "source.owner.cedar-steam",
+              recordedTime: "2026-01-15T09:00:00.000Z",
+            },
+          },
+        ],
+        historicalIntentBrief: priorIntentBrief,
+      },
+      replacementLineage: {
+        tenantIdentity: priorDraft.blueprintReference.tenantIdentity,
+        blueprintIdentity: priorDraft.blueprintReference.blueprintIdentity,
+        versionChanged: true,
+        versionNumber: 2,
+        parentVersionReference: priorDraft.blueprintReference,
+        sourceIntentBriefVersionReferences: [
+          {
+            intentBriefIdentity: resolvedIntentBrief.identity,
+            versionIdentity: resolvedIntentBrief.versionIdentity,
+          },
+        ],
+        contentIdentityChanged: true,
+        priorContentIdentityRecomputes: true,
+        replacementContentIdentityRecomputes: true,
+      },
+      activeGovernedConfiguration: activeGovernedConfiguration(
+        priorReviewBundle.normalizedBlueprint
+      ),
+      semanticComparison: {
+        semanticDiff: expectedReplacementSemanticDiff,
+        totalChanges: 2,
+        changeKinds: ["Changed", "Removed"],
+        hasArrayPositionPath: false,
+      },
+      priorInitialSemanticDiff: blueprintSectionNames.map(
+        (sectionIdentity) => ({
+          sectionIdentity,
+          changeKinds: ["Added"],
+        })
+      ),
+      repeatedReplacementReview: replacementReviewed,
+      historicalDraft: priorDraft,
+      historicalReviewBundle: priorReviewBundle,
+      priorKernelDraft: priorDraft,
+      priorKernelReviewBundle: priorReviewBundle,
+      replacementKernelDraft: replacementDraft,
+      replacementKernelReviewBundle: replacementReviewBundle,
+      generatedAuthority: {
+        first: {
+          blueprintApproval: false,
+          appliedBlueprint: false,
+          provisioning: false,
+          businessTruth: false,
+          reviewApprovesBlueprint: false,
+        },
+        replacement: {
+          blueprintApproval: false,
+          appliedBlueprint: false,
+          provisioning: false,
+          businessTruth: false,
+          reviewApprovesBlueprint: false,
+        },
+      },
+      observedAuthority: {
+        blueprintVersions: 2,
+        blueprintApprovals: 0,
+        appliedBlueprints: 0,
+        provisioningAttempts: 0,
+      },
+      effectiveBlueprintMaterialExposed: false,
+      business: {
+        records: 0,
+        businessEvents: 0,
+        evidence: 0,
+        stockMovements: 0,
+        postingSets: 0,
+        ledgerEntries: 0,
+        payments: 0,
+      },
+    }
+  );
+});
+
+test("Draft review publicly proves zero compiled Effective Blueprints without authority", async () => {
+  const system = await createTicket03System();
+  const ownerInterview = await completeSafeIntentBrief(system, {
+    statementValues: configuredReuseStatementValues,
+  });
+  const intentBrief = ownerInterview.intentBrief;
+
+  const generated = await system.referenceSlice.dispatch({
+    type: "reference-slice.generate-draft-blueprint",
+    ownerInterviewIdentity: ownerInterview.identity,
+    intentBriefVersionIdentity: intentBrief.versionIdentity,
+  });
+  const reviewed = await system.referenceSlice.dispatch({
+    type: "reference-slice.review-draft-blueprint",
+    blueprintReference: generated.draftBlueprint.blueprintReference,
+  });
+  const reviewedAgain = await system.referenceSlice.dispatch({
+    type: "reference-slice.review-draft-blueprint",
+    blueprintReference: generated.draftBlueprint.blueprintReference,
+  });
+  const draftObservation = await system.businessKernel.observe({
+    type: "kernel.observe.draft-blueprint-review",
+    tenantIdentity: "tenant.cedar-steam",
+    blueprintReference: generated.draftBlueprint.blueprintReference,
+  });
+  const stateObservation = await system.businessKernel.observe({
+    type: "kernel.observe.empty-authority-state",
+    tenantIdentity: "tenant.cedar-steam",
+  });
+  const stateObservationAgain = await system.businessKernel.observe({
+    type: "kernel.observe.empty-authority-state",
+    tenantIdentity: "tenant.cedar-steam",
+  });
+
+  assert.deepEqual(
+    stateObservation.derivedMaterial,
+    { effectiveBlueprints: 0 },
+    "The read-only Kernel observation must explicitly report zero compiled Effective Blueprints."
+  );
+
+  const exposesEffectiveBlueprintArtifact = (value) => {
+    if (Array.isArray(value)) {
+      return value.some(exposesEffectiveBlueprintArtifact);
+    }
+    if (value === null || typeof value !== "object") {
+      return false;
+    }
+    if (value.kind === "EffectiveBlueprint") {
+      return true;
+    }
+    return Object.entries(value).some(
+      ([key, nestedValue]) =>
+        key === "effectiveBlueprint" ||
+        key === "effectiveBlueprints" ||
+        exposesEffectiveBlueprintArtifact(nestedValue)
+    );
+  };
+  const ownerAndDraftReviewSurfaces = [
+    generated,
+    reviewed,
+    reviewedAgain,
+    generated.draftBlueprint,
+    reviewed.reviewBundle.normalizedBlueprint,
+    reviewed.reviewBundle,
+    draftObservation,
+  ];
+
+  assert.deepEqual(reviewedAgain, reviewed);
+  assert.deepEqual(stateObservationAgain, stateObservation);
+  assert.deepEqual(draftObservation.draftBlueprint, reviewed.draftBlueprint);
+  assert.deepEqual(draftObservation.reviewBundle, reviewed.reviewBundle);
+  assert.equal(
+    ownerAndDraftReviewSurfaces.some(exposesEffectiveBlueprintArtifact),
+    false
+  );
+  assert.equal(
+    Object.hasOwn(stateObservation.authority, "effectiveBlueprints"),
+    false
+  );
+  assert.deepEqual(stateObservation.authority, {
+    blueprintVersions: 1,
+    blueprintApprovals: 0,
+    appliedBlueprints: 0,
+    provisioningAttempts: 0,
+  });
+  assert.deepEqual(stateObservation.business, {
+    records: 0,
+    businessEvents: 0,
+    evidence: 0,
+    stockMovements: 0,
+    postingSets: 0,
+    ledgerEntries: 0,
+    payments: 0,
+  });
+  assert.deepEqual(generated.authority, {
+    blueprintApproval: false,
+    appliedBlueprint: false,
+    provisioning: false,
+    businessTruth: false,
+    reviewApprovesBlueprint: false,
+  });
+});
+
+test("Draft journey preserves one closed read-only Kernel observation contract without authority", async () => {
+  const system = await createTicket03System();
+  const ownerInterview = await completeSafeIntentBrief(system, {
+    statementValues: configuredReuseStatementValues,
+  });
+  const intentBrief = ownerInterview.intentBrief;
+
+  const beforeDraft = await system.businessKernel.observe({
+    type: "kernel.observe.empty-authority-state",
+    tenantIdentity: "tenant.cedar-steam",
+  });
+  const beforeDraftAgain = await system.businessKernel.observe({
+    type: "kernel.observe.empty-authority-state",
+    tenantIdentity: "tenant.cedar-steam",
+  });
+
+  assert.deepEqual(
+    beforeDraft.authority,
+    {
+      blueprintVersions: 0,
+      blueprintApprovals: 0,
+      appliedBlueprints: 0,
+      provisioningAttempts: 0,
+    },
+    "The pre-Draft authority projection must explicitly report zero provisioning attempts."
+  );
+
+  const generated = await system.referenceSlice.dispatch({
+    type: "reference-slice.generate-draft-blueprint",
+    ownerInterviewIdentity: ownerInterview.identity,
+    intentBriefVersionIdentity: intentBrief.versionIdentity,
+  });
+  const reviewed = await system.referenceSlice.dispatch({
+    type: "reference-slice.review-draft-blueprint",
+    blueprintReference: generated.draftBlueprint.blueprintReference,
+  });
+  const reviewedAgain = await system.referenceSlice.dispatch({
+    type: "reference-slice.review-draft-blueprint",
+    blueprintReference: generated.draftBlueprint.blueprintReference,
+  });
+  const draftObservation = await system.businessKernel.observe({
+    type: "kernel.observe.draft-blueprint-review",
+    tenantIdentity: "tenant.cedar-steam",
+    blueprintReference: generated.draftBlueprint.blueprintReference,
+  });
+  const draftObservationAgain = await system.businessKernel.observe({
+    type: "kernel.observe.draft-blueprint-review",
+    tenantIdentity: "tenant.cedar-steam",
+    blueprintReference: generated.draftBlueprint.blueprintReference,
+  });
+  const afterDraft = await system.businessKernel.observe({
+    type: "kernel.observe.empty-authority-state",
+    tenantIdentity: "tenant.cedar-steam",
+  });
+  const afterDraftAgain = await system.businessKernel.observe({
+    type: "kernel.observe.empty-authority-state",
+    tenantIdentity: "tenant.cedar-steam",
+  });
+
+  const topLevelContract = [
+    "authority",
+    "business",
+    "derivedMaterial",
+    "kind",
+    "operational",
+    "scope",
+  ];
+  const emptyBusinessTruth = {
+    records: 0,
+    businessEvents: 0,
+    evidence: 0,
+    stockMovements: 0,
+    postingSets: 0,
+    ledgerEntries: 0,
+    payments: 0,
+  };
+  const exposesEffectiveBlueprintArtifact = (value) => {
+    if (Array.isArray(value)) {
+      return value.some(exposesEffectiveBlueprintArtifact);
+    }
+    if (value === null || typeof value !== "object") {
+      return false;
+    }
+    if (value.kind === "EffectiveBlueprint") {
+      return true;
+    }
+    return Object.entries(value).some(
+      ([key, nestedValue]) =>
+        key === "effectiveBlueprint" ||
+        key === "effectiveBlueprints" ||
+        exposesEffectiveBlueprintArtifact(nestedValue)
+    );
+  };
+
+  assert.deepEqual(beforeDraftAgain, beforeDraft);
+  assert.deepEqual(afterDraftAgain, afterDraft);
+  assert.deepEqual(reviewedAgain, reviewed);
+  assert.deepEqual(draftObservationAgain, draftObservation);
+  assert.deepEqual(Object.keys(beforeDraft).sort(), topLevelContract);
+  assert.deepEqual(Object.keys(afterDraft).sort(), topLevelContract);
+  assert.equal(beforeDraft.kind, "KernelObservation");
+  assert.equal(afterDraft.kind, "KernelObservation");
+  assert.equal(beforeDraft.scope.tenantIdentity, "tenant.cedar-steam");
+  assert.deepEqual(afterDraft.scope, beforeDraft.scope);
+  assert.deepEqual(afterDraft.authority, {
+    blueprintVersions: 1,
+    blueprintApprovals: 0,
+    appliedBlueprints: 0,
+    provisioningAttempts: 0,
+  });
+  assert.deepEqual(beforeDraft.derivedMaterial, { effectiveBlueprints: 0 });
+  assert.deepEqual(afterDraft.derivedMaterial, { effectiveBlueprints: 0 });
+  assert.deepEqual(beforeDraft.business, emptyBusinessTruth);
+  assert.deepEqual(afterDraft.business, emptyBusinessTruth);
+  assert.deepEqual(beforeDraft.operational, { kernelCommandResults: 1 });
+  assert.deepEqual(afterDraft.operational, { kernelCommandResults: 2 });
+  assert.deepEqual(reviewed.draftBlueprint, generated.draftBlueprint);
+  assert.deepEqual(draftObservation.draftBlueprint, reviewed.draftBlueprint);
+  assert.deepEqual(draftObservation.reviewBundle, reviewed.reviewBundle);
+  assert.equal(
+    [generated, reviewed, reviewedAgain, draftObservation, draftObservationAgain].some(
+      exposesEffectiveBlueprintArtifact
+    ),
+    false
+  );
+  assert.deepEqual(generated.authority, {
+    blueprintApproval: false,
+    appliedBlueprint: false,
+    provisioning: false,
+    businessTruth: false,
+    reviewApprovesBlueprint: false,
+  });
+});
+
+test("undeclared Assumption resolution disposition fails closed without authority", async () => {
+  const system = await createTicket03System();
+  const assumedInterview = await completeSafeIntentBrief(system, {
+    statementValues: configuredReuseStatementValues,
+    businessShapeAssumptions: [
+      {
+        identity: "assumption.local-operating-hours",
+        intentState: "Assumed",
+        proposition:
+          "One illustrative operating-hours profile is sufficient for owner review.",
+        proposerIdentity: "source.agent.local",
+        rationale:
+          "The exact fictitious opening hours are not needed to assess shared behavior.",
+        affectedFactFamilies: ["business-shape"],
+        affectedDraftBlueprintProposals: [
+          "experience.operating-hours-display",
+        ],
+        consequenceIfFalse:
+          "The later Draft may need a different presentation-only schedule.",
+        riskIfFalse: "No governed action or invariant changes.",
+        resolutionCondition:
+          "The owner confirms an illustrative schedule before Blueprint Approval.",
+        expectedEvidence: "An attributable owner schedule decision.",
+        responsibleReviewerIdentity: "source.owner.cedar-steam",
+        timeSensitive: true,
+        reviewTrigger: "Before Blueprint Approval",
+        expiresAt: null,
+      },
+    ],
+  });
+  const priorIntentBrief = structuredClone(assumedInterview.intentBrief);
+
+  const generated = await system.referenceSlice.dispatch({
+    type: "reference-slice.generate-draft-blueprint",
+    ownerInterviewIdentity: assumedInterview.identity,
+    intentBriefVersionIdentity: priorIntentBrief.versionIdentity,
+  });
+  const reviewed = await system.referenceSlice.dispatch({
+    type: "reference-slice.review-draft-blueprint",
+    blueprintReference: generated.draftBlueprint.blueprintReference,
+  });
+  const priorDraft = structuredClone(reviewed.draftBlueprint);
+  const priorReviewBundle = structuredClone(reviewed.reviewBundle);
+
+  const rejected = await system.referenceSlice.dispatch({
+    type: "reference-slice.answer-owner-interview",
+    ownerInterviewIdentity: assumedInterview.identity,
+    questionIdentity: "owner-interview.question.business-shape",
+    answer: {
+      statementIdentity: "intent-statement.business-shape",
+      revisesStatementIdentity: "intent-statement.business-shape",
+      intentState: "Confirmed",
+      value:
+        "One fictitious Tenant operates retail and cafe Locations in Iraq using Asia/Baghdad, Arabic and English, IQD, and normalized each, gram, and millilitre units at the small-to-medium tier; illustrative operating hours inferred by an Agent are 08:00–17:00.",
+      assumptionResolutions: [
+        {
+          assumptionIdentity: "assumption.local-operating-hours",
+          disposition: "AgentInferred",
+          resultingStatementIdentity: "intent-statement.business-shape",
+        },
+      ],
+    },
+  });
+
+  assert.equal(
+    rejected.mode,
+    "OwnerInterviewInputRejected",
+    "The undeclared Assumption resolution disposition must fail closed."
+  );
+  assert.deepEqual(rejected.diagnostics, [
+    {
+      code: "INTENT.INPUT.VALUE_NOT_ALLOWED",
+      field: "disposition",
+      summary:
+        "Owner Interview requires every declared structured field to use one of its declared allowed values.",
+    },
+  ]);
+  assert.deepEqual(rejected.ownerInterview.intentBrief, priorIntentBrief);
+  assert.deepEqual(
+    rejected.ownerInterview.intentBrief.assumptions,
+    priorIntentBrief.assumptions
+  );
+  assert.equal(
+    rejected.ownerInterview.intentBrief.assumptions[0].identity,
+    "assumption.local-operating-hours"
+  );
+  assert.deepEqual(rejected.authority, {
+    blueprintApproval: false,
+    appliedBlueprint: false,
+    businessTruth: false,
+    recommendationConfirmsIntent: false,
+    optionSelectionConfirmsIntent: false,
+  });
+
+  const historicalIntentReview = await system.referenceSlice.dispatch({
+    type: "reference-slice.review-intent-brief",
+    ownerInterviewIdentity: assumedInterview.identity,
+    versionIdentity: priorIntentBrief.versionIdentity,
+  });
+  const draftReviewAfterRejection = await system.referenceSlice.dispatch({
+    type: "reference-slice.review-draft-blueprint",
+    blueprintReference: priorDraft.blueprintReference,
+  });
+  const stateObservation = await system.businessKernel.observe({
+    type: "kernel.observe.empty-authority-state",
+    tenantIdentity: "tenant.cedar-steam",
+  });
+
+  assert.deepEqual(
+    historicalIntentReview.ownerInterview.intentBrief,
+    priorIntentBrief
+  );
+  assert.deepEqual(draftReviewAfterRejection.draftBlueprint, priorDraft);
+  assert.deepEqual(draftReviewAfterRejection.reviewBundle, priorReviewBundle);
+  assert.deepEqual(stateObservation.authority, {
+    blueprintVersions: 1,
+    blueprintApprovals: 0,
+    appliedBlueprints: 0,
+    provisioningAttempts: 0,
+  });
+  assert.deepEqual(stateObservation.derivedMaterial, {
+    effectiveBlueprints: 0,
+  });
+  assert.deepEqual(stateObservation.business, {
+    records: 0,
+    businessEvents: 0,
+    evidence: 0,
+    stockMovements: 0,
+    postingSets: 0,
+    ledgerEntries: 0,
+    payments: 0,
+  });
 });

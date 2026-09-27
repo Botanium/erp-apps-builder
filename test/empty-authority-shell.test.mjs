@@ -101,6 +101,7 @@ test("local operator can start an empty authority shell", async () => {
     blueprintVersions: 0,
     blueprintApprovals: 0,
     appliedBlueprints: 0,
+    provisioningAttempts: 0,
   });
   assert.deepEqual(view.business, {
     records: 0,

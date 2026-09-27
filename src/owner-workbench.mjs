@@ -55,6 +55,7 @@ const PROHIBITED_ANSWER_FIELDS = new Set([
 ]);
 
 const stringField = () => ({ kind: "string" });
+const stringLiteralField = (value) => ({ kind: "string-literal", value });
 const booleanField = () => ({ kind: "boolean" });
 const nullableStringField = () => ({ kind: "nullable-string" });
 const arrayField = (element) => ({ kind: "array", element });
@@ -106,7 +107,7 @@ const ASSUMPTION_INPUT_SCHEMA = objectField({
 
 const ASSUMPTION_RESOLUTION_INPUT_SCHEMA = objectField({
   assumptionIdentity: stringField(),
-  disposition: stringField(),
+  disposition: stringLiteralField("Confirmed"),
   resultingStatementIdentity: stringField(),
 });
 
@@ -160,6 +161,10 @@ const findAnswerSchemaViolation = (value, schema, field = "answer") => {
   if (value === undefined) return { kind: "type", field };
   if (schema.kind === "string") {
     return typeof value === "string" ? null : { kind: "type", field };
+  }
+  if (schema.kind === "string-literal") {
+    if (typeof value !== "string") return { kind: "type", field };
+    return value === schema.value ? null : { kind: "value", field };
   }
   if (schema.kind === "nullable-string") {
     return value === null || typeof value === "string"
@@ -728,12 +733,16 @@ export class OwnerWorkbench {
               ? "INTENT.INPUT.PROHIBITED_DATA"
               : inputViolation.kind === "unknown"
                 ? "INTENT.INPUT.UNKNOWN_FIELD"
+                : inputViolation.kind === "value"
+                  ? "INTENT.INPUT.VALUE_NOT_ALLOWED"
                 : "INTENT.INPUT.TYPE_MISMATCH",
             field: inputViolation.field,
             summary: containsProhibitedData
               ? "Owner Interview captures data categories and constraints, never live sensitive or real business data."
               : inputViolation.kind === "unknown"
                 ? "Owner Interview accepts only declared structured fields and never persists unknown payload properties."
+                : inputViolation.kind === "value"
+                  ? "Owner Interview requires every declared structured field to use one of its declared allowed values."
                 : "Owner Interview requires every declared structured field to use its declared value kind.",
           },
         ],

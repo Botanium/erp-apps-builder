@@ -552,9 +552,18 @@ export class ReferenceSlice {
       mode: "DraftBlueprintValidationCandidateReview",
       sourceBlueprint: observation.sourceBlueprint,
       receivedCandidateFingerprint: observation.receivedCandidateFingerprint,
+      ...(observation.candidateCanonicalization
+        ? {
+            candidateCanonicalization:
+              observation.candidateCanonicalization,
+          }
+        : {}),
       configurationValidationReport: observation.configurationValidationReport,
       configurationValidationReportBinding:
         observation.configurationValidationReportBinding,
+      ...(observation.semanticDiff
+        ? { semanticDiff: observation.semanticDiff }
+        : {}),
       authority: {
         blueprintApproval: false,
         appliedBlueprint: false,
