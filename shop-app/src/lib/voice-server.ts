@@ -13,13 +13,17 @@ import {
 // These are retained reservations, not a promise of exact provider invoice amounts.
 export const TRANSCRIBE_RESERVATION_MICRO_USD = 6_000;
 export const SPEAK_RESERVATION_MICRO_USD = 20_000;
+// The default UI transcribes and reads its reply aloud. Configuration must fund
+// both; each endpoint still reserves its own amount from the shared ledger.
+const DEFAULT_VOICE_TURN_MICRO_USD =
+  TRANSCRIBE_RESERVATION_MICRO_USD + SPEAK_RESERVATION_MICRO_USD;
 export const VOICE_PRICING_REVIEW_DATE = "2026-10-04";
 type Environment = Record<string, string | undefined>;
 export function voiceAvailability(
   env: Environment = process.env
 ): VoiceAvailability {
   let reason =
-    "Ready for short, turn-based voice. Microphone starts only after explicit consent and a click.";
+    "Turn-based voice is configured. Each request still requires remaining shared budget; microphone starts only after explicit consent and a click.";
   // All public routes validate durable owner/shop auth and trusted origin first,
   // including hosted configuration. Availability here describes paid runtime gates only.
   if (env.SHOP_AI_ENABLED !== "true" || env.SHOP_VOICE_ENABLED !== "true")
@@ -32,10 +36,11 @@ export function voiceAvailability(
     reason = "Voice provider credential is not configured.";
   else if (
     !/^\d+$/.test(env.SHOP_AI_BUDGET_MICRO_USD || "") ||
-    Number(env.SHOP_AI_BUDGET_MICRO_USD) < TRANSCRIBE_RESERVATION_MICRO_USD ||
+    Number(env.SHOP_AI_BUDGET_MICRO_USD) < DEFAULT_VOICE_TURN_MICRO_USD ||
     Number(env.SHOP_AI_BUDGET_MICRO_USD) > 10_000_000
   )
-    reason = "Voice requires a positive approved shared AI budget.";
+    reason =
+      "Voice requires an approved shared AI budget of at least 26,000 micro-USD ($0.026) for the default transcription and spoken reply.";
   else
     return {
       available: true,

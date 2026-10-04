@@ -260,6 +260,26 @@ async function main() {
     passed.push(
       "durable auth session revocation and global concurrent login throttle"
     );
+    execFileSync(
+      process.execPath,
+      ["--import", "tsx", "tests/postgres-recovery.ts"],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        env: {
+          ...process.env,
+          SHOP_RECOVERY_FIXTURE: name,
+          DATABASE_URL: url,
+          SHOP_RECOVERY_ADMIN_URL: `postgresql://shop_fixture_admin:${adminPassword}@127.0.0.1:${port}/shop_synthetic_qa`,
+          OPENAI_API_KEY: "",
+          SHOP_AI_ENABLED: "false",
+          SHOP_VOICE_ENABLED: "false",
+        },
+      }
+    );
+    passed.push(
+      "transient initialization failure recovers in the same process and concurrent replay has one business/audit/confirmation effect"
+    );
     console.log(
       JSON.stringify(
         {

@@ -373,6 +373,14 @@ function store(workspace: WorkspaceMode): Promise<ShopStore> {
         workspace === "preview" ? initialState : emptyState
       );
     }
+    // Share one initialization attempt, but let a later request recover after failure.
+    // Never automatically replay a business command or discard a newer cached store.
+    const initializing = stores[workspace]!;
+    const retryable: Promise<ShopStore> = initializing.catch((error) => {
+      if (stores[workspace] === retryable) delete stores[workspace];
+      throw error;
+    });
+    stores[workspace] = retryable;
   }
   return stores[workspace]!;
 }

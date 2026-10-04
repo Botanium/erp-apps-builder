@@ -126,6 +126,90 @@ test("enabled voice still requires explicit consent and a bounded replay identif
   );
 });
 
+test("owner voice availability requires enough configured budget for the default transcription and spoken reply", async () => {
+  const saved = { ...process.env };
+  const originalFetch = globalThis.fetch;
+  const folder = mkdtempSync(join(tmpdir(), "shop-voice-cycle-budget-"));
+  let providerCalls = 0;
+  try {
+    Object.assign(process.env, validEnv, {
+      SHOP_AUTH_DB_PATH: join(folder, "auth.sqlite"),
+      SHOP_DB_PATH: join(folder, "shop.sqlite"),
+      SHOP_APP_ORIGIN: base,
+      SHOP_SESSION_SECRET: "c".repeat(64),
+      SHOP_OWNER_PASSWORD_HASH: `scrypt$${"a".repeat(32)}$${scryptSync("synthetic-voice-budget-fixture", Buffer.from("a".repeat(32), "hex"), 64, { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 }).toString("hex")}`,
+    });
+    delete process.env.DATABASE_URL;
+    delete process.env.VERCEL;
+    globalThis.fetch = async () => {
+      providerCalls++;
+      throw new Error("Real network is prohibited in this test");
+    };
+    const cookie = (
+      await createSession(
+        new Request(`${base}/api/session`, { headers: { Origin: base } }),
+        { mode: "shop", password: "synthetic-voice-budget-fixture" }
+      )
+    ).split(";")[0];
+    const headers = {
+      Cookie: cookie,
+      Origin: base,
+      "X-Shop-Workspace": "shop",
+      "X-Voice-Consent": "yes",
+      "X-Request-Id": "voice-cycle-budget-test",
+    };
+    // Fixed contract examples: default voice reserves $0.006 transcription plus
+    // $0.020 speech. A $0.006 or $0.025999 ceiling cannot fund that turn.
+    for (const budget of ["6000", "25999"]) {
+      process.env.SHOP_AI_BUDGET_MICRO_USD = budget;
+      const availability = await availabilityRoute(
+        new Request(`${base}/api/voice`, { headers })
+      );
+      assert.equal(availability.status, 200);
+      const status = await availability.json();
+      assert.equal(
+        status.available,
+        false,
+        `budget ${budget} cannot fund the default spoken turn`
+      );
+      assert.match(status.reason, /26,?000|0\.026/);
+      const transcript = await transcribeRoute(
+        new Request(`${base}/api/voice/transcribe`, {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "audio/wav" },
+          body: wav(),
+        })
+      );
+      assert.equal(transcript.status, 503);
+      assert.equal((await transcript.json()).code, "VOICE_DISABLED");
+      const speech = await speakRoute(
+        new Request(`${base}/api/voice/speak`, {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: "No paid request is authorized by this test.",
+          }),
+        })
+      );
+      assert.equal(speech.status, 503);
+      assert.equal((await speech.json()).code, "VOICE_DISABLED");
+    }
+    process.env.SHOP_AI_BUDGET_MICRO_USD = "26000";
+    const sufficient = await availabilityRoute(
+      new Request(`${base}/api/voice`, { headers })
+    );
+    assert.equal(sufficient.status, 200);
+    assert.equal((await sufficient.json()).available, true);
+    assert.equal(providerCalls, 0);
+  } finally {
+    await (await authStore()).close();
+    globalThis.fetch = originalFetch;
+    for (const key of Object.keys(process.env))
+      if (!(key in saved)) delete process.env[key];
+    Object.assign(process.env, saved);
+  }
+});
+
 test("transcription reserves before provider call and returns only reviewable text", async () => {
   const calls: string[] = [];
   const result = await transcribeVoice(audioRequest(), "request-one", {
