@@ -12,7 +12,7 @@
     "eve:info": "eve info --json",
     "prepare": "husky",
     "reference-slice": "node src/cli.mjs",
-    "test": "node --test"
+    "test": "node --test test/*.test.mjs"
   },
   "devDependencies": {
     "husky": "^9.1.7",

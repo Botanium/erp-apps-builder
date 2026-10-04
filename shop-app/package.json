@@ -1,0 +1,36 @@
+{
+  "name": "shop-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "owner:configure": "node scripts/configure-owner.mjs",
+    "qa:server": "node scripts/qa-server.mjs",
+    "verify:bundle": "node scripts/verify-bundle.mjs",
+    "test:postgres": "node --import tsx scripts/test-postgres.ts",
+    "dev": "next dev --hostname 127.0.0.1 --port 4320",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1 --port 4320",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts tests/*.test.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:list": "playwright test --list"
+  },
+  "dependencies": {
+    "next": "16.3.7",
+    "pg": "8.23.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}

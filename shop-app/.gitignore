@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
+.next-qa/
+.next-e2e/
+.vercel/
+test-results/
+playwright-report/
+.local/
+output/
+*.tsbuildinfo
+next-env.d.ts
