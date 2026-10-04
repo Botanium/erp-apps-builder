@@ -16,6 +16,8 @@ Use Node 24. Open the loopback URL printed by the server. Preview is explicitly 
 
 ## Existing reference work
 
+The [Netlify qualification record](QUALIFICATION.md) documents local adapter, PostgreSQL and security-boundary verification on Node 24.16.0. CI builds the adapter and exercises its generated handler with synthetic fixtures only. This is **not a deployment**: hosted routing, Free-plan enforcement and owner acceptance remain unverified. Merge and any cloud pilot require separate approval.
+
 The original root application, `src/`, `agent/`, `evals/`, domain glossary, ADRs and local specifications remain intact. Root tests run with `npm test`; shop tests run separately under `shop-app`. The root test path is explicit to avoid accidentally discovering the separately configured shop tests.
 
 No credentials, local business databases or private QA artifacts belong in this repository. No deployment or provider call runs automatically from the verification workflow.

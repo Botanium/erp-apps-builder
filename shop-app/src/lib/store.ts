@@ -198,6 +198,10 @@ export async function createPostgresStore(
     max: 3,
     connectionTimeoutMillis: 5000,
   });
+  // pg removes failed idle clients; keep the process alive without replaying any query.
+  pool.on("error", () => {
+    console.warn("Shop database idle connection lost; next request can reconnect.");
+  });
   // This runs only after an explicitly provisioned schema exists. The sole seed is an empty shop.
   try {
     await pool.query(

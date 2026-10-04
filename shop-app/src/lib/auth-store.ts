@@ -96,6 +96,10 @@ export async function createPostgresAuthStore(
     max: 3,
     connectionTimeoutMillis: 5000,
   });
+  // pg removes failed idle clients; keep the process alive without replaying any query.
+  pool.on("error", () => {
+    console.warn("Authentication database idle connection lost; next request can reconnect.");
+  });
   // No automatic hosted schema creation. migration 002 must be explicitly applied by the operator.
   return {
     async get(hash) {
