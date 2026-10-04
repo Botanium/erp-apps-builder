@@ -23,7 +23,7 @@ const files = git(args).split("\0").filter(Boolean);
 const violations = [];
 for (const file of files) {
   if (
-    /(?:^|\/)(?:node_modules|\.local|\.vercel|\.next[^/]*|output|playwright-report|test-results)(?:\/|$)|\.(?:sqlite(?:-wal|-shm)?|db|mp3|wav|png|jpe?g|webp|zip)$/i.test(
+    /(?:^|\/)(?:node_modules|\.local|\.vercel|\.netlify|\.eve|\.output|\.next[^/]*|output|playwright-report|test-results)(?:\/|$)|\.(?:sqlite(?:-wal|-shm)?|db|mp3|wav|png|jpe?g|webp|zip)$/i.test(
       file
     ) ||
     (/(?:^|\/)\.env(?:\..*)?$/.test(file) && !file.endsWith("/.env.example")) ||

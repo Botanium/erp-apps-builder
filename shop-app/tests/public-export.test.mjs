@@ -49,6 +49,20 @@ test("public export guard accepts staged source and rejects private metadata wit
     assert.equal(blocked.status, 1);
     assert.equal(JSON.parse(blocked.stdout).violations.length, 2);
     assert.equal(blocked.stdout.includes(privateValue), false);
+    for (const name of [".netlify", ".eve", ".output"]) {
+      mkdirSync(join(folder, "shop-app", name));
+      writeFileSync(
+        join(folder, "shop-app", name, "artifact.js"),
+        "synthetic generated artifact"
+      );
+    }
+    git(["add", "shop-app"]);
+    const generated = spawnSync(process.execPath, [checker, "--staged"], {
+      cwd: folder,
+      encoding: "utf8",
+    });
+    assert.equal(generated.status, 1);
+    assert.equal(JSON.parse(generated.stdout).violations.length, 5);
   } finally {
     rmSync(folder, { recursive: true, force: true });
   }

@@ -280,6 +280,26 @@ async function main() {
     passed.push(
       "transient initialization failure recovers in the same process and concurrent replay has one business/audit/confirmation effect"
     );
+    execFileSync(process.execPath, ["--import", "tsx", "tests/postgres-idle-recovery.ts"], {
+      encoding: "utf8", stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        PATH: process.env.PATH, NODE_ENV: "production",
+        SHOP_RECOVERY_FIXTURE: name, DATABASE_URL: url,
+        SHOP_RECOVERY_ADMIN_URL: `postgresql://shop_fixture_admin:${adminPassword}@127.0.0.1:${port}/shop_synthetic_qa`,
+        OPENAI_API_KEY: "", SHOP_AI_ENABLED: "false", SHOP_VOICE_ENABLED: "false", SHOP_AI_BUDGET_MICRO_USD: "0",
+      },
+    });
+    passed.push("public owner routes survive auth and business idle disconnections, retain session and commit one replay-safe effect");
+    if (process.env.SHOP_QUALIFY_NETLIFY === "true") {
+      const report = execFileSync(process.execPath, ["tests/netlify-handler.mjs"], {
+        encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 60_000,
+        env: { PATH: process.env.PATH, NODE_ENV: "production", SHOP_RECOVERY_FIXTURE: name,
+          DATABASE_URL: url, SHOP_RECOVERY_ADMIN_URL: `postgresql://shop_fixture_admin:${adminPassword}@127.0.0.1:${port}/shop_synthetic_qa`,
+          NEXT_TELEMETRY_DISABLED: "1", OTEL_SDK_DISABLED: "true", SHOP_AI_ENABLED: "false", SHOP_VOICE_ENABLED: "false", SHOP_AI_BUDGET_MICRO_USD: "0" },
+      });
+      console.log(report);
+      passed.push("generated Netlify handler auth, origin, recovery, idempotency, incremental SSE and bounded synthetic provider timeout");
+    }
     console.log(
       JSON.stringify(
         {

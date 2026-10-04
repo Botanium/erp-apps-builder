@@ -57,6 +57,17 @@ Tests use isolated fictional data with paid calls disabled. E2E uses a dedicated
 
 ## Hosted prerequisites
 
+### Local Netlify qualification
+
+Next 16.3.8 and the pinned Netlify adapter 5.16.1 have local generated-handler coverage. In a fresh public-only checkout with Node **24.16.0**, no environment files or local owner configuration, and Docker available:
+
+```sh
+SHOP_LOCAL_QUALIFICATION=true node scripts/qualify-netlify-build.mjs
+SHOP_QUALIFY_NETLIFY=true npm run test:postgres
+```
+
+The build uses direct local adapter hooks, not a Netlify login/link/deploy command. Its environment is allowlisted, paid providers are off, and generated server/client artifacts are scanned. The Node network guard is defense in depth, **not an OS sandbox**. The generated-handler suite uses only synthetic local PostgreSQL and intercepted provider fixtures. See [the qualification record](../QUALIFICATION.md) for exact proof and limits. This does not establish Netlify/Neon cloud eligibility, trusted edge headers, hosted behavior or owner acceptance.
+
 Next.js targets the Node24 runtime and a dedicated PostgreSQL database. Apply reviewed SQL migrations only to an explicitly approved new database, then configure server-side `DATABASE_URL`, `SHOP_APP_ORIGIN` (exact HTTPS origin), `SHOP_OWNER_PASSWORD_HASH` and `SHOP_SESSION_SECRET`. Runtime credentials should use a restricted app role; schema administration is separate. Production refuses local SQLite fallback and preview login. Blank names and disabled flags are listed in `.env.example`; actual values are private deployment configuration.
 
 Hosted authentication, persistence, backup/restore, deployment and owner acceptance remain unverified. Commercial hosting must use a commercially eligible plan; Vercel Hobby is not suitable for a business deployment. No deployment, plan purchase, remote database creation or secret upload runs from the verification workflow.

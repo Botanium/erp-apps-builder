@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 const config: NextConfig = {
+  // This app has its own lockfile and no imports from the legacy reference package.
+  outputFileTracingRoot: __dirname,
+  turbopack: { root: __dirname },
   distDir:
     process.env.SHOP_E2E_MODE === "true"
       ? ".next-e2e"

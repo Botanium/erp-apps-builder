@@ -1,0 +1,15 @@
+# Qualification only; no linked site or deployment credentials.
+[build]
+base = "shop-app"
+command = "npm run build"
+publish = ".next"
+
+[build.environment]
+NODE_VERSION = "24.16.0"
+NEXT_TELEMETRY_DISABLED = "1"
+SHOP_AI_ENABLED = "false"
+SHOP_VOICE_ENABLED = "false"
+SHOP_AI_BUDGET_MICRO_USD = "0"
+
+[[plugins]]
+package = "@netlify/plugin-nextjs"

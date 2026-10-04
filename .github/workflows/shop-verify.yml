@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: "24.x"
+          node-version: "24.16.0"
           cache: npm
           cache-dependency-path: shop-app/package-lock.json
       - name: Existing reference regression
@@ -53,10 +53,12 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: node tests/voice-consent.browser.mjs
       - run: npm run test:e2e
-      - name: Isolated PostgreSQL adapter
+      - name: Local Netlify adapter qualification (no cloud)
+        run: SHOP_LOCAL_QUALIFICATION=true node scripts/qualify-netlify-build.mjs
+      - name: Isolated PostgreSQL and generated-handler qualification
         run: |
           docker pull postgres:17-alpine
-          npm run test:postgres
+          SHOP_QUALIFY_NETLIFY=true npm run test:postgres
       - name: Browser failure evidence only
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
